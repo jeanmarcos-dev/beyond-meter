@@ -29,5 +29,5 @@
 
 ## 6. Verificación integral
 
-- [ ] 6.1 Correr la suite completa, `dotnet format --verify-no-changes` sobre Tests (excluyendo `ChatLineTests.cs`) y Cli, el build de la App con `-p:EnableWindowsTargeting=true`, y publicar un tag de prueba con sufijo para que el CI compile el instalador con `Spanish.isl`, previa confirmación del usuario; verificar todo en verde y borrar el pre-release y el tag de prueba
+- [x] 6.1 Correr la suite completa, `dotnet format --verify-no-changes` sobre Tests (excluyendo `ChatLineTests.cs`) y Cli, el build de la App con `-p:EnableWindowsTargeting=true`, y publicar un tag de prueba con sufijo para que el CI compile el instalador con `Spanish.isl`, previa confirmación del usuario; verificar todo en verde y borrar el pre-release y el tag de prueba
 - [ ] 6.2 Verificación manual en Windows (a cargo del usuario): `BeyondMeter.exe --render-sample <carpeta> --lang es` para cada ventana (`--window breakdown|timers|update`), y cambiar el idioma desde Ajustes y desde la bandeja con la app abierta; verificar que no hay textos cortados ni en inglés y que el instalador en español muestra la página de Npcap traducida
