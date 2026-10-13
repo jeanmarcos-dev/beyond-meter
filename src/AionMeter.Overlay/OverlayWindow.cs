@@ -79,6 +79,7 @@ public sealed class OverlayWindow : Window
     private readonly Button _language = new() { Name = "LanguageButton", FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly List<Action> _texts = [];
     private ImageStore? _images;
+    private SkillOrder _skillOrder = SkillOrder.Default;
     private UpdateCoordinator? _updates;
     private readonly Button _updateBanner = new() { Name = "UpdateBanner", FontSize = 12, Padding = new Thickness(8, 3), HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 0, 0, 6), IsVisible = false };
     private readonly Button _filterBosses = new() { FontSize = 12, Padding = new Thickness(8, 2) };
@@ -747,7 +748,8 @@ public sealed class OverlayWindow : Window
     {
         if (actorId is not { } actor || _session.Breakdown(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) is not { } source) return;
         Breakdown?.Close();
-        var breakdown = new BreakdownWindow(source, actor, _settings.BreakdownWidth, _settings.BreakdownHeight, _clock, _images);
+        var breakdown = new BreakdownWindow(source, actor, _settings.BreakdownWidth, _settings.BreakdownHeight, _clock, _images, _session.Tracker.Data.ServerName, _skillOrder);
+        breakdown.OrderChanged += order => _skillOrder = order;
         if (Screens.ScreenFromWindow(this) is { } screen)
         {
             breakdown.WindowStartupLocation = WindowStartupLocation.Manual;

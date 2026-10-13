@@ -1,6 +1,8 @@
 using System.Globalization;
+using AionMeter.Core;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
+using AionMeter.Core.Game;
 using AionMeter.Core.Text;
 using Avalonia;
 
@@ -21,25 +23,29 @@ public sealed record SkillTableRow(
     string Perfect,
     string Heavy,
     string Multi,
-    int SkillCode = 0);
+    int SkillCode = 0,
+    string Tooltip = "",
+    bool DotOnly = false);
+
+public sealed record StatTile(string Label, string Value, string Caption = "");
 
 public sealed record TimelineSeries(uint ActorId, string Name, GameClass Class, bool IsSelected, IReadOnlyList<double> Values);
 
 public sealed record TimelineView(int Seconds, double AxisMax, IReadOnlyList<TimelineSeries> Series);
 
-public sealed record RotationItem(int Index, int OffsetMs, int SkillCode, string Name, long Damage, bool IsCrit, double Size, double X)
+public sealed record RotationItem(int Index, int OffsetMs, int SkillCode, string Name, long Damage, bool IsCrit, double Size, double X, HitFlags Flags = HitFlags.None)
 {
     public string Tooltip
     {
         get
         {
-            var crit = IsCrit ? " · " + UiText.Current.OvCritical : "";
-            return $"{Name} · {MeterView.Compact(Damage)}{crit} · {MeterView.Duration(OffsetMs)}";
+            var flags = Flags == HitFlags.None ? "" : " · " + UiText.Current.FlagsText(Flags);
+            return $"{Format.ClockPrecise(OffsetMs)}  {Name}\n{Format.Grouped(Damage)}{flags}";
         }
     }
 }
 
-public sealed record DefenseView(string Taken, string PerSecond, string Hits);
+public sealed record DefenseView(string Taken, string PerSecond, string Hits, string DotTicks = "0");
 
 public static class BreakdownView
 {
@@ -47,11 +53,64 @@ public static class BreakdownView
     public const double MaxCastSize = 36;
     public const double CastGap = 4;
     public const int SmoothingSeconds = 3;
+    private const string StartedFormat = "dd MMM HH:mm";
 
-    public static IReadOnlyList<string> Tabs => [UiText.Current.OvSkills, UiText.Current.OvTimeline, UiText.Current.TabRotation, UiText.Current.TabDefense];
+    public static IReadOnlyList<string> Tabs => [UiText.Current.OvSkills, UiText.Current.TabAccuracy, UiText.Current.OvTimeline, UiText.Current.TabRotation, UiText.Current.TabDefense];
 
-    public static IReadOnlyList<SkillTableRow> Skills(CombatantDetail detail) =>
-        detail.Skills
+    public static IReadOnlyList<StatTile> Accuracy(CombatantDetail detail)
+    {
+        var t = UiText.Current;
+        var q = detail.Quality;
+        return
+        [
+            new(t.ThCrit, MeterView.Rate(q.CritRate), string.Format(CultureInfo.InvariantCulture, t.QHitsMeasured, q.Hits)),
+            new(t.ThBack, MeterView.Rate(q.BackRate), t.QPositional),
+            new(t.ThFront, MeterView.Rate(q.FrontRate), t.QPositional),
+            new(t.ThPerfect, MeterView.Rate(q.PerfectRate)),
+            new(t.ThSmite, MeterView.Rate(q.HeavyRate)),
+            new(t.ThMulti, MeterView.Rate(q.MultiRate), t.QExtraHits),
+            new(t.QBiggestHit, MeterView.Compact(q.MaxHit), q.MaxHitSkill ?? ""),
+        ];
+    }
+
+    public static IReadOnlyList<StatTile> PlayerTiles(EncounterSnapshot fight, CombatantDetail detail)
+    {
+        var t = UiText.Current;
+        var index = fight.Combatants.ToList().FindIndex(c => c.ActorId == detail.ActorId);
+        var place = detail.ActorId == Combatant.UnknownSummonsId || index < 0 ? "—" : $"{index + 1} / {fight.PlayerCount}";
+        return
+        [
+            new(t.TilePlace, place),
+            new(t.TileDamage, MeterView.Compact(detail.Damage)),
+            new(t.TileDps, MeterView.Compact(detail.Dps)),
+            new(t.TileContrib, MeterView.Percent(detail.Share)),
+            new(t.TileTime, MeterView.Duration(detail.CombatMs)),
+        ];
+    }
+
+    public static string PlayerMeta(CombatantDetail detail, Func<int, string> serverName)
+    {
+        var t = UiText.Current;
+        var parts = new List<string> { t.ClassName(detail.Class) };
+        if (detail.ServerId != 0) parts.Add($"{serverName(detail.ServerId)} {GameData.RegionOf(detail.ServerId)}".Trim());
+        if (detail.GearScore > 0) parts.Add($"{t.Chat.GearScore} {detail.GearScore}");
+        if (detail.CombatPower > 0) parts.Add($"{t.Chat.CombatPower} {Format.Grouped(detail.CombatPower)}");
+        if (detail.IsSelf) parts.Add(t.You);
+        return string.Join(" · ", parts.Where(p => p.Length > 0));
+    }
+
+    public static string FightMeta(EncounterSnapshot fight)
+    {
+        var t = UiText.Current;
+        var started = fight.StartedAt.ToLocalTime().ToString(StartedFormat, t.Culture);
+        var lines = new List<string> { $"{started} · {MeterView.Duration(fight.CombatMs)} · {MeterView.Compact(fight.PartyDps)}/s {t.PartyDpsSuffix}" };
+        if (fight.MostDamageUnsent) lines.Add(t.DamageUnsentLine(fight));
+        if (!string.IsNullOrEmpty(fight.Zone)) lines.Add(fight.Zone);
+        return string.Join("\n", lines);
+    }
+
+    public static IReadOnlyList<SkillTableRow> Skills(CombatantDetail detail, SkillOrder? order = null) =>
+        (order ?? SkillOrder.Default).Apply(detail.Skills, UiText.Current.Culture)
             .Select(s => new SkillTableRow(
                 s.Name,
                 s.Hits.ToString(CultureInfo.InvariantCulture),
@@ -67,8 +126,18 @@ public static class BreakdownView
                 MeterView.Rate(s.PerfectRate),
                 MeterView.Rate(s.HeavyRate),
                 MeterView.Rate(s.MultiRate),
-                s.SkillCode))
+                s.SkillCode,
+                SkillTooltip(s),
+                s.Hits == 0 && s.DotTicks > 0))
             .ToList();
+
+    public static string SkillTooltip(SkillRow s)
+    {
+        var t = UiText.Current;
+        return $"{s.Name} ({s.SkillCode})\n{t.TipSkillDamage} {Format.Grouped(s.Damage)} · {MeterView.Percent(s.Share)}\n" +
+               $"{t.TipSkillHits} {s.Hits} · {t.TipSkillDotTicks} {s.DotTicks}\n" +
+               $"{t.TipSkillMin} {MeterView.Compact(s.Min)} · {t.TipSkillAvg} {MeterView.Compact(s.Average)} · {t.TipSkillMax} {MeterView.Compact(s.Max)}";
+    }
 
     public static TimelineView Timeline(CombatantDetail selected, IReadOnlyList<CombatantDetail> party)
     {
@@ -100,7 +169,7 @@ public static class BreakdownView
         {
             var size = top <= 0 ? MinCastSize : MinCastSize + (MaxCastSize - MinCastSize) * Math.Sqrt(Math.Max(0, cast.Damage) / (double)top);
             var name = names.TryGetValue(cast.SkillCode, out var known) ? known : string.Format(CultureInfo.InvariantCulture, UiText.Current.OvSkillCode, cast.SkillCode);
-            items.Add(new RotationItem(items.Count, cast.OffsetMs, cast.SkillCode, name, cast.Damage, (cast.Flags & HitFlags.Critical) != 0, size, x));
+            items.Add(new RotationItem(items.Count, cast.OffsetMs, cast.SkillCode, name, cast.Damage, (cast.Flags & HitFlags.Critical) != 0, size, x, cast.Flags));
             x += size + CastGap;
         }
         return items;
@@ -125,7 +194,8 @@ public static class BreakdownView
         return new DefenseView(
             MeterView.Compact(detail.DamageTaken),
             seconds > 0 ? MeterView.Compact(detail.DamageTaken / seconds) : "-",
-            detail.HitsTaken.ToString(CultureInfo.InvariantCulture));
+            detail.HitsTaken.ToString(CultureInfo.InvariantCulture),
+            detail.Quality.DotTicks.ToString(CultureInfo.InvariantCulture));
     }
 
     public static PixelPoint Placement(PixelRect workArea, double width, double height, double scaling) =>

@@ -53,7 +53,7 @@ public sealed class LanguageSwitchTests : IDisposable
         Assert.Contains(Buttons(window), b => Equals(b.Content, ru.OvRemove));
         var breakdown = window.Breakdown!;
         Assert.Equal($"{AppInfo.Name} · {ru.OvBreakdown}", breakdown.Title);
-        Assert.Equal([ru.OvSkills, ru.OvTimeline, ru.TabRotation, ru.TabDefense], breakdown.GetLogicalDescendants().OfType<TabItem>().Select(t => t.Header));
+        Assert.Equal([ru.OvSkills, ru.TabAccuracy, ru.OvTimeline, ru.TabRotation, ru.TabDefense], breakdown.GetLogicalDescendants().OfType<TabItem>().Select(t => t.Header));
         Assert.Equal(ru.TrayHide, TrayMenu.Actions(UiText.Current, new TrayState(true, false, UiText.Current.Code), new TrayHandlers(_ => { }, _ => { }, () => { }, new NullBossAlert()))[0].Header);
         Assert.Equal("ru", UserSettings.Load(SettingsPath).Language);
     }

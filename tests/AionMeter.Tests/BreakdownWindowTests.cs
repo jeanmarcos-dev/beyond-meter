@@ -3,6 +3,7 @@ using AionMeter.Core.Events;
 using AionMeter.Core.Game;
 using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
+using AionMeter.Core.Text;
 using AionMeter.Overlay;
 using Avalonia;
 using Avalonia.Controls;
@@ -65,15 +66,15 @@ public sealed class BreakdownWindowTests : IDisposable
         breakdown.UpdateLayout();
         Dispatcher.UIThread.RunJobs();
 
-        var names = breakdown.GetLogicalDescendants().OfType<TextBlock>()
-            .Where(t => t.Text is "Skill" || (t.Text?.StartsWith("Skill 1", StringComparison.Ordinal) ?? false))
+        var names = breakdown.GetLogicalDescendants().OfType<Control>()
+            .Where(c => c.Parent is Grid && (c is Button { Content: "Skill" } || (c is TextBlock { Text: { } text } && text.StartsWith("Skill 1", StringComparison.Ordinal))))
             .ToList();
 
-        Assert.NotEmpty(names);
-        Assert.All(names, t =>
+        Assert.Equal(2, names.Select(c => c.GetType()).Distinct().Count());
+        Assert.All(names, c =>
         {
-            var column = ((Grid)t.Parent!).ColumnDefinitions[Grid.GetColumn(t)].ActualWidth;
-            Assert.True(column >= 150, $"'{t.Text}' column is {column} wide");
+            var column = ((Grid)c.Parent!).ColumnDefinitions[Grid.GetColumn(c)].ActualWidth;
+            Assert.True(column >= 150, $"'{c}' column is {column} wide");
         });
     }
 
@@ -99,7 +100,7 @@ public sealed class BreakdownWindowTests : IDisposable
         Assert.False(breakdown.Topmost);
         Assert.Equal(SystemDecorations.Full, breakdown.SystemDecorations);
         Assert.True(breakdown.CanResize);
-        Assert.Equal(["Skills", "Timeline", "Rotation", "Defense"], breakdown.GetLogicalDescendants().OfType<TabItem>().Select(t => t.Header));
+        Assert.Equal(["Skills", "Accuracy", "Timeline", "Rotation", "Defense"], breakdown.GetLogicalDescendants().OfType<TabItem>().Select(t => t.Header));
     }
 
     [AvaloniaFact]
@@ -109,7 +110,7 @@ public sealed class BreakdownWindowTests : IDisposable
         PartyFight(tracker);
         window.Apply(OverlayCommand.Breakdown);
         var breakdown = window.Breakdown!;
-        breakdown.SelectTab(2);
+        breakdown.SelectTab(3);
         var list = breakdown.GetLogicalDescendants().OfType<ListBox>().Single(l => l.Name == "Players");
         Assert.Equal(3, list.ItemCount);
 
@@ -193,7 +194,7 @@ public sealed class BreakdownWindowTests : IDisposable
         Dispatcher.UIThread.RunJobs();
         Assert.DoesNotContain(Mate, calls);
 
-        breakdown.SelectTab(1);
+        breakdown.SelectTab(2);
         calls.Clear();
         clock.Ms += 1_000;
         breakdown.Tick();
@@ -216,6 +217,43 @@ public sealed class BreakdownWindowTests : IDisposable
         var saved = UserSettings.Load(SettingsPath);
         Assert.Equal((1_100, 700), (saved.BreakdownWidth, saved.BreakdownHeight));
         Assert.Null(window.Breakdown);
+    }
+
+    [AvaloniaFact]
+    public void A_header_click_sorts_the_skills_and_the_next_breakdown_keeps_the_order()
+    {
+        var (window, tracker) = Open();
+        PartyFight(tracker);
+        window.Apply(OverlayCommand.Breakdown);
+        var breakdown = window.Breakdown!;
+
+        Click(breakdown.GetLogicalDescendants().OfType<Button>().First(b => b.Name == "SortName"));
+
+        Assert.Equal(new SkillOrder(SkillColumn.Name, false), breakdown.Order);
+        Assert.Equal(UiText.Current.OvSkill + " ▴", breakdown.GetLogicalDescendants().OfType<Button>().First(b => b.Name == "SortName").Content);
+        breakdown.Close();
+        window.Apply(OverlayCommand.Breakdown);
+        Assert.Equal(new SkillOrder(SkillColumn.Name, false), window.Breakdown!.Order);
+    }
+
+    [AvaloniaFact]
+    public void The_breakdown_shows_the_player_tiles_the_accuracy_and_the_fight_line()
+    {
+        var (window, tracker) = Open();
+        PartyFight(tracker);
+        window.Apply(OverlayCommand.Breakdown);
+        var breakdown = window.Breakdown!;
+
+        Assert.Equal(5, breakdown.GetLogicalDescendants().OfType<WrapPanel>().Single(p => p.Name == "PlayerTiles").Children.Count);
+        Assert.Equal(7, breakdown.GetLogicalDescendants().OfType<WrapPanel>().Single(p => p.Name == "AccuracyTiles").Children.Count);
+        Assert.Contains(UiText.Current.PartyDpsSuffix, breakdown.GetLogicalDescendants().OfType<TextBlock>().Single(t => t.Name == "FightMeta").Text);
+        Assert.Contains(UiText.Current.You, breakdown.GetLogicalDescendants().OfType<TextBlock>().Single(t => t.Name == "PlayerMeta").Text);
+    }
+
+    private static void Click(Button button)
+    {
+        button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Dispatcher.UIThread.RunJobs();
     }
 
     [AvaloniaFact]
@@ -265,7 +303,7 @@ public sealed class BreakdownWindowTests : IDisposable
 
         Assert.InRange(strip.DrawnCount, 1, 60);
         Assert.Equal(20_000 * 40 - 4, strip.Width, 1);
-        Assert.StartsWith("Skill 1 · 1000 · ", strip.TooltipAt(400_010));
+        Assert.StartsWith("16:40.0  Skill 1\n1,000", strip.TooltipAt(400_010));
     }
 
     [AvaloniaFact]
@@ -277,7 +315,7 @@ public sealed class BreakdownWindowTests : IDisposable
         var source = new BreakdownSource(true, _ => Summary([detail]), _ => detail);
         var breakdown = new BreakdownWindow(source, Me, 960, 640, () => clock.Ms);
         breakdown.Show();
-        breakdown.SelectTab(2);
+        breakdown.SelectTab(3);
         Dispatcher.UIThread.RunJobs();
         clock.Ms += 1_000;
         breakdown.Tick();

@@ -13,8 +13,15 @@ namespace AionMeter.Overlay;
 public sealed class BreakdownWindow : Window
 {
     private const long RefreshIntervalMs = 1_000;
-    private const int TimelineTab = 1;
-    private const int RotationTab = 2;
+    private const string DotTag = "DoT";
+    private const int TimelineTab = 2;
+    private const int RotationTab = 3;
+
+    private static readonly SkillColumn?[] Columns =
+    [
+        SkillColumn.Name, SkillColumn.Hits, null, SkillColumn.Damage, SkillColumn.Dps, SkillColumn.Average, SkillColumn.Max, SkillColumn.Share,
+        SkillColumn.Crit, SkillColumn.Back, SkillColumn.Front, SkillColumn.Perfect, SkillColumn.Heavy, SkillColumn.Multi,
+    ];
 
     private static readonly IBrush Gold = new SolidColorBrush(BreakdownPalette.Gold);
     private static readonly IBrush Muted = new SolidColorBrush(BreakdownPalette.Muted);
@@ -36,6 +43,15 @@ public sealed class BreakdownWindow : Window
     private readonly TextBlock _takenTotalLabel = Label();
     private readonly TextBlock _takenPerSecondLabel = Label();
     private readonly TextBlock _takenHitsLabel = Label();
+    private readonly TextBlock _dotTicks = Stat("DotTicks");
+    private readonly TextBlock _dotTicksLabel = Label();
+    private readonly TextBlock _defenseNote = new() { Foreground = Muted, FontSize = 11, TextWrapping = TextWrapping.Wrap };
+    private readonly WrapPanel _accuracy = new() { Name = "AccuracyTiles", ItemSpacing = 8, LineSpacing = 8, Margin = new Thickness(0, 10, 0, 0) };
+    private readonly WrapPanel _playerTiles = new() { Name = "PlayerTiles", ItemSpacing = 6, LineSpacing = 6, Margin = new Thickness(0, 0, 0, 8) };
+    private readonly TextBlock _playerMeta = new() { Name = "PlayerMeta", Foreground = Muted, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, -4, 0, 6) };
+    private readonly TextBlock _fightMeta = new() { Name = "FightMeta", Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap };
+    private readonly Func<int, string> _serverName;
+    private SkillOrder _order;
     private readonly List<TabItem> _tabItems = [];
     private readonly Image _portrait = new() { Name = "FightPortrait", Width = 42, Height = 42, Margin = new Thickness(0, 0, 10, 0), IsVisible = false };
     private readonly ImageStore? _images;
@@ -62,9 +78,11 @@ public sealed class BreakdownWindow : Window
     private long _lastTickMs;
     private bool _syncing;
 
-    public BreakdownWindow(BreakdownSource source, uint actorId, double width, double height, Func<long>? clock = null, ImageStore? images = null)
+    public BreakdownWindow(BreakdownSource source, uint actorId, double width, double height, Func<long>? clock = null, ImageStore? images = null, Func<int, string>? serverName = null, SkillOrder? order = null)
     {
         _source = source;
+        _order = order ?? SkillOrder.Default;
+        _serverName = serverName ?? (id => id.ToString(System.Globalization.CultureInfo.InvariantCulture));
         _images = images;
         if (images is not null) images.Changed += Render;
         _clock = clock ?? (() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
@@ -101,6 +119,17 @@ public sealed class BreakdownWindow : Window
 
     public uint ActorId { get; private set; }
 
+    public SkillOrder Order => _order;
+
+    public event Action<SkillOrder>? OrderChanged;
+
+    public void SortBy(SkillColumn column)
+    {
+        _order = _order.Toggle(column);
+        OrderChanged?.Invoke(_order);
+        Render();
+    }
+
     public void ApplyTexts()
     {
         var t = UiText.Current;
@@ -112,6 +141,8 @@ public sealed class BreakdownWindow : Window
         _takenTotalLabel.Text = t.OvDamageTaken;
         _takenPerSecondLabel.Text = t.OvDamageTakenPerSecond;
         _takenHitsLabel.Text = t.OvHitsTaken;
+        _dotTicksLabel.Text = t.DefDotTicks;
+        _defenseNote.Text = t.DefNote;
         Render();
     }
 
@@ -147,22 +178,25 @@ public sealed class BreakdownWindow : Window
         _tabItems.AddRange(
         [
             new TabItem { Header = names[0], Content = SkillsPage() },
-            new TabItem { Header = names[1], Content = _chart },
-            new TabItem { Header = names[2], Content = RotationPage() },
-            new TabItem { Header = names[3], Content = DefensePage() },
+            new TabItem { Header = names[1], Content = new ScrollViewer { Content = _accuracy } },
+            new TabItem { Header = names[2], Content = _chart },
+            new TabItem { Header = names[3], Content = RotationPage() },
+            new TabItem { Header = names[4], Content = DefensePage() },
         ]);
         _tabs.ItemsSource = _tabItems;
 
         var right = new DockPanel { Margin = new Thickness(12, 0, 0, 0) };
-        DockPanel.SetDock(_playerName, Dock.Top);
-        right.Children.Add(_playerName);
+        var player = new StackPanel { Children = { _playerName, _playerMeta, _playerTiles } };
+        DockPanel.SetDock(player, Dock.Top);
+        right.Children.Add(player);
         right.Children.Add(_tabs);
 
         var body = new DockPanel { Margin = new Thickness(12) };
         _chat.Flyout = ChatMenu.Flyout(() => _source.Snapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), () => (ActorId, _source.Detail(ActorId)?.Name), text => _ = Copy(text));
         _chat.Margin = new Thickness(12, 0, 0, 0);
         _chat.VerticalAlignment = VerticalAlignment.Center;
-        var heading = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8), Children = { _portrait, _title, _chat, _note } };
+        var titleLine = new StackPanel { Orientation = Orientation.Horizontal, Children = { _title, _chat, _note } };
+        var heading = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8), Children = { _portrait, new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { titleLine, _fightMeta } } } };
         _title.VerticalAlignment = VerticalAlignment.Center;
         DockPanel.SetDock(heading, Dock.Top);
         body.Children.Add(heading);
@@ -191,6 +225,8 @@ public sealed class BreakdownWindow : Window
             Block(_takenTotalLabel, _takenTotal),
             Block(_takenPerSecondLabel, _takenPerSecond),
             Block(_takenHitsLabel, _takenHits),
+            Block(_dotTicksLabel, _dotTicks),
+            _defenseNote,
         },
     };
 
@@ -200,6 +236,8 @@ public sealed class BreakdownWindow : Window
         _portrait.Source = snapshot is null ? null : _images?.Portrait(snapshot.Boss?.NpcCode ?? 0, snapshot.TargetCode);
         _portrait.IsVisible = _portrait.Source is not null;
         _title.Text = (snapshot?.Boss?.Name ?? snapshot?.Title ?? UiText.Current.OvFightUnavailable) + " · " + MeterView.Duration(snapshot?.CombatMs ?? 0) + " · " + (_source.IsLive ? UiText.Current.OvLiveFight : UiText.Current.OvSavedFight);
+        _fightMeta.Text = snapshot is null ? "" : BreakdownView.FightMeta(snapshot);
+        ToolTip.SetTip(_fightMeta, snapshot?.MostDamageUnsent == true ? UiText.Current.DamageUnsentTip : null);
         var rows = MeterView.Rows(snapshot, int.MaxValue);
         _syncing = true;
         _players.ItemsSource = rows;
@@ -209,6 +247,9 @@ public sealed class BreakdownWindow : Window
         var detail = _source.Detail(ActorId);
         _playerName.Text = detail?.Name ?? "";
         _playerName.Foreground = new SolidColorBrush(BreakdownPalette.Class(detail?.Class ?? default));
+        _playerMeta.Text = detail is null ? "" : BreakdownView.PlayerMeta(detail, _serverName);
+        Tiles(_playerTiles, snapshot is null || detail is null ? [] : BreakdownView.PlayerTiles(snapshot, detail), 18);
+        Tiles(_accuracy, detail is null ? [] : BreakdownView.Accuracy(detail), 22);
         FillSkills(detail);
         FillDefense(detail);
         if (detail is null) return;
@@ -219,10 +260,68 @@ public sealed class BreakdownWindow : Window
     private void FillSkills(CombatantDetail? detail)
     {
         _skillRows.Children.Clear();
-        _skillRows.Children.Add(SkillLine([UiText.Current.OvSkill, UiText.Current.OvHits, UiText.Current.OvTicks, UiText.Current.RowDamage, "DPS", UiText.Current.OvAverage, UiText.Current.OvMax, "%", UiText.Current.RowCrit, UiText.Current.OvBack, UiText.Current.OvFront, UiText.Current.OvPerfect, UiText.Current.OvHeavy, UiText.Current.OvMulti], Muted, FontWeight.Normal));
+        _skillRows.Children.Add(HeaderLine([UiText.Current.OvSkill, UiText.Current.OvHits, UiText.Current.OvTicks, UiText.Current.RowDamage, "DPS", UiText.Current.OvAverage, UiText.Current.OvMax, "%", UiText.Current.RowCrit, UiText.Current.OvBack, UiText.Current.OvFront, UiText.Current.OvPerfect, UiText.Current.OvHeavy, UiText.Current.OvMulti]));
         if (detail is null) return;
-        foreach (var row in BreakdownView.Skills(detail))
-            _skillRows.Children.Add(SkillLine([row.Name, row.Hits, row.Ticks, row.Damage, row.Dps, row.Average, row.Max, row.Share, row.Crit, row.Back, row.Front, row.Perfect, row.Heavy, row.Multi], Brushes.White, FontWeight.Normal, _images?.SkillIcon(row.SkillCode)));
+        foreach (var row in BreakdownView.Skills(detail, _order))
+        {
+            var name = row.DotOnly ? row.Name + " · " + DotTag : row.Name;
+            var line = SkillLine([name, row.Hits, row.Ticks, row.Damage, row.Dps, row.Average, row.Max, row.Share, row.Crit, row.Back, row.Front, row.Perfect, row.Heavy, row.Multi], Brushes.White, FontWeight.Normal, _images?.SkillIcon(row.SkillCode));
+            ToolTip.SetTip(line, row.Tooltip);
+            _skillRows.Children.Add(line);
+        }
+    }
+
+    private Control HeaderLine(string[] labels)
+    {
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("22,200,56,50,64,64,64,64,48,48,48,48,48,52,52"), Margin = new Thickness(0, 1) };
+        for (var i = 0; i < labels.Length; i++)
+        {
+            var label = labels[i];
+            Control cell;
+            if (Columns[i] is { } column)
+            {
+                var sorted = column == _order.Column;
+                var arrow = _order.Descending ? "▾" : "▴";
+                var head = new Button
+                {
+                    Name = "Sort" + column,
+                    Content = !sorted ? label : i == 0 ? $"{label} {arrow}" : $"{arrow} {label}",
+                    Foreground = sorted ? Gold : Muted,
+                    Background = Brushes.Transparent,
+                    FontSize = 12,
+                    Padding = new Thickness(0),
+                    HorizontalAlignment = i == 0 ? HorizontalAlignment.Left : HorizontalAlignment.Right,
+                };
+                ToolTip.SetTip(head, UiText.Current.SortTip);
+                head.Click += (_, _) => SortBy(column);
+                cell = head;
+            }
+            else
+            {
+                cell = new TextBlock { Text = label, Foreground = Muted, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right };
+            }
+            Grid.SetColumn(cell, i + 1);
+            grid.Children.Add(cell);
+        }
+        return grid;
+    }
+
+    private static void Tiles(Panel panel, IReadOnlyList<StatTile> tiles, double size)
+    {
+        panel.Children.Clear();
+        foreach (var tile in tiles)
+        {
+            var stack = new StackPanel
+            {
+                Children =
+                {
+                    new TextBlock { Text = tile.Label, Foreground = Gold, FontSize = 10.5, FontWeight = FontWeight.SemiBold },
+                    new TextBlock { Text = tile.Value, Foreground = Brushes.White, FontSize = size, FontWeight = FontWeight.Bold },
+                },
+            };
+            if (tile.Caption.Length > 0) stack.Children.Add(new TextBlock { Text = tile.Caption, Foreground = Muted, FontSize = 10.5, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 160 });
+            panel.Children.Add(new Border { Child = stack, Padding = new Thickness(10, 6), MinWidth = 86, CornerRadius = new CornerRadius(4), Background = new SolidColorBrush(Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF)) });
+        }
     }
 
     private void FillDefense(CombatantDetail? detail)
@@ -231,6 +330,7 @@ public sealed class BreakdownWindow : Window
         _takenTotal.Text = defense?.Taken ?? "-";
         _takenPerSecond.Text = defense?.PerSecond ?? "-";
         _takenHits.Text = defense?.Hits ?? "-";
+        _dotTicks.Text = defense?.DotTicks ?? "-";
     }
 
     private void FillTimeline(CombatantDetail detail, IReadOnlyList<RowView> rows)
@@ -265,13 +365,16 @@ public sealed class BreakdownWindow : Window
 
     private static Control PlayerLine(RowView row)
     {
-        var text = new TextBlock
+        var name = new TextBlock
         {
             Text = $"{row.Place}. {row.Name}",
             Foreground = new SolidColorBrush(BreakdownPalette.Class(row.Class)),
             FontWeight = row.IsSelf ? FontWeight.Bold : FontWeight.Normal,
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
+        var share = new TextBlock { Text = row.Share, Foreground = Muted, FontSize = 11, Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(share, 1);
+        var text = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { name, share } };
         return new Border
         {
             BorderBrush = row.IsSelf ? Brushes.White : null,

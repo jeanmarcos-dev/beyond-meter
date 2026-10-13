@@ -21,6 +21,8 @@ public sealed class OverlayTextTests
     [
         "DPS",
         "HPS",
+        "DoT",
+        "dd MMM HH:mm",
         "Open world",
         "AION 2 is not running",
         ".tmp",

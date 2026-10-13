@@ -1,5 +1,6 @@
 using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
+using AionMeter.Core.Text;
 using AionMeter.Overlay;
 using Avalonia;
 
@@ -24,6 +25,81 @@ public sealed class BreakdownViewTests
         IReadOnlyList<long>? perSecond = null,
         IReadOnlyList<CastRecord>? casts = null) =>
         new(id, name, cls, self, 0, 0, 0, combatMs, taken, hitsTaken, NoQuality, skills ?? [], perSecond ?? [], casts ?? []);
+
+    [Fact]
+    public void Accuracy_tiles_sum_up_the_hit_quality_and_the_biggest_hit()
+    {
+        var detail = Detail() with { Quality = new HitQuality(120, 30, 0.25, 0.5, null, 0.1, 0.2, 0.05, 54_321, "Bola de fuego") };
+
+        var tiles = BreakdownView.Accuracy(detail);
+
+        var t = UiText.Current;
+        Assert.Equal([t.ThCrit, t.ThBack, t.ThFront, t.ThPerfect, t.ThSmite, t.ThMulti, t.QBiggestHit], tiles.Select(x => x.Label));
+        Assert.Equal(["25%", "50%", "-", "10%", "20%", "5%", "54.3K"], tiles.Select(x => x.Value));
+        Assert.Equal(string.Format(t.QHitsMeasured, 120), tiles[0].Caption);
+        Assert.Equal("Bola de fuego", tiles[^1].Caption);
+    }
+
+    [Fact]
+    public void The_player_header_shows_place_damage_dps_share_and_time()
+    {
+        var detail = Detail(id: 101, self: false, combatMs: 75_000) with { Damage = 2_500_000, Dps = 33_333, Share = 0.4 };
+        var fight = Fight(100, 101, 102);
+
+        var tiles = BreakdownView.PlayerTiles(fight, detail);
+
+        Assert.Equal(["2 / 3", "2.50M", "33.3K", "40%", "1:15"], tiles.Select(x => x.Value));
+        Assert.Equal("—", BreakdownView.PlayerTiles(fight, Detail(id: Combatant.UnknownSummonsId))[0].Value);
+    }
+
+    [Fact]
+    public void The_player_line_names_class_server_gear_and_you()
+    {
+        var detail = Detail() with { ServerId = 1001, GearScore = 2400, CombatPower = 123_456 };
+        var t = UiText.Current;
+
+        var meta = BreakdownView.PlayerMeta(detail, id => id == 1001 ? "Markutan" : "?");
+
+        var server = ("Markutan " + AionMeter.Core.Game.GameData.RegionOf(1001)).Trim();
+        Assert.Equal($"{t.ClassName(GameClass.Elementalist)} · {server} · {t.Chat.GearScore} 2400 · {t.Chat.CombatPower} 123,456 · {t.You}", meta);
+    }
+
+    [Fact]
+    public void The_fight_line_has_party_dps_the_zone_and_the_unsent_damage_warning()
+    {
+        var fight = Fight(100, 101) with { Zone = "Altgard", PartyDps = 12_000 };
+
+        var lines = BreakdownView.FightMeta(fight).Split('\n');
+
+        Assert.EndsWith($"12.0K/s {UiText.Current.PartyDpsSuffix}", lines[0]);
+        Assert.Equal("Altgard", lines[^1]);
+    }
+
+    [Fact]
+    public void Skills_follow_the_chosen_order_and_explain_themselves_in_the_tooltip()
+    {
+        var skills = new[] { Skill(1, "Zeta"), Skill(2, "Alfa"), Skill(3, "Quemadura", hits: 0, ticks: 12, crit: null) };
+
+        var rows = BreakdownView.Skills(Detail(skills: skills), new SkillOrder(SkillColumn.Name, false));
+
+        Assert.Equal(["Alfa", "Quemadura", "Zeta"], rows.Select(r => r.Name));
+        Assert.True(rows[1].DotOnly);
+        Assert.False(rows[0].DotOnly);
+        Assert.StartsWith("Alfa (2)\n", rows[0].Tooltip);
+        Assert.Contains(UiText.Current.TipSkillMax, rows[0].Tooltip);
+    }
+
+    [Fact]
+    public void Defense_counts_the_damage_over_time_ticks()
+    {
+        var detail = Detail() with { Quality = NoQuality with { DotTicks = 42 } };
+
+        Assert.Equal("42", BreakdownView.Defense(detail).DotTicks);
+    }
+
+    private static EncounterSnapshot Fight(params uint[] ids) =>
+        new(Guid.NewGuid(), "Jefe", null, DateTimeOffset.UnixEpoch, 60_000, 60_000, false, EncounterEndReason.Kill, 0, 0, null,
+            ids.Select(id => new CombatantSnapshot(id, "P" + id, GameClass.Cleric, id == 100, 1_000, 10, 0.3, 5, 0.1, 100, 0)).ToList());
 
     [Fact]
     public void Skills_table_lists_every_skill_without_a_row_limit_and_dashes_unmeasurable_rates()
@@ -146,8 +222,8 @@ public sealed class BreakdownViewTests
 
         var rotation = BreakdownView.Rotation(Detail(skills: [Skill(7, "Bola de fuego")], casts: casts));
 
-        Assert.Equal("Bola de fuego · 12.3K · critical · 0:01", rotation[0].Tooltip);
-        Assert.Equal("Skill 8 · 900 · 0:02", rotation[1].Tooltip);
+        Assert.Equal("0:01.0  Bola de fuego\n12,345 · " + UiText.Current.FlagsText(HitFlags.Critical), rotation[0].Tooltip);
+        Assert.Equal("0:02.0  Skill 8\n900", rotation[1].Tooltip);
     }
 
     [Fact]
