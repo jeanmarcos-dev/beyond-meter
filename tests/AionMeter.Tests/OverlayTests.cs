@@ -1,3 +1,4 @@
+using AionMeter.Core.Settings;
 using AionMeter.Core;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
@@ -133,28 +134,6 @@ public sealed class OverlayTests : IDisposable
 
         Assert.True(CommandChannel.TrySend(path, OverlayCommand.Quit));
         Assert.Equal(OverlayCommand.Quit, await received.Task.WaitAsync(TimeSpan.FromSeconds(5)));
-    }
-
-    [Fact]
-    public void Settings_fall_back_to_defaults_when_missing_or_corrupt()
-    {
-        var path = Path.Combine(_dir, "cfg", "overlay.json");
-        Assert.Equal(new OverlaySettings(), OverlaySettings.Load(path));
-
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, "{not json");
-        Assert.Equal(new OverlaySettings(), OverlaySettings.Load(path));
-    }
-
-    [Fact]
-    public void Settings_round_trip_position_width_and_lock()
-    {
-        var path = Path.Combine(_dir, "cfg", "overlay.json");
-        var saved = new OverlaySettings(X: 3880, Y: 300, Width: 512, Locked: true);
-
-        saved.Save(path);
-
-        Assert.Equal(saved, OverlaySettings.Load(path));
     }
 
     [Theory]

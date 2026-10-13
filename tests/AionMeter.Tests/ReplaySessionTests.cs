@@ -2,6 +2,7 @@ using System.Diagnostics;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Game;
+using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
 using AionMeter.Overlay;
 

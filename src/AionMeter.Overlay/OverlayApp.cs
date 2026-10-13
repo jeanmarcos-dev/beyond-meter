@@ -4,6 +4,7 @@ using AionMeter.Core.Demo;
 using AionMeter.Core.Game;
 using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
+using AionMeter.Core.Text;
 using AionMeter.Overlay.Platform;
 using Avalonia;
 using Avalonia.Controls;
@@ -44,10 +45,11 @@ public sealed class OverlayApp : Application
         var options = Options;
         var desktopPlatform = Desktop;
         var dataHome = desktopPlatform.DataDirectory;
-        var settingsPath = Path.Combine(desktopPlatform.ConfigDirectory, "overlay.json");
-        var settings = OverlaySettings.Load(settingsPath);
+        var settingsPath = SettingsFile.PathIn(desktopPlatform.ConfigDirectory);
+        var settings = SettingsFile.Load(desktopPlatform.ConfigDirectory, desktopPlatform.LegacySettingsPath);
+        UiText.Use(settings.Language);
         var dataDirectory = Path.Combine(AppContext.BaseDirectory, "data");
-        var data = GameData.Load(dataDirectory, settings.Language);
+        var data = GameData.Load(dataDirectory, settings.EffectiveNamesLanguage);
         var meter = new MeterOptions();
         var tracker = new CombatTracker(data, meter);
         var replaying = options.ReplayPath is not null;
@@ -68,7 +70,7 @@ public sealed class OverlayApp : Application
         var window = new OverlayWindow(session, settings, settingsPath, desktopPlatform, tuning.Apply, board, options.Hidden);
 
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-        desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(new UserSettings()), window.Apply);
+        desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(settings), window.Apply);
         window.Shortcuts = desktopPlatform.ShortcutHints();
         if (OperatingSystem.IsWindows()) TrayIcon.SetIcons(Current!, [TrayMenu.Create(window, desktopPlatform.Alert)]);
         window.QuitRequested += () => desktop.Shutdown();

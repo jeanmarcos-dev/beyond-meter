@@ -16,6 +16,8 @@ public sealed class FakeDesktop : IDesktopPlatform, IBossAlert
 
     public string ConfigDirectory { get; }
 
+    public string? LegacySettingsPath { get; set; }
+
     public string DataDirectory { get; }
 
     public string CommandChannelPath { get; }

@@ -1,6 +1,7 @@
 using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
 using AionMeter.Core.Game;
+using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
 using AionMeter.Overlay;
 using Avalonia;
@@ -22,7 +23,7 @@ public sealed class BreakdownWindowTests : IDisposable
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
-    private string SettingsPath => Path.Combine(_dir, "overlay.json");
+    private string SettingsPath => Path.Combine(_dir, "settings.json");
 
     [AvaloniaFact]
     public void Ver_detalle_in_the_skill_panel_opens_the_breakdown_of_that_player()
@@ -212,7 +213,7 @@ public sealed class BreakdownWindowTests : IDisposable
         breakdown.Height = 700;
         breakdown.Close();
 
-        var saved = OverlaySettings.Load(SettingsPath);
+        var saved = UserSettings.Load(SettingsPath);
         Assert.Equal((1_100, 700), (saved.BreakdownWidth, saved.BreakdownHeight));
         Assert.Null(window.Breakdown);
     }
@@ -222,7 +223,7 @@ public sealed class BreakdownWindowTests : IDisposable
     {
         var tracker = new CombatTracker(GameData.Empty, new MeterOptions { TargetMode = TargetMode.All });
         var session = new MeterSession(tracker, new HistoryStore(Path.Combine(_dir, "fights")), null, null, new HistoryPolicy(HistoryMode.All, 20));
-        var window = new OverlayWindow(session, new OverlaySettings(BreakdownWidth: 1_234, BreakdownHeight: 765), SettingsPath, null);
+        var window = new OverlayWindow(session, new UserSettings { BreakdownWidth = 1_234, BreakdownHeight = 765 }, SettingsPath, null);
         window.Show();
         PartyFight(tracker);
 
@@ -300,7 +301,7 @@ public sealed class BreakdownWindowTests : IDisposable
     {
         var tracker = new CombatTracker(GameData.Empty, new MeterOptions { TargetMode = TargetMode.All });
         var session = new MeterSession(tracker, history ?? new HistoryStore(Path.Combine(_dir, "fights")), null, null, new HistoryPolicy(HistoryMode.All, 20));
-        var window = new OverlayWindow(session, new OverlaySettings(), SettingsPath, null);
+        var window = new OverlayWindow(session, new UserSettings(), SettingsPath, null);
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return (window, tracker);

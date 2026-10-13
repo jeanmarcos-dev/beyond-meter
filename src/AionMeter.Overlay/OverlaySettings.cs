@@ -1,7 +1,7 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using AionMeter.Core.Combat;
+using AionMeter.Core.Settings;
 
 namespace AionMeter.Overlay;
 
@@ -24,8 +24,6 @@ public sealed partial record OverlaySettings(
     double BreakdownHeight = 640,
     double Opacity = 0.85)
 {
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
-
     public static OverlaySettings Load(string path)
     {
         try
@@ -71,14 +69,6 @@ public sealed partial record OverlaySettings(
             Number(root, nameof(BreakdownWidth), d.BreakdownWidth, 480, 3000),
             Number(root, nameof(BreakdownHeight), d.BreakdownHeight, 320, 2000),
             Number(root, nameof(Opacity), d.Opacity, 0.15, 1));
-    }
-
-    public void Save(string path)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var tmp = path + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(this, Json));
-        File.Move(tmp, path, overwrite: true);
     }
 
     private static int Int(JsonElement root, string name, int fallback, int min, int max) =>

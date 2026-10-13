@@ -1,16 +1,15 @@
 using AionMeter.Core.Combat;
 using AionMeter.Core.Game;
+using AionMeter.Core.Settings;
 
 namespace AionMeter.Overlay;
 
 public sealed class MeterTuning(MeterOptions meter, GameData data, string dataDirectory, MeterSession? session)
 {
-    public void Apply(OverlaySettings settings)
+    public void Apply(UserSettings settings)
     {
-        meter.TargetMode = settings.TargetMode;
-        meter.IdleTimeoutMs = settings.IdleTimeoutSec * 1000;
-        meter.BossIdleTimeoutMs = settings.BossIdleTimeoutSec * 1000;
-        if (session is not null) session.Policy = new HistoryPolicy(settings.HistoryMode, settings.HistoryMinSeconds);
-        if (data.Language != settings.Language) data.ReloadNames(dataDirectory, settings.Language);
+        settings.ApplyTo(meter);
+        if (session is not null) session.Policy = new HistoryPolicy(settings.HistoryMode, settings.HistoryMinSeconds, settings.SaveHistory);
+        if (data.Language != settings.EffectiveNamesLanguage) data.ReloadNames(dataDirectory, settings.EffectiveNamesLanguage);
     }
 }

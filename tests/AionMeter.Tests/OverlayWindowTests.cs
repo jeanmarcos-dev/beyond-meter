@@ -2,6 +2,7 @@ using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
 using AionMeter.Core.Game;
+using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
 using AionMeter.Overlay;
 using Avalonia;
@@ -178,7 +179,7 @@ public sealed class OverlayWindowTests : IDisposable
         window.Apply(OverlayCommand.Lock);
         Click(window, close);
         Assert.Equal(1, quits);
-        Assert.True(File.Exists(Path.Combine(_dir, "overlay.json")));
+        Assert.True(File.Exists(SettingsPath));
     }
 
     [AvaloniaFact]
@@ -250,7 +251,7 @@ public sealed class OverlayWindowTests : IDisposable
         Assert.Equal("All", mode.Content);
         Assert.Equal(TargetMode.All, meter.TargetMode);
         Assert.Equal(EncounterEndReason.Manual, tracker.Segments()[0].Reason);
-        Assert.Equal(TargetMode.All, OverlaySettings.Load(SettingsPath).TargetMode);
+        Assert.Equal(TargetMode.All, UserSettings.Load(SettingsPath).TargetMode);
 
         window.Apply(OverlayCommand.Mode);
         Assert.Equal("Bosses", mode.Content);
@@ -262,7 +263,7 @@ public sealed class OverlayWindowTests : IDisposable
     {
         var (window, _, tracker, data) = OpenTuned();
         LiveFight(tracker);
-        new OverlaySettings(X: 5, Language: "es", LockedOpacity: 0.3, Locked: true).Save(SettingsPath);
+        new UserSettings { OverlayLeft = 5, NamesLanguage = "es", LockedOpacity = 0.3, Locked = true }.Save(SettingsPath);
 
         window.Apply(OverlayCommand.Reload);
 
@@ -278,7 +279,7 @@ public sealed class OverlayWindowTests : IDisposable
         var history = new HistoryStore(Path.Combine(_dir, "fights"));
         var tracker = new CombatTracker(GameData.Empty, new MeterOptions());
         var session = new MeterSession(tracker, history, null, null, new HistoryPolicy());
-        var window = new OverlayWindow(session, new OverlaySettings(Locked: true, LockedOpacity: 0.4), SettingsPath, null);
+        var window = new OverlayWindow(session, new UserSettings { Locked = true, LockedOpacity = 0.4 }, SettingsPath, null);
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -291,7 +292,7 @@ public sealed class OverlayWindowTests : IDisposable
         var history = new HistoryStore(Path.Combine(_dir, "fights"));
         var tracker = new CombatTracker(GameData.Empty, new MeterOptions());
         var session = new MeterSession(tracker, history, null, null, new HistoryPolicy());
-        var window = new OverlayWindow(session, new OverlaySettings(Opacity: 1), SettingsPath, null);
+        var window = new OverlayWindow(session, new UserSettings { BackgroundOpacity = 1 }, SettingsPath, null);
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -424,7 +425,7 @@ public sealed class OverlayWindowTests : IDisposable
         window.SaveSettings();
 
         Assert.InRange(window.Width, before + 95, before + 105);
-        Assert.Equal(window.Width, OverlaySettings.Load(Path.Combine(_dir, "overlay.json")).Width, 1);
+        Assert.Equal(window.Width, UserSettings.Load(SettingsPath).OverlayWidth, 1);
     }
 
     [AvaloniaFact]
@@ -442,7 +443,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Game_closing_hides_the_window_and_the_game_opening_shows_it()
     {
-        var rig = OpenAuto(new OverlaySettings());
+        var rig = OpenAuto(new UserSettings());
 
         rig.Source.Set(GameClosed);
         rig.Window.Refresh();
@@ -456,7 +457,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Started_hidden_stays_hidden_while_the_game_is_closed_and_shows_when_it_opens()
     {
-        var rig = OpenAuto(new OverlaySettings(), startHidden: true, initial: GameClosed);
+        var rig = OpenAuto(new UserSettings(), startHidden: true, initial: GameClosed);
 
         rig.Window.Refresh();
         Assert.False(rig.Window.IsVisible);
@@ -469,7 +470,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Locked_window_hides_after_the_idle_time_and_shows_again_on_a_fight_without_taking_focus()
     {
-        var rig = OpenAuto(new OverlaySettings(Locked: true, AutoHideSeconds: 60));
+        var rig = OpenAuto(new UserSettings { Locked = true, AutoHideSeconds = 60 });
         rig.Window.Refresh();
 
         rig.Clock.Advance(59);
@@ -490,7 +491,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Unlocked_window_never_auto_hides()
     {
-        var rig = OpenAuto(new OverlaySettings(Locked: false, AutoHideSeconds: 60));
+        var rig = OpenAuto(new UserSettings { Locked = false, AutoHideSeconds = 60 });
 
         rig.Clock.Advance(3_600);
         rig.Window.Refresh();
@@ -501,7 +502,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Toggle_hides_by_hand_and_a_new_fight_does_not_bring_the_window_back()
     {
-        var rig = OpenAuto(new OverlaySettings());
+        var rig = OpenAuto(new UserSettings());
 
         rig.Window.Apply(OverlayCommand.Toggle);
         Assert.False(rig.Window.IsVisible);
@@ -517,7 +518,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Game_restart_after_a_manual_hide_shows_the_window()
     {
-        var rig = OpenAuto(new OverlaySettings());
+        var rig = OpenAuto(new UserSettings());
         rig.Window.Apply(OverlayCommand.Toggle);
 
         rig.Source.Set(GameClosed);
@@ -531,7 +532,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Fights_keep_being_captured_and_saved_while_the_window_is_hidden_by_hand()
     {
-        var rig = OpenAuto(new OverlaySettings());
+        var rig = OpenAuto(new UserSettings());
         rig.Window.Apply(OverlayCommand.Toggle);
         var start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 80_000;
 
@@ -550,7 +551,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void History_filters_narrow_the_list_and_show_the_count_over_the_total()
     {
-        var rig = OpenAuto(new OverlaySettings());
+        var rig = OpenAuto(new UserSettings());
         rig.History.Save(Fight("A", minute: 1, boss: true));
         rig.History.Save(Fight("B", minute: 2, EncounterEndReason.Wipe, boss: true));
         rig.History.Save(Fight("C", minute: 3));
@@ -576,7 +577,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Delete_asks_inline_and_confirming_removes_the_fight_and_shows_the_next_one()
     {
-        var rig = OpenAuto(new OverlaySettings());
+        var rig = OpenAuto(new UserSettings());
         var older = rig.History.Save(Fight("A", minute: 1));
         var newer = rig.History.Save(Fight("B", minute: 2));
         rig.Window.Apply(OverlayCommand.Older);
@@ -602,7 +603,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Cancelling_the_delete_keeps_the_fight()
     {
-        var rig = OpenAuto(new OverlaySettings());
+        var rig = OpenAuto(new UserSettings());
         var path = rig.History.Save(Fight("A", minute: 1));
         rig.Window.Apply(OverlayCommand.Older);
 
@@ -617,7 +618,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void The_delete_confirmation_expires_after_five_seconds_without_deleting()
     {
-        var rig = OpenAuto(new OverlaySettings());
+        var rig = OpenAuto(new UserSettings());
         var path = rig.History.Save(Fight("A", minute: 1));
         rig.Window.Apply(OverlayCommand.Older);
         Click(rig.Window, ButtonOf(rig.Window, "Delete"));
@@ -636,7 +637,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Delete_is_not_offered_while_live()
     {
-        var rig = OpenAuto(new OverlaySettings());
+        var rig = OpenAuto(new UserSettings());
         rig.History.Save(Fight("A", minute: 1));
 
         Assert.False(ButtonOf(rig.Window, "Delete").IsVisible);
@@ -712,7 +713,7 @@ public sealed class OverlayWindowTests : IDisposable
         }
     }
 
-    private (OverlayWindow Window, FakeRecorder Source, CombatTracker Tracker) OpenRecording(OverlaySettings settings)
+    private (OverlayWindow Window, FakeRecorder Source, CombatTracker Tracker) OpenRecording(UserSettings settings)
     {
         var source = new FakeRecorder(Capturing);
         var tracker = new CombatTracker(GameData.Empty, new MeterOptions { TargetMode = TargetMode.All });
@@ -731,7 +732,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Record_command_toggles_the_recording_and_keeps_the_running_fight()
     {
-        var (window, source, tracker) = OpenRecording(new OverlaySettings());
+        var (window, source, tracker) = OpenRecording(new UserSettings());
         LiveFight(tracker);
         var before = tracker.Snapshot(null, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())!.TotalDamage;
 
@@ -751,7 +752,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void The_rec_badge_shows_while_recording_locked_or_unlocked()
     {
-        var (window, _, _) = OpenRecording(new OverlaySettings());
+        var (window, _, _) = OpenRecording(new UserSettings());
         Assert.False(RecBadge(window).IsEffectivelyVisible);
 
         window.Apply(OverlayCommand.Record);
@@ -768,7 +769,7 @@ public sealed class OverlayWindowTests : IDisposable
     [AvaloniaFact]
     public void Record_does_nothing_when_the_source_cannot_record()
     {
-        var (window, _, _, _, _) = OpenAuto(new OverlaySettings());
+        var (window, _, _, _, _) = OpenAuto(new UserSettings());
 
         window.Apply(OverlayCommand.Record);
 
@@ -783,7 +784,7 @@ public sealed class OverlayWindowTests : IDisposable
         var history = new HistoryStore(Path.Combine(_dir, "fights"));
         var session = new MeterSession(tracker, history, source, null, new HistoryPolicy(HistoryMode.All, 1), replay: true);
         session.Start();
-        var window = new OverlayWindow(session, new OverlaySettings(), SettingsPath, null);
+        var window = new OverlayWindow(session, new UserSettings(), SettingsPath, null);
         window.Show();
 
         source.Emit(new SelfIdentifiedEvent(1_000, Me, "Ilvane", 1304, GameClass.Elementalist));
@@ -802,7 +803,7 @@ public sealed class OverlayWindowTests : IDisposable
     private static readonly CaptureStatus GameClosed = new(CaptureState.WaitingForGame, "AION 2 is not running");
 
     private (OverlayWindow Window, FakeSource Source, CombatTracker Tracker, HistoryStore History, FakeClock Clock) OpenAuto(
-        OverlaySettings settings, bool startHidden = false, CaptureStatus? initial = null)
+        UserSettings settings, bool startHidden = false, CaptureStatus? initial = null)
     {
         var source = new FakeSource(initial ?? Capturing);
         var clock = new FakeClock();
@@ -831,7 +832,7 @@ public sealed class OverlayWindowTests : IDisposable
         _board = new BossBoard(timers, world.Data, new FakeBossAlert(), () => Now);
         var tracker = new CombatTracker(GameData.Empty, new MeterOptions { TargetMode = TargetMode.All });
         var session = new MeterSession(tracker, new HistoryStore(Path.Combine(_dir, "fights")), null, null, new HistoryPolicy(HistoryMode.All, 20));
-        var window = new OverlayWindow(session, new OverlaySettings(), Path.Combine(_dir, "overlay.json"), null, board: _board);
+        var window = new OverlayWindow(session, new UserSettings(), SettingsPath, null, board: _board);
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return (window, world);
@@ -839,7 +840,7 @@ public sealed class OverlayWindowTests : IDisposable
 
     private readonly List<BossWorld> _worlds = [];
 
-    private string SettingsPath => Path.Combine(_dir, "overlay.json");
+    private string SettingsPath => Path.Combine(_dir, "settings.json");
 
     private (OverlayWindow Window, MeterOptions Meter, CombatTracker Tracker, GameData Data) OpenTuned()
     {
@@ -852,7 +853,7 @@ public sealed class OverlayWindowTests : IDisposable
         var tracker = new CombatTracker(data, meter);
         var session = new MeterSession(tracker, new HistoryStore(Path.Combine(_dir, "fights")), null, null, new HistoryPolicy());
         var tuning = new MeterTuning(meter, data, dataDir, session);
-        var window = new OverlayWindow(session, new OverlaySettings(), SettingsPath, null, tuning.Apply);
+        var window = new OverlayWindow(session, new UserSettings(), SettingsPath, null, tuning.Apply);
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return (window, meter, tracker, data);
@@ -880,7 +881,7 @@ public sealed class OverlayWindowTests : IDisposable
     {
         tracker = new CombatTracker(GameData.Empty, new MeterOptions { TargetMode = TargetMode.All });
         var session = new MeterSession(tracker, history, null, null, new HistoryPolicy(HistoryMode.All, 20));
-        var window = new OverlayWindow(session, new OverlaySettings(), Path.Combine(_dir, "overlay.json"), null);
+        var window = new OverlayWindow(session, new UserSettings(), SettingsPath, null);
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return window;

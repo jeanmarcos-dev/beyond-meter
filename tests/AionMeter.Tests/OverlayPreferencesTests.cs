@@ -1,6 +1,7 @@
 using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
 using AionMeter.Core.Game;
+using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
 using AionMeter.Overlay;
 
@@ -141,18 +142,6 @@ public sealed class OverlayPreferencesTests : IDisposable
         Assert.Equal(new OverlaySettings(X: 3880, Y: 240, Width: 420, Locked: true), s);
     }
 
-    [Fact]
-    public void Saved_preferences_round_trip_with_readable_enums()
-    {
-        var path = Path.Combine(_dir, "overlay.json");
-        var saved = new OverlaySettings(TargetMode: TargetMode.All, Language: "es", HistoryMode: HistoryMode.All, LockedOpacity: 0.3);
-
-        saved.Save(path);
-
-        Assert.Contains("\"All\"", File.ReadAllText(path));
-        Assert.Equal(saved, OverlaySettings.Load(path));
-    }
-
     [Theory]
     [InlineData(HistoryMode.BossesAndLong, false, 12_000, false)]
     [InlineData(HistoryMode.BossesAndLong, true, 8_000, true)]
@@ -194,8 +183,15 @@ public sealed class OverlayPreferencesTests : IDisposable
         var session = new MeterSession(tracker, new HistoryStore(Path.Combine(_dir, "fights")), null, null, new HistoryPolicy());
         var tuning = new MeterTuning(meter, gameData, data, session);
 
-        tuning.Apply(new OverlaySettings(TargetMode: TargetMode.All, Language: "es", IdleTimeoutSec: 15, BossIdleTimeoutSec: 45,
-            HistoryMode: HistoryMode.All, HistoryMinSeconds: 60));
+        tuning.Apply(new UserSettings
+        {
+            TargetMode = TargetMode.All,
+            NamesLanguage = "es",
+            IdleTimeoutSec = 15,
+            BossIdleTimeoutSec = 45,
+            HistoryMode = HistoryMode.All,
+            HistoryMinSeconds = 60,
+        });
 
         Assert.Equal(TargetMode.All, meter.TargetMode);
         Assert.Equal(15_000, meter.IdleTimeoutMs);
@@ -206,13 +202,38 @@ public sealed class OverlayPreferencesTests : IDisposable
     }
 
     [Fact]
+    public void Names_follow_the_interface_language_unless_set_apart()
+    {
+        var data = DataWithSpanish();
+        var gameData = GameData.Load(data);
+        var tuning = new MeterTuning(new MeterOptions(), gameData, data, null);
+
+        tuning.Apply(new UserSettings { Language = "es" });
+        Assert.Equal("Bola de fuego", gameData.SkillName(16040000));
+
+        tuning.Apply(new UserSettings { Language = "es", NamesLanguage = "en" });
+        Assert.Equal("Fireball", gameData.SkillName(16040000));
+    }
+
+    [Fact]
+    public void Turning_off_history_saving_stops_saving_fights()
+    {
+        var session = new MeterSession(new CombatTracker(GameData.Empty, new MeterOptions()), new HistoryStore(Path.Combine(_dir, "fights")), null, null, new HistoryPolicy());
+        var tuning = new MeterTuning(new MeterOptions(), GameData.Empty, _dir, session);
+
+        tuning.Apply(new UserSettings { SaveHistory = false });
+
+        Assert.False(session.Policy.Enabled);
+    }
+
+    [Fact]
     public void An_unknown_language_keeps_english_names()
     {
         var data = DataWithSpanish();
         var gameData = GameData.Load(data);
         var tuning = new MeterTuning(new MeterOptions(), gameData, data, null);
 
-        tuning.Apply(new OverlaySettings(Language: "xx"));
+        tuning.Apply(new UserSettings { NamesLanguage = "xx" });
 
         Assert.Equal("Fireball", gameData.SkillName(16040000));
     }

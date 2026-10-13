@@ -6,6 +6,8 @@ public interface IDesktopPlatform : IDisposable
 {
     string ConfigDirectory { get; }
 
+    string? LegacySettingsPath { get; }
+
     string DataDirectory { get; }
 
     string CommandChannelPath { get; }

@@ -22,6 +22,8 @@ public sealed class LinuxDesktop : IDesktopPlatform
 
     public string ConfigDirectory { get; }
 
+    public string? LegacySettingsPath => Path.Combine(ConfigDirectory, "overlay.json");
+
     public string DataDirectory { get; }
 
     public string CommandChannelPath { get; }

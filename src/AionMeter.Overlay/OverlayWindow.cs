@@ -1,4 +1,5 @@
 using AionMeter.Core.Combat;
+using AionMeter.Core.Settings;
 using AionMeter.Core.Text;
 using AionMeter.Overlay.Platform;
 using Avalonia;
@@ -42,7 +43,7 @@ public sealed class OverlayWindow : Window
     private readonly ListBox _history = new() { MaxHeight = 260, Background = Brushes.Transparent };
     private readonly Border _historyPanel = new() { Margin = new Thickness(0, 6, 0, 0), IsVisible = false };
     private readonly SkillPanel _skills = new() { IsVisible = false };
-    private readonly Action<OverlaySettings> _tune;
+    private readonly Action<UserSettings> _tune;
     private readonly BossBoard? _board;
     private readonly BossPanel? _bossPanel;
     private readonly TextBlock _nextBoss = new() { Foreground = Gold, FontSize = 12, Margin = new Thickness(6, 2), IsVisible = false, TextTrimming = TextTrimming.CharacterEllipsis };
@@ -58,7 +59,7 @@ public sealed class OverlayWindow : Window
     private readonly Button _view = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly List<TextBlock> _columnCells = [];
     private ViewMode _viewMode = ViewMode.Damage;
-    private OverlaySettings _settings;
+    private UserSettings _settings;
     private readonly Button _close = new() { Content = "✕", FontSize = 12, Padding = new Thickness(8, 2), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top };
     private readonly Button _copy = new() { Content = CopyLabel, FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly Button _filterBosses = new() { Content = UiText.Current.OvBossesOnly, FontSize = 12, Padding = new Thickness(8, 2) };
@@ -71,7 +72,7 @@ public sealed class OverlayWindow : Window
     private readonly DeleteConfirmation _confirmation;
     private bool _historyDirty = true;
 
-    public OverlayWindow(MeterSession session, OverlaySettings settings, string settingsPath, IDesktopPlatform? desktop, Action<OverlaySettings>? tune = null, BossBoard? board = null, bool startHidden = false, Func<long>? clock = null)
+    public OverlayWindow(MeterSession session, UserSettings settings, string settingsPath, IDesktopPlatform? desktop, Action<UserSettings>? tune = null, BossBoard? board = null, bool startHidden = false, Func<long>? clock = null)
     {
         _policy = new VisibilityPolicy(startVisible: !startHidden);
         _clock = clock ?? (() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
@@ -93,9 +94,9 @@ public sealed class OverlayWindow : Window
         TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
         Background = Brushes.Transparent;
         SizeToContent = SizeToContent.Height;
-        Width = settings.Width;
+        Width = settings.OverlayWidth;
         WindowStartupLocation = WindowStartupLocation.Manual;
-        Position = new PixelPoint(settings.X, settings.Y);
+        Position = SavedPosition();
 
         for (var i = 0; i < settings.MaxRows; i++)
         {
@@ -142,7 +143,7 @@ public sealed class OverlayWindow : Window
                 SetVisible(_policy.Visible);
                 break;
             case OverlayCommand.Lock:
-                _settings = _settings with { Locked = !_settings.Locked };
+                _settings.Locked = !_settings.Locked;
                 ApplyLock();
                 SaveSettings();
                 break;
@@ -175,7 +176,7 @@ public sealed class OverlayWindow : Window
                 break;
             case OverlayCommand.Mode:
                 _session.Reset();
-                _settings = _settings with { TargetMode = _settings.TargetMode == TargetMode.All ? TargetMode.BossOnly : TargetMode.All };
+                _settings.TargetMode = _settings.TargetMode == TargetMode.All ? TargetMode.BossOnly : TargetMode.All;
                 _tune(_settings);
                 SaveSettings();
                 break;
@@ -183,16 +184,7 @@ public sealed class OverlayWindow : Window
                 _viewMode = _viewMode == ViewMode.Damage ? ViewMode.Healing : ViewMode.Damage;
                 break;
             case OverlayCommand.Reload:
-                _settings = OverlaySettings.Load(_settingsPath) with
-                {
-                    X = _settings.X,
-                    Y = _settings.Y,
-                    Width = _settings.Width,
-                    Locked = _settings.Locked,
-                    MaxRows = _settings.MaxRows,
-                    BreakdownWidth = _settings.BreakdownWidth,
-                    BreakdownHeight = _settings.BreakdownHeight,
-                };
+                _settings = Reloaded();
                 _tune(_settings);
                 ApplyLock();
                 break;
@@ -210,10 +202,30 @@ public sealed class OverlayWindow : Window
 
     public bool Locked => _settings.Locked;
 
+    public UserSettings Settings => _settings;
+
+    private PixelPoint SavedPosition() => new((int)Math.Round(_settings.OverlayLeft), (int)Math.Round(_settings.OverlayTop));
+
+    private UserSettings Reloaded()
+    {
+        var fresh = UserSettings.Load(_settingsPath);
+        fresh.OverlayLeft = _settings.OverlayLeft;
+        fresh.OverlayTop = _settings.OverlayTop;
+        fresh.OverlayWidth = _settings.OverlayWidth;
+        fresh.Locked = _settings.Locked;
+        fresh.MaxRows = _settings.MaxRows;
+        fresh.BreakdownWidth = _settings.BreakdownWidth;
+        fresh.BreakdownHeight = _settings.BreakdownHeight;
+        return fresh;
+    }
+
     public void SaveSettings()
     {
         if (IsVisible && TryGetPlatformHandle() is { } handle && _desktop?.WindowPosition(handle.Handle) is { } root)
-            _settings = _settings with { X = root.X, Y = root.Y };
+        {
+            _settings.OverlayLeft = root.X;
+            _settings.OverlayTop = root.Y;
+        }
         _settings.Save(_settingsPath);
     }
 
@@ -397,7 +409,7 @@ public sealed class OverlayWindow : Window
         if (!_resizing) return;
         _resizing = false;
         pointer?.Capture(null);
-        _settings = _settings with { Width = Width };
+        _settings.OverlayWidth = Width;
     }
 
     private void ShowShortcutHint()
@@ -416,7 +428,7 @@ public sealed class OverlayWindow : Window
         _toolbar.IsVisible = !locked;
         _close.IsVisible = !locked;
         if (locked) _historyPanel.IsVisible = false;
-        _frame.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round((locked ? _settings.LockedOpacity : _settings.Opacity) * 255), 0x0A, 0x0E, 0x16));
+        _frame.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round((locked ? _settings.LockedOpacity : _settings.BackgroundOpacity) * 255), 0x0A, 0x0E, 0x16));
         _frame.BorderThickness = new Thickness(1);
         if (_desktop is not null && TryGetPlatformHandle() is { } handle) _desktop.SetClickThrough(handle.Handle, locked);
     }
@@ -426,7 +438,7 @@ public sealed class OverlayWindow : Window
         if (visible)
         {
             Show();
-            Position = new PixelPoint(_settings.X, _settings.Y);
+            Position = SavedPosition();
             ApplyLock();
         }
         else
@@ -453,7 +465,8 @@ public sealed class OverlayWindow : Window
 
     private void OnBreakdownClosed(BreakdownWindow breakdown)
     {
-        _settings = _settings with { BreakdownWidth = breakdown.Width, BreakdownHeight = breakdown.Height };
+        _settings.BreakdownWidth = breakdown.Width;
+        _settings.BreakdownHeight = breakdown.Height;
         if (ReferenceEquals(Breakdown, breakdown)) Breakdown = null;
         SaveSettings();
     }

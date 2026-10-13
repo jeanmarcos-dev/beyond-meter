@@ -38,6 +38,8 @@ public sealed class WindowsDesktop : IDesktopPlatform
 
     public string ConfigDirectory { get; }
 
+    public string? LegacySettingsPath => null;
+
     public string DataDirectory { get; }
 
     public string CommandChannelPath { get; }
