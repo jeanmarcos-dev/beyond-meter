@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
-using AionMeter.App.Services;
 using AionMeter.Core;
+using AionMeter.Core.Text;
 
 namespace AionMeter.Tests;
 

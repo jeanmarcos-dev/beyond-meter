@@ -41,7 +41,7 @@ public sealed class IdentityTests
     [Fact]
     public void App_and_installer_share_the_product_name_the_updater_checks()
     {
-        var appInfo = File.ReadAllText(Repository.Path("src", "AionMeter.App", "Services", "AppInfo.cs"));
+        var appInfo = File.ReadAllText(Repository.Path("src", "AionMeter.Core", "Text", "AppInfo.cs"));
         var iss = File.ReadAllText(Repository.Path("installer", "AION2DpsMeter.iss"));
 
         var appName = Regex.Match(appInfo, @"const string Name = ""([^""]+)""").Groups[1].Value;
@@ -56,8 +56,8 @@ public sealed class IdentityTests
 
     private static IEnumerable<string> WindowsSources()
     {
-        var app = Repository.Path("src", "AionMeter.App");
-        var appFiles = Directory.EnumerateFiles(app, "*", SearchOption.AllDirectories)
+        var appFiles = new[] { Repository.Path("src", "AionMeter.App"), Repository.Path("src", "AionMeter.Core", "Text") }
+            .SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
             .Where(f => SourceExtensions.Contains(Path.GetExtension(f)))
             .Select(f => Path.GetRelativePath(Repository.Root, f).Replace('\\', '/'))
             .Where(f => !f.Contains("/bin/") && !f.Contains("/obj/"));

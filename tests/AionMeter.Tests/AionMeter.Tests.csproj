@@ -21,11 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\AionMeter.App\Services\AppInfo.cs" Link="App\AppInfo.cs" />
-    <Compile Include="..\..\src\AionMeter.App\Services\UiText*.cs" Link="App\%(Filename)%(Extension)" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\src\AionMeter.Core\AionMeter.Core.csproj" />
     <ProjectReference Include="..\..\src\AionMeter.Overlay\AionMeter.Overlay.csproj" />
   </ItemGroup>

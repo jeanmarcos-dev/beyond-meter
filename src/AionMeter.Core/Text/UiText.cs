@@ -1,4 +1,4 @@
-namespace AionMeter.App.Services;
+namespace AionMeter.Core.Text;
 
 /// <summary>
 /// All interface wording, in English (default), Spanish or Russian. Plain properties so XAML binds to them:

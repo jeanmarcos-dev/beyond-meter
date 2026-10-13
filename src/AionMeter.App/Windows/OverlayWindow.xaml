@@ -4,7 +4,7 @@
         xmlns:c="clr-namespace:AionMeter.App.Controls"
         xmlns:vm="clr-namespace:AionMeter.App.ViewModels"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
-        xmlns:s="clr-namespace:AionMeter.App.Services"
+        xmlns:s="clr-namespace:AionMeter.Core.Text;assembly=AionMeter.Core"
         x:Name="Root"
         Title="{x:Static s:AppInfo.Name}" Width="470" Height="540" MinWidth="300" MinHeight="160"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"

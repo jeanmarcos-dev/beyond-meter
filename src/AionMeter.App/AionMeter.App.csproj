@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <!-- WPF and WinForms both define Application, MessageBox, Brush... keep WinForms explicit (tray icon only). -->
+    <Using Include="AionMeter.Core.Text" />
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
   </ItemGroup>
