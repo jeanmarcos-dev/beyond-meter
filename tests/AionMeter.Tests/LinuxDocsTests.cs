@@ -46,12 +46,13 @@ public sealed class LinuxDocsTests
         return result;
     }
 
-    private static IEnumerable<string> Section(string doc, string heading)
+    private static IEnumerable<string> Section(string text, string heading)
     {
+        var doc = text.ReplaceLineEndings("\n");
         var start = doc.IndexOf(heading + "\n", StringComparison.Ordinal);
         Assert.True(start >= 0, heading);
         var end = doc.IndexOf("\n## ", start + heading.Length, StringComparison.Ordinal);
-        return doc[start..(end < 0 ? doc.Length : end)].ReplaceLineEndings("\n").Split('\n');
+        return doc[start..(end < 0 ? doc.Length : end)].Split('\n');
     }
 
     private static string Plain(JsonElement value) => value.ValueKind switch
