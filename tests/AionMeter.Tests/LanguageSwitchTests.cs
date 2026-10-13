@@ -84,6 +84,23 @@ public sealed class LanguageSwitchTests : IDisposable
         Assert.Equal(1, changes);
     }
 
+    [AvaloniaFact]
+    public void Saving_russian_in_settings_switches_the_overlay_at_once()
+    {
+        var window = Open();
+        window.SettingsSource = () => new SettingsContext(false, ["en"], [], "", "", false, _ => { }, "", "", "");
+        window.Apply(OverlayCommand.Settings);
+        var dialog = window.SettingsDialog!;
+
+        dialog.LanguageBox.SelectedIndex = 2;
+        dialog.Save();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("ru", UiText.Current.Code);
+        Assert.Contains(Buttons(window), b => Equals(b.Content, UiText.For("ru").OvHistory));
+        Assert.Equal("ru", UserSettings.Load(SettingsPath).Language);
+    }
+
     private OverlayWindow Open()
     {
         var timers = _world.Timers();

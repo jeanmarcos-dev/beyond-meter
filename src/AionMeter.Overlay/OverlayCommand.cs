@@ -18,6 +18,7 @@ public enum OverlayCommand
     Heal,
     Reload,
     Record,
+    Settings,
     Quit,
 }
 

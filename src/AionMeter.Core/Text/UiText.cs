@@ -474,6 +474,13 @@ public sealed partial class UiText
     public string OvReset { get; init; } = "Reset";
     public string OvLock { get; init; } = "Lock";
     public string OvAll { get; init; } = "All";
+    public string OvNamesLanguage { get; init; } = "Skill and monster names";
+    public string OvNamesSame { get; init; } = "Same as the interface";
+    public string OvLockedOpacity { get; init; } = "Background opacity while locked";
+    public string OvAlertMinutes { get; init; } = "Boss alert, minutes before respawn (0 = off)";
+    public string OvHotkeysDesktop { get; init; } = "On Linux the shortcuts belong to the desktop: bind a key to “aionmeter-overlay toggle” (or lock, reset, timers) in its keyboard settings.";
+    public string OvSettingsTip { get; init; } = "Settings";
+    public string OvVersion { get; init; } = "Version {0}";
 
     private static readonly UiText Ru = new()
     {
@@ -881,6 +888,13 @@ public sealed partial class UiText
         OvReset = "Сброс",
         OvLock = "Закрепить",
         OvAll = "Все",
+        OvNamesLanguage = "Названия умений и монстров",
+        OvNamesSame = "Как в интерфейсе",
+        OvLockedOpacity = "Прозрачность фона в закреплённом режиме",
+        OvAlertMinutes = "Оповещение о боссе, минут до возрождения (0 = выкл.)",
+        OvHotkeysDesktop = "В Linux сочетания клавиш задаёт рабочий стол: назначьте клавишу на «aionmeter-overlay toggle» (или lock, reset, timers) в настройках клавиатуры.",
+        OvSettingsTip = "Настройки",
+        OvVersion = "Версия {0}",
     };
 
     private static string RuPlural(int n, string one, string few, string many)

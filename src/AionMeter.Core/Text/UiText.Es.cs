@@ -411,5 +411,12 @@ public sealed partial class UiText
         OvReset = "Reiniciar",
         OvLock = "Fijar",
         OvAll = "Todo",
+        OvNamesLanguage = "Nombres de habilidades y monstruos",
+        OvNamesSame = "Igual que la interfaz",
+        OvLockedOpacity = "Opacidad del fondo con el overlay fijado",
+        OvAlertMinutes = "Aviso de jefe, minutos antes de que reaparezca (0 = apagado)",
+        OvHotkeysDesktop = "En Linux los atajos son del escritorio: asigna una tecla a “aionmeter-overlay toggle” (o lock, reset, timers) en su configuración de teclado.",
+        OvSettingsTip = "Ajustes",
+        OvVersion = "Versión {0}",
     };
 }

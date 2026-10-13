@@ -100,18 +100,7 @@ public sealed class OverlayWindow : Window
         WindowStartupLocation = WindowStartupLocation.Manual;
         Position = SavedPosition();
 
-        for (var i = 0; i < settings.MaxRows; i++)
-        {
-            var row = new RowControl { IsVisible = false };
-            row.PointerPressed += (_, _) =>
-            {
-                if (_settings.Locked) return;
-                _session.ToggleDetail(row.ActorId);
-                Refresh();
-            };
-            _rowControls.Add(row);
-            _rows.Children.Add(row);
-        }
+        EnsureRows(settings.MaxRows);
 
         _frame.Child = BuildLayout();
         Content = _frame;
@@ -133,15 +122,78 @@ public sealed class OverlayWindow : Window
 
     public event Action? LanguageChanged;
 
+    public Func<SettingsContext>? SettingsSource { get; set; }
+
+    public SettingsWindow? SettingsDialog { get; private set; }
+
+    public event Action<UserSettings, UserSettings>? SettingsChanged;
+
     public void ChangeLanguage(string language)
     {
-        _settings.Language = UiText.Normalize(language);
-        UiText.Use(_settings.Language);
-        _tune(_settings);
+        var next = UserSettings.Parse(_settings.ToJson());
+        next.Language = UiText.Normalize(language);
+        UseSettings(next);
+    }
+
+    public void UseSettings(UserSettings settings)
+    {
+        var previous = _settings;
+        settings.OverlayLeft = previous.OverlayLeft;
+        settings.OverlayTop = previous.OverlayTop;
+        settings.OverlayWidth = previous.OverlayWidth;
+        settings.Locked = previous.Locked;
+        settings.BreakdownWidth = previous.BreakdownWidth;
+        settings.BreakdownHeight = previous.BreakdownHeight;
+        _settings = settings;
+        EnsureRows(settings.MaxRows);
+        _tune(settings);
         SaveSettings();
-        ApplyTexts();
-        Breakdown?.ApplyTexts();
-        LanguageChanged?.Invoke();
+        if (UiText.Normalize(settings.Language) != UiText.Current.Code)
+        {
+            UiText.Use(settings.Language);
+            ApplyTexts();
+            Breakdown?.ApplyTexts();
+            LanguageChanged?.Invoke();
+        }
+        ApplyLock();
+        SettingsChanged?.Invoke(previous, settings);
+        Refresh();
+    }
+
+    private void OpenSettings()
+    {
+        if (SettingsDialog is { } open)
+        {
+            open.Activate();
+            return;
+        }
+        if (SettingsSource is not { } source) return;
+        var dialog = new SettingsWindow(_settings, source());
+        dialog.Saved += UseSettings;
+        dialog.Closed += (_, _) => SettingsDialog = null;
+        SettingsDialog = dialog;
+        dialog.Show();
+    }
+
+    private void EnsureRows(int count)
+    {
+        while (_rowControls.Count < count)
+        {
+            var row = new RowControl { IsVisible = false };
+            row.PointerPressed += (_, _) =>
+            {
+                if (_settings.Locked) return;
+                _session.ToggleDetail(row.ActorId);
+                Refresh();
+            };
+            _rowControls.Add(row);
+            _rows.Children.Add(row);
+        }
+        while (_rowControls.Count > count)
+        {
+            _rows.Children.Remove(_rowControls[^1]);
+            _rowControls.RemoveAt(_rowControls.Count - 1);
+        }
     }
 
     private void ApplyTexts()
@@ -215,6 +267,9 @@ public sealed class OverlayWindow : Window
                 _tune(_settings);
                 ApplyLock();
                 break;
+            case OverlayCommand.Settings:
+                OpenSettings();
+                return;
             case OverlayCommand.Record:
                 _session.ToggleRecording();
                 break;
@@ -315,6 +370,10 @@ public sealed class OverlayWindow : Window
         _skills.CopyButton.Click += (_, _) => _ = Copy(DetailLine(), _skills.CopyButton, SkillPanel.CopyLabel);
         _toolbar.Children.Add(ToolButton(t => t.OvLock, () => Apply(OverlayCommand.Lock)));
         _toolbar.Children.Add(_language);
+        var settings = new Button { Content = "⚙", FontSize = 12, Padding = new Thickness(8, 2) };
+        settings.Click += (_, _) => Apply(OverlayCommand.Settings);
+        Text(() => ToolTip.SetTip(settings, UiText.Current.OvSettingsTip));
+        _toolbar.Children.Add(settings);
         _language.Flyout = LanguageMenu();
         Text(() => _copy.Content = CopyLabel);
         Text(() => _filterBosses.Content = UiText.Current.OvBossesOnly);

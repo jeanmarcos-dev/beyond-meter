@@ -11,7 +11,7 @@ public sealed class OverlayTextTests
     private static readonly Regex Word = new(@"[^\W\d_]{3,}");
 
     private static readonly Regex TechnicalUse = new(
-        @"Console\.Error|Name = ""|Import\(|Definitions\(|Path\.Combine\(|env\(""|XElement\(|XAttribute\(|SetValue\(""|ArgumentList\.Add\(|Run\(""|ProcessStartInfo\(|avares://|CreateSubKey\(|CreateTempSubdirectory\(|ProgramName =|KeybindingsPath =|\.Length\.\.\]|StartsWith\(""|Stat\(""");
+        @"Console\.Error|Name = ""|Import\(|Definitions\(|Path\.Combine\(|env\(""|XElement\(|XAttribute\(|SetValue\(""|ArgumentList\.Add\(|Run\(""|ProcessStartInfo\(|avares://|CreateSubKey\(|CreateTempSubdirectory\(|ProgramName =|KeybindingsPath =|\.Length\.\.\]|StartsWith\(""|Stat\(""|EnumerateFiles\(");
 
     private static readonly HashSet<string> CommandLineFiles = ["Program.cs", "ReplayFile.cs", "OverlayCommand.cs", "OverlayArguments.cs"];
 

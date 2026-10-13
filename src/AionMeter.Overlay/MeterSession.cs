@@ -10,7 +10,7 @@ public sealed class MeterSession : IDisposable
     private const long NamesSaveIntervalMs = 5_000;
     private const long ReplayCloseMs = 3_600_000;
 
-    private readonly IEventSource? _capture;
+    private IEventSource? _capture;
     private readonly NameCache? _names;
     private readonly BossTimers? _timers;
     private readonly string? _capturesDirectory;
@@ -73,6 +73,15 @@ public sealed class MeterSession : IDisposable
         _capture.EventDecoded += Tracker.Process;
         if (IsReplay) _capture.StatusChanged += OnReplayStatus;
         _capture.Start();
+    }
+
+    public void ReplaceCapture(IEventSource capture)
+    {
+        var recording = IsRecording;
+        StopCapture();
+        _capture = capture;
+        Start();
+        if (recording) ToggleRecording();
     }
 
     public bool ToggleRecording()
@@ -174,12 +183,7 @@ public sealed class MeterSession : IDisposable
 
     public void Dispose()
     {
-        if (_capture is not null)
-        {
-            _capture.EventDecoded -= Tracker.Process;
-            _capture.StatusChanged -= OnReplayStatus;
-            _capture.Dispose();
-        }
+        StopCapture();
         Tracker.EncounterFinished -= OnEncounterFinished;
         if (_timers is not null)
         {
@@ -188,6 +192,14 @@ public sealed class MeterSession : IDisposable
             Tracker.SelfIdentified -= OnSelfIdentified;
         }
         SaveNames();
+    }
+
+    private void StopCapture()
+    {
+        if (_capture is null) return;
+        _capture.EventDecoded -= Tracker.Process;
+        _capture.StatusChanged -= OnReplayStatus;
+        _capture.Dispose();
     }
 
     private void OnReplayStatus(CaptureStatus status)

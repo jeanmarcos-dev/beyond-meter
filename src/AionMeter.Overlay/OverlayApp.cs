@@ -59,7 +59,7 @@ public sealed class OverlayApp : Application
             : Path.Combine(dataHome, "fights"));
         IEventSource? capture = options.ReplayPath is { } replayPath
             ? new PcapReplaySource(data, replayPath, realtime: !options.Fast)
-            : options.Demo ? null : new LiveCapture(data, new LiveCaptureOptions());
+            : options.Demo ? null : NewLiveCapture(data, settings.CaptureDevice);
         var names = throwAway ? null : new NameCache(Path.Combine(dataHome, "names-cache.json"));
         var board = BossBoard.Create(dataHome, data, dataDirectory, throwAway, desktopPlatform.Alert);
         var session = new MeterSession(tracker, history, capture, names, new HistoryPolicy(), board.Timers, Path.Combine(dataHome, "captures"), replaying);
@@ -72,6 +72,13 @@ public sealed class OverlayApp : Application
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(settings), window.Apply);
         window.Shortcuts = desktopPlatform.ShortcutHints();
+        window.SettingsSource = () => SettingsContexts.For(desktopPlatform, history, dataDirectory, OperatingSystem.IsWindows(), LiveCapture.ListDevices);
+        Func<string?, IEventSource>? liveCapture = capture is LiveCapture ? device => NewLiveCapture(data, device) : null;
+        window.SettingsChanged += (previous, next) => SettingsEffects.Apply(previous, next, session, liveCapture, () =>
+        {
+            desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(next), window.Apply);
+            window.Shortcuts = desktopPlatform.ShortcutHints();
+        });
         if (OperatingSystem.IsWindows()) TrayIcon.SetIcons(Current!, [TrayMenu.Create(window, desktopPlatform.Alert)]);
         window.QuitRequested += () => desktop.Shutdown();
         var channel = CommandChannel.Listen(options.SocketPath, command => Dispatcher.UIThread.Post(() => window.Apply(command)));
@@ -84,8 +91,12 @@ public sealed class OverlayApp : Application
         };
 
         session.Start();
+        if (settings.RecordPackets && capture is LiveCapture) session.ToggleRecording();
         demo?.Start(TimeSpan.FromSeconds(30));
         if (!options.Hidden) window.Show();
     }
+
+    private static LiveCapture NewLiveCapture(GameData data, string? device) =>
+        new(data, new LiveCaptureOptions { DeviceName = OperatingSystem.IsWindows() ? device : null });
 
 }
