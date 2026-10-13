@@ -41,7 +41,7 @@
 
 ## 8. Publicación y verificación integral
 
-- [ ] 8.1 Publicar `v1.0.0` con un tag, previa confirmación del usuario; verificar que el workflow termina en verde y el release tiene todos los archivos
+- [x] 8.1 Publicar `v1.0.0` con un tag, previa confirmación del usuario; verificar que el workflow termina en verde y el release tiene todos los archivos
 - [ ] 8.2 Verificación manual en Windows (a cargo del usuario): instalar `BeyondMeter-Setup.exe` sobre el AION2 DPS Meter original con peleas guardadas, con el original abierto y con acceso directo en el escritorio; verificar una sola entrada "Beyond Meter" en Aplicaciones instaladas, sin accesos directos ni exe viejos, con el historial visible y "Beyond Meter" en títulos y bandeja
 - [ ] 8.3 Verificación manual en Windows (a cargo del usuario): instalación limpia sin el original, y actualización desde la app de `1.0.0` a un `v1.0.1` publicado; verificar que el auto-update instala y vuelve a abrir Beyond Meter en `1.0.1`
 - [ ] 8.4 Verificación en Linux: descargar el tarball del release, ejecutar `install.sh` y abrir el overlay con el juego; verificar que `aionmeter-overlay` captura sin root y que los ajustes y el historial previos siguen ahí
