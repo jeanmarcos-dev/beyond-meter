@@ -1,5 +1,5 @@
-Beyond Meter — установка / installation
-==========================================
+Beyond Meter — установка / installation / instalación
+=====================================================
 
 РУССКИЙ
 
@@ -86,3 +86,46 @@ sends anything to the game. Third-party tools may still be against the game's te
 Licence GPL-3.0 (LICENSE file). The source code is handed out with the program (the "-source" archive).
 New versions and source code: https://github.com/jeanmarcos-dev/beyond-meter
 Based on AION2 DPS Meter by cyberbadger6969: https://github.com/cyberbadger6969/aion2-dps-meter
+
+ESPAÑOL
+
+Necesitas: Windows 10 u 11 (64 bits), AION 2 (Global: EU / NA).
+
+Instalador (lo más fácil)
+1. Ejecuta BeyondMeter-Setup-v<versión>.exe. Si Windows dice "Windows protegió tu PC", haz clic en
+   "Más información" → "Ejecutar de todas formas" (el programa no está firmado con un certificado pago).
+2. El instalador comprueba si está Npcap, el driver de captura gratuito que el medidor necesita para ver el juego.
+   Si falta, haz clic en "Abrir npcap.com", instala Npcap con sus opciones por defecto y vuelve al instalador.
+3. Listo: un acceso directo "Beyond Meter" en el escritorio y en el menú Inicio. No hacen falta permisos de administrador.
+   Actualizar: el medidor se actualiza solo: descarga la versión nueva y la instala cuando no estás jugando
+   (o tras 10 minutos sin pelea), y luego se reinicia. También puedes ejecutar a mano el instalador nuevo.
+   Desinstalar: Configuración → Aplicaciones → Beyond Meter.
+
+Sin instalar (.zip)
+1. Instala Npcap: https://npcap.com/#download (opciones por defecto).
+2. Descomprime el archivo en cualquier carpeta, por ejemplo C:\Games\BeyondMeter (no lo ejecutes desde dentro del zip),
+   y abre BeyondMeter.exe.
+   Actualizar: descomprime la versión nueva sobre la anterior. Desinstalar: borra la carpeta.
+
+Uso
+Juega: el overlay aparece cuando abres el juego y en cada pelea. Volver a abrir el medidor (el acceso directo) también
+lo muestra. El juego envía los nombres de los jugadores en una pantalla de carga, así que abre el medidor antes de
+entrar a una mazmorra.
+
+La "A" dorada del área de notificación abre el menú: overlay, historial de peleas, timers de jefes, ajustes, idioma.
+
+Atajos de teclado (se cambian en Ajustes):
+  Ctrl+Shift+D — mostrar / ocultar el overlay   Ctrl+Shift+R — reiniciar el medidor
+  Ctrl+Shift+L — clic a través                   Ctrl+Shift+T — timers de jefes
+
+Timers de jefes: abre en el juego el mapa → Exploración → monstruos de campo y los timers llegan del servidor;
+la ventana de timers (botón dorado al pie del overlay) sigue contando.
+
+Los ajustes, el historial y los timers se guardan en %AppData%\AionMeter y se conservan al actualizar. Al desinstalar
+desde Aplicaciones se te pregunta si quieres borrarlos también.
+
+El medidor solo escucha el tráfico de red de tu propio juego. Nunca lee la memoria del juego, no inyecta nada ni le
+envía nada. Aun así, las herramientas de terceros pueden ir contra las condiciones del juego: úsalo bajo tu propio riesgo.
+Licencia GPL-3.0 (archivo LICENSE). El código fuente se entrega junto con el programa (el archivo "-source").
+Versiones nuevas y código fuente: https://github.com/jeanmarcos-dev/beyond-meter
+Basado en AION2 DPS Meter de cyberbadger6969: https://github.com/cyberbadger6969/aion2-dps-meter

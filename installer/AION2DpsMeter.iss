@@ -52,6 +52,7 @@ SetupLogging=yes
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "ru"; MessagesFile: "compiler:Languages\Russian.isl"
+Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [CustomMessages]
 en.NpcapTitle=Npcap is needed
@@ -74,6 +75,16 @@ ru.NpcapMissing=✖  Npcap пока не найден.
 ru.NpcapContinue=Npcap всё ещё не установлен. Установить метр без него?%n%nМетр напомнит про Npcap при запуске.
 ru.CloseRunning={#AppName} запущен. Закрыть его и продолжить?
 ru.RemoveUserData=Удалить также настройки, историю боёв и таймеры боссов?%n%n%1
+es.NpcapTitle=Hace falta Npcap
+es.NpcapSubtitle=Un driver de captura gratuito: el medidor ve el tráfico del juego a través de él.
+es.NpcapText=Npcap todavía no está instalado en esta computadora. Sin él, el medidor abre pero no puede ver el juego.%n%n1. Haz clic en "Abrir npcap.com" y descarga el instalador de Npcap.%n2. Ejecútalo y deja las opciones por defecto.%n3. Vuelve aquí y haz clic en Siguiente.%n%nNpcap no puede venir incluido en este instalador: su licencia no lo permite.
+es.NpcapOpen=Abrir npcap.com
+es.NpcapRecheck=Volver a comprobar
+es.NpcapFound=✔  Npcap encontrado, todo listo.
+es.NpcapMissing=✖  Npcap todavía no aparece.
+es.NpcapContinue=Npcap sigue sin instalarse. ¿Instalar el medidor de todos modos?%n%nEl medidor te recordará Npcap al abrirse.
+es.CloseRunning={#AppName} está abierto. ¿Cerrarlo y continuar?
+es.RemoveUserData=¿Borrar también tus ajustes, el historial de peleas y los timers de jefes?%n%n%1
 
 [InstallDelete]
 Type: files; Name: "{app}\{#OldAppExe}"
