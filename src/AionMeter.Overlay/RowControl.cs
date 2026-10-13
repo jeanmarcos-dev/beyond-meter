@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
 
@@ -15,6 +16,9 @@ public sealed class RowControl : Grid
     private readonly TextBlock _damage = Cell(HorizontalAlignment.Right);
     private readonly TextBlock _share = Cell(HorizontalAlignment.Right);
     private readonly TextBlock _crit = Cell(HorizontalAlignment.Right);
+    private readonly Run _gearScore = new() { Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xD8, 0x73)) };
+    private readonly Run _combatPower = new() { Foreground = new SolidColorBrush(Color.FromRgb(0x8F, 0xDB, 0xFF)) };
+    private readonly List<TextBlock> _cells = [];
 
     public Image ClassIcon { get; } = new() { Width = 16, Height = 16, Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
 
@@ -26,9 +30,17 @@ public sealed class RowControl : Grid
         VerticalAlignment = VerticalAlignment.Center,
     };
 
+    public const double BaseHeight = 24;
+    public const double BaseFont = 13;
+    public const double BaseIcon = 16;
+
+    public TextBlock GearScoreText { get; } = Gear();
+
+    public TextBlock CombatPowerText { get; } = Gear();
+
     public RowControl()
     {
-        Height = 24;
+        Height = BaseHeight;
         Background = Brushes.Transparent;
         Margin = new Thickness(0, 1);
 
@@ -41,10 +53,15 @@ public sealed class RowControl : Grid
             ColumnDefinitions = new ColumnDefinitions("*,64,64,40,40"),
             Margin = new Thickness(6, 0),
         };
-        var who = new Grid { ColumnDefinitions = new ColumnDefinitions("20,*,Auto") };
+        var who = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto,Auto") };
         Place(who, ClassIcon, 0);
         Place(who, _name, 1);
         Place(who, LevelText, 2);
+        GearScoreText.Inlines = new InlineCollection { new Run("GS ") { FontWeight = FontWeight.SemiBold }, _gearScore };
+        CombatPowerText.Inlines = new InlineCollection { new Run("CP ") { FontWeight = FontWeight.SemiBold }, _combatPower };
+        Place(who, GearScoreText, 3);
+        Place(who, CombatPowerText, 4);
+        _cells.AddRange([_name, _dps, _damage, _share, _crit]);
         Place(text, who, 0);
         Place(text, _dps, 1);
         Place(text, _damage, 2);
@@ -77,6 +94,22 @@ public sealed class RowControl : Grid
         _damage.Text = row.Damage;
         _share.Text = row.Share;
         _crit.Text = row.Crit;
+        _gearScore.Text = row.GearScore;
+        _combatPower.Text = row.CombatPower;
+        GearScoreText.IsVisible = row.GearScore.Length > 0;
+        CombatPowerText.IsVisible = row.CombatPower.Length > 0;
+        ToolTip.SetTip(GearScoreText, Core.Text.UiText.Current.TipGs);
+        ToolTip.SetTip(CombatPowerText, Core.Text.UiText.Current.TipCp);
+    }
+
+    public void ApplySize(int percent)
+    {
+        var k = Math.Clamp(percent, Core.Settings.UserSettings.MinRowSize, Core.Settings.UserSettings.MaxRowSize) / 100.0;
+        var f = Math.Sqrt(k);
+        Height = Math.Round(BaseHeight * k);
+        foreach (var cell in _cells) cell.FontSize = Math.Round(BaseFont * f, 1);
+        LevelText.FontSize = GearScoreText.FontSize = CombatPowerText.FontSize = Math.Round(11 * f, 1);
+        ClassIcon.Width = ClassIcon.Height = Math.Min(Math.Round(BaseIcon * f), Height - 4);
     }
 
     private static TextBlock Cell(HorizontalAlignment alignment) => new()
@@ -86,6 +119,15 @@ public sealed class RowControl : Grid
         Foreground = Brushes.White,
         FontSize = 13,
         TextTrimming = TextTrimming.CharacterEllipsis,
+    };
+
+    private static TextBlock Gear() => new()
+    {
+        Foreground = new SolidColorBrush(Color.FromRgb(0xD5, 0xDA, 0xE4)),
+        FontSize = 11,
+        Margin = new Thickness(6, 0, 0, 0),
+        VerticalAlignment = VerticalAlignment.Center,
+        IsVisible = false,
     };
 
     private static void Place(Grid grid, Control child, int column)

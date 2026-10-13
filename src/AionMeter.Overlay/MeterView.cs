@@ -1,14 +1,14 @@
 using System.Globalization;
-using AionMeter.Core.Text;
 using AionMeter.Core;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
 using AionMeter.Core.Storage;
+using AionMeter.Core.Text;
 
 namespace AionMeter.Overlay;
 
-public sealed record RowView(uint ActorId, int Place, string Name, GameClass Class, bool IsSelf, double Bar, string Dps, string Damage, string Share, string Crit, string Level = "");
+public sealed record RowView(uint ActorId, int Place, string Name, GameClass Class, bool IsSelf, double Bar, string Dps, string Damage, string Share, string Crit, string Level = "", string GearScore = "", string CombatPower = "");
 
 public sealed record HeaderView(string Title, string Time, string Totals, string Source, bool IsLive, bool Recording = false);
 
@@ -51,13 +51,20 @@ public static class MeterView
     public static IReadOnlyList<string> Columns(ViewMode mode) =>
         mode == ViewMode.Healing ? [T.OvPlayer, "HPS", T.OvHealing, "%", ""] : [T.OvPlayer, "DPS", T.RowDamage, "%", T.RowCrit];
 
-    public static IReadOnlyList<RowView> Rows(EncounterSnapshot? snapshot, int max, ViewMode mode = ViewMode.Damage)
+    public static IReadOnlyList<RowView> Rows(EncounterSnapshot? snapshot, int max, ViewMode mode = ViewMode.Damage, bool showGear = true, bool barsRelativeToTop = true)
     {
         if (snapshot is null || snapshot.Combatants.Count == 0) return [];
-        return mode == ViewMode.Healing ? HealingRows(snapshot, max) : DamageRows(snapshot, max);
+        var rows = mode == ViewMode.Healing ? HealingRows(snapshot, max, barsRelativeToTop) : DamageRows(snapshot, max, barsRelativeToTop);
+        if (!showGear) return rows;
+        var gear = snapshot.Combatants.ToDictionary(c => c.ActorId);
+        return rows.Select(r => gear.TryGetValue(r.ActorId, out var c) ? r with { GearScore = GearScore(c.GearScore), CombatPower = CombatPower(c.CombatPower) } : r).ToList();
     }
 
-    private static IReadOnlyList<RowView> DamageRows(EncounterSnapshot snapshot, int max)
+    public static string GearScore(int value) => value > 0 ? value.ToString(Invariant) : "";
+
+    public static string CombatPower(long value) => value > 0 ? Format.Power(value) : "";
+
+    private static IReadOnlyList<RowView> DamageRows(EncounterSnapshot snapshot, int max, bool relativeToTop)
     {
         var top = Math.Max(1, snapshot.Combatants.Max(c => c.Damage));
         return snapshot.Combatants
@@ -69,7 +76,7 @@ public static class MeterView
                 c.IsUnknownSummons ? T.OvSummons : c.Name,
                 c.Class,
                 c.IsSelf,
-                (double)c.Damage / top,
+                relativeToTop ? (double)c.Damage / top : c.Share,
                 Compact(c.Dps),
                 Compact(c.Damage),
                 Percent(c.Share),
@@ -78,7 +85,7 @@ public static class MeterView
             .ToList();
     }
 
-    private static IReadOnlyList<RowView> HealingRows(EncounterSnapshot snapshot, int max)
+    private static IReadOnlyList<RowView> HealingRows(EncounterSnapshot snapshot, int max, bool relativeToTop)
     {
         var healers = snapshot.Combatants.Where(c => c.Healing > 0).OrderByDescending(c => c.Healing).ToList();
         if (healers.Count == 0) return [];
@@ -92,7 +99,7 @@ public static class MeterView
                 c.IsUnknownSummons ? T.OvSummons : c.Name,
                 c.Class,
                 c.IsSelf,
-                (double)c.Healing / top,
+                relativeToTop ? (double)c.Healing / top : (double)c.Healing / total,
                 Compact(c.Hps),
                 Compact(c.Healing),
                 Percent((double)c.Healing / total),

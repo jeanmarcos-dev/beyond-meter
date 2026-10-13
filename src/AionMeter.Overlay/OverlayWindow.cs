@@ -106,6 +106,12 @@ public sealed class OverlayWindow : Window
 
         _frame.Child = BuildLayout();
         Content = _frame;
+        _rows.PointerWheelChanged += (_, e) =>
+        {
+            if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.Delta.Y == 0) return;
+            ChangeRowSize(Math.Sign(e.Delta.Y));
+            e.Handled = true;
+        };
         ApplyTexts();
 
         _session.History.Changed += () => Dispatcher.UIThread.Post(() => _historyDirty = true);
@@ -125,6 +131,7 @@ public sealed class OverlayWindow : Window
     public event Action? LanguageChanged;
 
     public static readonly TimeSpan DemoLength = TimeSpan.FromSeconds(45);
+    public const int RowSizeStep = 5;
 
     public Func<SettingsContext>? SettingsSource { get; set; }
 
@@ -191,6 +198,15 @@ public sealed class OverlayWindow : Window
         Refresh();
     }
 
+    public void ChangeRowSize(int steps)
+    {
+        var size = Math.Clamp(_settings.RowSize + steps * RowSizeStep, UserSettings.MinRowSize, UserSettings.MaxRowSize);
+        if (size == _settings.RowSize) return;
+        _settings.RowSize = size;
+        foreach (var row in _rowControls) row.ApplySize(size);
+        SaveSettings();
+    }
+
     private void OpenSettings()
     {
         if (SettingsDialog is { } open)
@@ -217,9 +233,11 @@ public sealed class OverlayWindow : Window
                 _session.ToggleDetail(row.ActorId);
                 Refresh();
             };
+            row.ApplySize(_settings.RowSize);
             _rowControls.Add(row);
             _rows.Children.Add(row);
         }
+        foreach (var row in _rowControls) row.ApplySize(_settings.RowSize);
         while (_rowControls.Count > count)
         {
             _rows.Children.Remove(_rowControls[^1]);
@@ -501,7 +519,7 @@ public sealed class OverlayWindow : Window
         var columns = MeterView.Columns(_viewMode);
         for (var i = 0; i < _columnCells.Count; i++) _columnCells[i].Text = columns[i];
 
-        var rows = MeterView.Rows(snapshot, _rowControls.Count, _viewMode);
+        var rows = MeterView.Rows(snapshot, _rowControls.Count, _viewMode, _settings.ShowGear, _settings.BarsRelativeToTop);
         for (var i = 0; i < _rowControls.Count; i++)
         {
             if (i < rows.Count) _rowControls[i].Show(rows[i]);
