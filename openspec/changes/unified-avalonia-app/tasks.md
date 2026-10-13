@@ -35,7 +35,7 @@
 - [x] 5.5 Aviso de Npcap al arrancar en Windows cuando falta, con enlace a npcap.com; test con `FakeDesktop`; verificar que pasa
 - [x] 5.6 Logs en la carpeta de datos con rotación como en la app WPF; tests; verificar que pasan
 - [x] 5.7 Banner y ventana de actualización con novedades en el idioma de la interfaz; en Windows, descarga e instalación como la app WPF; en Linux, solo el aviso y el enlace al release; tests con un feed falso; verificar que pasan
-- [ ] 5.8 Revisar que el historial, el desglose (precisión, rotación, defensa), los timers con alertas y la demo, el replay y la grabación cubren lo de la app WPF, completando lo que falte con sus tests; verificar con la lista de la spec `single-app`
+- [x] 5.8 Revisar que el historial, el desglose (precisión, rotación, defensa), los timers con alertas y la demo, el replay y la grabación cubren lo de la app WPF, completando lo que falte con sus tests; verificar con la lista de la spec `single-app`
 
 ## 6. Windows
 
