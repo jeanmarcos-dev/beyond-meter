@@ -146,6 +146,46 @@ public class UpdateTests
     }
 
     [Fact]
+    public void Notes_of_the_version_in_the_build_props_keep_every_section()
+    {
+        var version = Repository.BuildProperty("Version");
+        var markdown = File.ReadAllText(Repository.Path("release-notes", version + ".md"));
+        var headings = markdown.Split('\n').Where(l => l.StartsWith("## ")).Select(l => l[3..].Trim()).ToList();
+
+        var lines = ReleaseNotes.Lines(markdown, "en");
+
+        Assert.NotEmpty(headings);
+        Assert.Equal(headings, lines.Where(l => l.Heading).Select(l => l.Text));
+        Assert.Equal(lines, ReleaseNotes.Lines(markdown, "ru"));
+    }
+
+    [Fact]
+    public void Updates_come_from_the_fork_releases()
+    {
+        Assert.Equal("https://api.github.com/repos/jeanmarcos-dev/beyond-meter/releases/latest", UpdateFeed.LatestReleaseApi);
+        Assert.Equal("https://github.com/jeanmarcos-dev/beyond-meter/releases/latest", UpdateFeed.ReleasesPage);
+    }
+
+    [Fact]
+    public void Only_a_beyond_meter_installer_is_accepted()
+    {
+        Assert.True(UpdateFeed.IsProductName("Beyond Meter" + new string(' ', 45), "Beyond Meter"));
+        Assert.False(UpdateFeed.IsProductName("AION2 DPS Meter", "Beyond Meter"));
+    }
+
+    [Fact]
+    public void Fork_release_files_are_recognised()
+    {
+        var release = Release.Replace("AION2DpsMeter-", "BeyondMeter-").Replace("v0.2.0", "v1.1.0");
+
+        var r = UpdateFeed.Parse(release)!;
+
+        Assert.Equal(new Version(1, 1, 0), r.Version);
+        Assert.Equal("BeyondMeter-Setup-v1.1.0.exe", r.Installer!.Name);
+        Assert.Equal("BeyondMeter-v1.1.0-win-x64.zip", r.Portable!.Name);
+    }
+
+    [Fact]
     public void Single_language_notes_are_shown_whole() =>
         Assert.Equal(("Fixes", true), ReleaseNotes.Lines("## Fixes\n\n- One", "ru")[0]);
 
