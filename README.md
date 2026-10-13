@@ -253,7 +253,7 @@ dotnet test tests/AionMeter.Tests
 ```
 
 ```bash
-src/AionMeter.App/bin/Release/net10.0-windows/BeyondMeter.exe
+src/AionMeter.Overlay/bin/Release/net10.0-windows10.0.19041.0/BeyondMeter.exe
 ```
 
 **Linux:** the native overlay (`src/AionMeter.Overlay`) builds and runs on Linux; see
@@ -292,9 +292,20 @@ Cyrillic letters and as English otherwise, and notes with no section in the inte
 - Испанский интерфейс.
 ```
 
-**Screenshots and video:** `tools/make-site-kit.ps1` renders the pictures in this README, English and Russian
-screenshots, a social preview and the fight animation (MP4 / GIF, needs ffmpeg) into `site-kit\` and
-`dist\AION2DpsMeter-site-kit.zip`, together with the download page brief from `docs/site`.
+**Upstream changes:** the upstream project keeps its WPF app in `src/AionMeter.App`; Beyond Meter removed it in
+2.0.0 and ships the Avalonia app in `src/AionMeter.Overlay` on Windows and Linux. When you merge an upstream release,
+take its changes to `src/AionMeter.Core`, `data/` and the tests as they are, drop `src/AionMeter.App` again and redo
+any interface change it brings in the overlay:
+
+```bash
+git fetch upstream --tags
+git merge v<upstream-version>
+git rm -r --quiet src/AionMeter.App
+dotnet sln AionMeter.sln remove src/AionMeter.App/AionMeter.App.csproj
+dotnet test tests/AionMeter.Tests
+```
+
+Then set `<UpstreamVersion>` in `Directory.Build.props` to the merged version.
 
 ## How it works
 
@@ -306,7 +317,7 @@ Npcap (loopback / NIC) ─► PacketPipeline ─► TcpReassembler ─► FrameD
 ```
 
 - `src/AionMeter.Core` — capture, protocol, combat engine, history, update feed (no UI)
-- `src/AionMeter.App` — the WPF overlay, breakdown, history, timers, settings, updates, tray
+- `src/AionMeter.Overlay` — the Avalonia app for Windows and Linux: overlay, breakdown, history, timers, settings, updates, tray
 - `src/AionMeter.Cli` — developer tool `aionmeter-cli`
 - `tests/AionMeter.Tests` — tests on bytes from real EU captures
 - `data/` — skill / NPC / boss name tables in 10 languages (see `data/NOTICE.md`)
@@ -322,15 +333,14 @@ aionmeter-cli dump captures/x.pcap 0438      # raw damage packets
 aionmeter-cli update-check --pretend 0.0.1   # what the update check sees on GitHub
 ```
 
-### Development switches of BeyondMeter.exe
+### Switches of BeyondMeter.exe
 
 | | |
 |---|---|
-| `--render-sample out.png` | draw the overlay with a scripted fight of every class into a PNG and exit — no window, no capture, no settings or history touched, safe while the game runs. Also `--window breakdown\|timers\|update\|overlay-update\|overlay-crowd`, `--tab accuracy\|rotation`, `--lang ru`, `--backdrop game\|dark\|none`, `--width`, `--height`, `--scale` |
-| `--render-sample <folder> --animate 12 --fps 10` | the overlay frame by frame through the scripted fight, for videos |
-| `--demo` | a synthetic fight (mixes with live data — not while playing) |
-| `--replay file.pcap --open-last [--tab rotation]` | run a recording through the meter and open the breakdown |
-| `--show` | show the overlay this run even if it is hidden in settings |
+| `--demo` | a synthetic fight; it is not saved and leaves the boss timers alone |
+| `--replay file.pcap [--fast]` | run a recording through a new meter window, at its own pace or as fast as it can |
+| `--hidden` | start with the overlay hidden |
+| `show`, `toggle`, `lock`, `reset`, `timers`, `quit` … | send a command to the running meter (the full list is in [docs/linux-overlay.md](docs/linux-overlay.md)) |
 
 ## License and credits
 

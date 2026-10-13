@@ -44,7 +44,7 @@
 - `AION2DpsMeter-v<версия>-win-x64.zip` — то же без установки (самодостаточный exe, папка `data`, `LICENSE`, `INSTALL.txt`);
 - `AION2DpsMeter-v<версия>-source.zip` — исходники без записей трафика (по GPL-3.0 их нужно давать вместе с программой).
 
-Версия берётся из `<Version>` в `src/AionMeter.App/AionMeter.App.csproj` — поднимите её перед выпуском. Всё
+Версия берётся из `<Version>` в `Directory.Build.props` — поднимите её перед выпуском. Всё
 выкладывается вместе в GitHub Releases с тегом `v<версия>`. Проверка обновлений в метре смотрит на последний релиз
 (`/releases/latest`: черновики и pre-release пропускаются) и берёт из него файл `*Setup*.exe` — без него установленные
 копии предложат только страницу загрузки.
@@ -70,7 +70,7 @@ dotnet build AionMeter.sln -c Release
 ```
 
 ```bash
-src/AionMeter.App/bin/Release/net10.0-windows/AION2DpsMeter.exe
+src/AionMeter.Overlay/bin/Release/net10.0-windows10.0.19041.0/BeyondMeter.exe
 ```
 
 Запускайте метр **до** входа в подземелье. Игра присылает ники только на экране загрузки, поэтому игроки, которые
@@ -198,7 +198,7 @@ Npcap (loopback / NIC) ─► PacketPipeline ─► TcpReassembler ─► FrameD
 ```
 
 - `src/AionMeter.Core` — захват, протокол, движок боя, история (без UI)
-- `src/AionMeter.App` — WPF-оверлей, окно разбора, история, настройки, трей
+- `src/AionMeter.Overlay` — приложение на Avalonia для Windows и Linux: оверлей, окно разбора, история, таймеры, настройки, трей
 - `src/AionMeter.Cli` — инструмент разработчика (`aionmeter-cli`)
 - `tests/AionMeter.Tests` — тесты на байтах из реальных EU-захватов
 - `data/` — таблицы имён скиллов / мобов / боссов на 10 языках (см. `data/NOTICE.md`)
@@ -214,15 +214,14 @@ aionmeter-cli dump captures/x.pcap 0438   # сырые пакеты урона
 
 Записи `.pcap` содержат ваш игровой трафик, включая ники, — не публикуйте их.
 
-### Флаги AionMeter.exe для разработки
+### Флаги BeyondMeter.exe
 
 | | |
 |---|---|
-| `--render-sample out.png` | нарисовать оверлей с постановочным боем всех классов в PNG и выйти (без окна, захвата, настроек и истории — можно при запущенной игре). Дополнительно: `--window breakdown\|timers\|update\|overlay-update\|overlay-crowd`, `--tab accuracy\|rotation`, `--lang ru`, `--backdrop game\|dark\|none`, `--width`, `--height`, `--scale` |
-| `--render-sample <папка> --animate 12 --fps 10` | кадры оверлея по ходу боя для видео (`tools/make-site-kit.ps1` собирает из них MP4 и GIF) |
-| `--demo` | синтетический бой (смешивается с живым — не запускать во время игры) |
-| `--replay file.pcap --open-last [--tab rotation]` | прогнать запись и открыть разбор |
-| `--show` | показать оверлей в этом запуске, даже если он скрыт в настройках |
+| `--demo` | синтетический бой; не сохраняется и не трогает таймеры боссов |
+| `--replay file.pcap [--fast]` | прогнать запись в новом окне метра, в своём темпе или как можно быстрее |
+| `--hidden` | запустить со скрытым оверлеем |
+| `show`, `toggle`, `lock`, `reset`, `timers`, `quit` … | отправить команду запущенному метру (полный список — в [docs/linux-overlay.md](docs/linux-overlay.md)) |
 
 ## Лицензия
 

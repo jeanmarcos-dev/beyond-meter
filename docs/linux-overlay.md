@@ -5,7 +5,7 @@ the same capture, combat and history code as the Windows app. Its interface is i
 Languages); the labels below are the English ones.
 
 Each player row and the skills header show the class icon (the same PNGs as the Windows app, from
-`src/AionMeter.App/Assets/Classes`). Your own row also shows your level (`Lv 45`) once the game identifies your
+`src/AionMeter.Overlay/Assets/Classes`). Your own row also shows your level (`Lv 45`) once the game identifies your
 character; other players' levels are not decoded yet.
 
 ## Install

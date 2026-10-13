@@ -35,7 +35,7 @@ PrivilegesRequired=lowest
 SetupArchitecture=x64
 MinVersion=10.0
 OutputBaseFilename=BeyondMeter-Setup-v{#AppVer}
-SetupIconFile=..\src\AionMeter.App\Assets\app.ico
+SetupIconFile=..\src\AionMeter.Overlay\Assets\app.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
 ; The meter's colours: navy background, gold emblem.
