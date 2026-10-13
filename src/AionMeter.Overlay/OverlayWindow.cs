@@ -40,7 +40,7 @@ public sealed class OverlayWindow : Window
     private readonly IDesktopPlatform? _desktop;
     private readonly DispatcherTimer _timer;
     private readonly Border _frame = new() { CornerRadius = new CornerRadius(8), Padding = new Thickness(8) };
-    private readonly TextBlock _title = new() { Foreground = Gold, FontSize = 15, FontWeight = FontWeight.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly TextBlock _title = new() { Name = "FightTitle", Background = Brushes.Transparent, Foreground = Gold, FontSize = 15, FontWeight = FontWeight.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock _time = new() { Foreground = Gold, FontSize = 15, FontWeight = FontWeight.Bold, HorizontalAlignment = HorizontalAlignment.Right };
     private readonly TextBlock _recording = new() { Name = "RecordingBadge", Text = "● REC", Foreground = Brushes.Red, FontSize = 12, FontWeight = FontWeight.Bold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
     private readonly TextBlock _totals = new() { Foreground = Muted, FontSize = 12 };
@@ -125,6 +125,12 @@ public sealed class OverlayWindow : Window
         {
             if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.Delta.Y == 0) return;
             ChangeRowSize(Math.Sign(e.Delta.Y));
+            e.Handled = true;
+        };
+        _title.PointerWheelChanged += (_, e) =>
+        {
+            if (e.Delta.Y == 0) return;
+            Apply(e.Delta.Y < 0 ? OverlayCommand.Older : OverlayCommand.Newer);
             e.Handled = true;
         };
         ApplyTexts();
@@ -537,7 +543,10 @@ public sealed class OverlayWindow : Window
         _grip.PointerCaptureLost += (_, _) => EndResize(null);
 
         _history.ItemTemplate = new FuncDataTemplate<HistoryItemView?>((item, _) => item is null ? new Panel() : HistoryLine(item), supportsRecycling: false);
-        var filters = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(0, 0, 0, 4), Children = { _filterBosses, _filterKills, _historyCount } };
+        var openFolder = new Button { Name = "HistoryFolder", Content = "📂", FontSize = 11, Padding = new Thickness(6, 1) };
+        openFolder.Click += (_, _) => _desktop?.Open(_session.History.Directory);
+        Text(() => ToolTip.SetTip(openFolder, UiText.Current.TipOpenFolder));
+        var filters = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(0, 0, 0, 4), Children = { _filterBosses, _filterKills, openFolder, _historyCount } };
         _filterBosses.Click += (_, _) => SetFilter(_session.Filter with { BossesOnly = !_session.Filter.BossesOnly });
         _filterKills.Click += (_, _) => SetFilter(_session.Filter with { KillsOnly = !_session.Filter.KillsOnly });
         _historyPanel.Child = new StackPanel { Children = { filters, _history } };
@@ -612,7 +621,7 @@ public sealed class OverlayWindow : Window
         _session.Tick(now);
         var snapshot = _session.Current(now);
         var replaying = _session.IsReplay || _session.ReplayingFile;
-        var header = MeterView.Header(snapshot, _session.Status, _session.SelectedIndex(), _session.Filtered().Count, _viewMode, replaying, _session.IsRecording, _session.DemoRunning);
+        var header = MeterView.Header(snapshot, _session.Status, _session.SelectedIndex(), _session.Fights().Count, _viewMode, replaying, _session.IsRecording, _session.DemoRunning);
         _recording.IsVisible = header.Recording;
         _title.Text = header.Title;
         _time.Text = header.Time;
@@ -827,7 +836,7 @@ public sealed class OverlayWindow : Window
     private void ReloadHistory()
     {
         _historyDirty = false;
-        var items = MeterView.History(_session.Filtered(200));
+        var items = MeterView.History(_session.Filtered(200), _session.Tracker.Data);
         _historyCount.Text = string.Format(System.Globalization.CultureInfo.InvariantCulture, UiText.Current.ShownOf, _session.Filtered().Count, _session.History.List().Count);
         _history.ItemsSource = items;
         _history.SelectedItem = items.FirstOrDefault(i => i.Path == _session.SelectedFight);

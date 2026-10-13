@@ -207,6 +207,42 @@ public sealed class OverlayWindowTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void The_wheel_over_the_title_steps_through_fights()
+    {
+        var history = new HistoryStore(Path.Combine(_dir, "fights"));
+        history.Save(Fight("Berk", minute: 10));
+        history.Save(Fight("Linx", minute: 20));
+        var window = Open(history, out _);
+        var title = window.GetLogicalDescendants().OfType<TextBlock>().Single(t => t.Name == "FightTitle");
+        var point = title.TranslatePoint(new Point(5, 5), window)!.Value;
+
+        window.MouseWheel(point, new Vector(0, -1));
+        window.MouseWheel(point, new Vector(0, -1));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "History 2/2");
+
+        window.MouseWheel(point, new Vector(0, 1));
+        window.MouseWheel(point, new Vector(0, 1));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Live" || t.Text == UiText.Current.OvNoCapture);
+    }
+
+    [AvaloniaFact]
+    public void The_history_folder_button_opens_the_fights_folder()
+    {
+        var desktop = new FakeDesktop(_dir);
+        var history = new HistoryStore(Path.Combine(_dir, "fights"));
+        var tracker = new CombatTracker(GameData.Empty, new MeterOptions());
+        var window = new OverlayWindow(new MeterSession(tracker, history, null, null, new HistoryPolicy()), new UserSettings(), SettingsPath, desktop);
+        window.Show();
+        window.Apply(OverlayCommand.History);
+
+        Click(window, window.GetLogicalDescendants().OfType<Button>().Single(b => b.Name == "HistoryFolder"));
+
+        Assert.Equal([history.Directory], desktop.Opened);
+    }
+
+    [AvaloniaFact]
     public void Close_button_quits_and_hides_while_locked()
     {
         var window = Open(new HistoryStore(Path.Combine(_dir, "fights")), out _);

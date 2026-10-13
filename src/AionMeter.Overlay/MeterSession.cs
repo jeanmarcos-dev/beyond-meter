@@ -7,6 +7,8 @@ using AionMeter.Core.Timers;
 
 namespace AionMeter.Overlay;
 
+public sealed record FightRef(string? Path, Guid? Segment, DateTimeOffset StartedAt);
+
 public sealed class MeterSession : IDisposable
 {
     private const long NamesSaveIntervalMs = 5_000;
@@ -19,6 +21,7 @@ public sealed class MeterSession : IDisposable
     private int _savedNamesVersion;
     private long _lastNamesSaveMs;
     private (string Path, FightRecord? Record)? _loaded;
+    private DateTimeOffset _selectedAt;
     private HistoryFilter _filter = HistoryFilter.None;
     private DemoFightSource? _demo;
     private bool _demoFight;
@@ -50,16 +53,17 @@ public sealed class MeterSession : IDisposable
     public Action<string> Log { get; set; } = Console.Error.WriteLine;
     public HistoryStore History { get; }
     public string? SelectedFight { get; private set; }
+    public Guid? SelectedSegment { get; private set; }
     public HistoryFilter Filter
     {
         get => _filter;
         set
         {
             _filter = value;
-            if (SelectedFight is not null && SelectedIndex() < 0) ShowLive();
+            if (!IsLive && SelectedIndex() < 0) ShowLive();
         }
     }
-    public bool IsLive => SelectedFight is null;
+    public bool IsLive => SelectedFight is null && SelectedSegment is null;
     public bool IsReplay { get; }
     public bool IsRecording => _capture is IRecordable { IsRecording: true };
     public bool DemoRunning => _demo?.IsRunning == true;
@@ -143,6 +147,7 @@ public sealed class MeterSession : IDisposable
     {
         if (IsReplay || _replayingFile) return;
         Tracker.Tick(nowMs);
+        if (!IsLive && Tracker.Segments() is [{ IsActive: true } running, ..] && running.StartedAt > _selectedAt) ShowLive();
         if (DemoRunning || _names is null || nowMs - _lastNamesSaveMs < NamesSaveIntervalMs) return;
         _lastNamesSaveMs = nowMs;
         SaveNames();
@@ -154,9 +159,19 @@ public sealed class MeterSession : IDisposable
         ShowLive();
     }
 
-    public void ShowLive() => SelectedFight = null;
+    public void ShowLive() => Select(null);
 
-    public void Show(string path) => SelectedFight = path;
+    public void Show(string path) => Select(new FightRef(path, null, default));
+
+    public IReadOnlyList<FightRef> Fights()
+    {
+        var saved = Filtered();
+        var savedStarts = saved.Select(e => e.StartedAt.ToUnixTimeSeconds()).ToHashSet();
+        var session = _filter.IsActive
+            ? []
+            : Tracker.Segments().Where(s => !s.IsActive && !savedStarts.Contains(s.StartedAt.ToUnixTimeSeconds())).Select(s => new FightRef(null, s.Id, s.StartedAt));
+        return [.. saved.Select(e => new FightRef(e.Path, null, e.StartedAt)).Concat(session).OrderByDescending(f => f.StartedAt)];
+    }
 
     public void Older() => Step(+1);
 
@@ -169,24 +184,25 @@ public sealed class MeterSession : IDisposable
         if (SelectedFight is not { } path) return false;
         var index = SelectedIndex();
         History.Delete(path);
-        var list = Filtered();
+        var list = Fights();
         _loaded = null;
         if (index < 0 || list.Count == 0) ShowLive();
-        else SelectedFight = list[Math.Min(index, list.Count - 1)].Path;
+        else Select(list[Math.Min(index, list.Count - 1)]);
         return true;
     }
 
     public int SelectedIndex()
     {
-        if (SelectedFight is not { } path) return -1;
-        var list = Filtered();
+        if (IsLive) return -1;
+        var list = Fights();
         for (var i = 0; i < list.Count; i++)
-            if (list[i].Path == path) return i;
+            if (list[i].Path == SelectedFight && list[i].Segment == SelectedSegment) return i;
         return -1;
     }
 
     public EncounterSnapshot? Current(long nowMs) =>
-        SelectedFight is null ? Tracker.Snapshot(null, nowMs) : LoadedRecord()?.Summary;
+        SelectedSegment is { } segment ? Tracker.Snapshot(segment, nowMs)
+        : SelectedFight is null ? Tracker.Snapshot(null, nowMs) : LoadedRecord()?.Summary;
 
     public void ToggleSelfDetail()
     {
@@ -205,6 +221,7 @@ public sealed class MeterSession : IDisposable
     {
         var actor = DetailSelf ? snapshot?.Combatants.FirstOrDefault(c => c.IsSelf)?.ActorId : DetailActor;
         if (snapshot is null || actor is not { } id) return null;
+        if (SelectedSegment is { } segment) return Tracker.Detail(segment, id);
         return SelectedFight is null
             ? Tracker.Detail(null, id)
             : LoadedRecord()?.Details.FirstOrDefault(d => d.ActorId == id);
@@ -212,6 +229,8 @@ public sealed class MeterSession : IDisposable
 
     public BreakdownSource? Breakdown(long nowMs)
     {
+        if (SelectedSegment is { } chosen)
+            return new BreakdownSource(false, now => Tracker.Snapshot(chosen, now), id => Tracker.Detail(chosen, id));
         if (SelectedFight is not null)
         {
             if (LoadedRecord() is not { } record) return null;
@@ -275,14 +294,21 @@ public sealed class MeterSession : IDisposable
 
     private void Step(int delta)
     {
-        var list = Filtered();
+        var list = Fights();
         var next = SelectedIndex() + delta;
         if (next < 0 || list.Count == 0)
         {
             ShowLive();
             return;
         }
-        SelectedFight = list[Math.Min(next, list.Count - 1)].Path;
+        Select(list[Math.Min(next, list.Count - 1)]);
+    }
+
+    private void Select(FightRef? fight)
+    {
+        SelectedFight = fight?.Path;
+        SelectedSegment = fight?.Segment;
+        _selectedAt = DateTimeOffset.UtcNow;
     }
 
     private void SaveNames()

@@ -3,6 +3,7 @@ using AionMeter.Core;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
+using AionMeter.Core.Game;
 using AionMeter.Core.Storage;
 using AionMeter.Core.Text;
 
@@ -159,16 +160,30 @@ public static class MeterView
     private static string HealingTotals(EncounterSnapshot snapshot) =>
         string.Format(Invariant, T.OvHealingTotals, Compact(snapshot.Combatants.Sum(c => c.Healing)), Compact(snapshot.Combatants.Sum(c => c.Hps)));
 
-    public static IReadOnlyList<HistoryItemView> History(IEnumerable<HistoryEntry> entries) =>
+    public static string DisplayTitle(HistoryEntry entry, GameData? data)
+    {
+        var code = entry.BossCode != 0 ? entry.BossCode : entry.TargetCode;
+        if (data is null || code == 0 || !data.Npcs.ContainsKey(code)) return entry.Title;
+        var name = data.NpcName(code);
+        var plus = entry.BossCode == 0 ? entry.Title.LastIndexOf(" +", StringComparison.Ordinal) : -1;
+        return plus > 0 ? name + entry.Title[plus..] : name;
+    }
+
+    public static string DisplayZone(string? zone, GameData? data) =>
+        data is not null && zone is not null && zone.StartsWith("Map ", StringComparison.Ordinal) && int.TryParse(zone.AsSpan(4), out var id)
+            ? data.MapName(id)
+            : zone ?? "";
+
+    public static IReadOnlyList<HistoryItemView> History(IEnumerable<HistoryEntry> entries, GameData? data = null) =>
         entries.Select(e =>
             {
                 var inFight = e.SelfPlace > 0;
                 return new HistoryItemView(
                     e.Path,
                     e.StartedAt.ToLocalTime().ToString("dd/MM HH:mm", Invariant),
-                    e.Title,
+                    DisplayTitle(e, data),
                     ResultSymbol(e.Reason),
-                    e.Zone ?? "",
+                    DisplayZone(e.Zone, data),
                     Duration(e.CombatMs),
                     T.Players(e.Players),
                     inFight ? Compact(e.SelfDps) + "/s" : string.Format(Invariant, T.OvPartyRate, Compact(e.PartyDps)),

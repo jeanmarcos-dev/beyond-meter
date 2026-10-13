@@ -395,6 +395,61 @@ public sealed class OverlayTests : IDisposable
     }
 
     [Fact]
+    public void Session_browses_fights_of_this_session_that_were_not_saved()
+    {
+        var session = Session(out var tracker);
+        Setup(tracker);
+        Fight(tracker, start: 1_000, seconds: 2);
+        Fight(tracker, start: 10_000_000, seconds: 30);
+
+        session.Older();
+        Assert.Equal(30_000, session.Current(0)!.CombatMs);
+        session.Older();
+
+        Assert.Null(session.SelectedFight);
+        Assert.NotNull(session.SelectedSegment);
+        Assert.Equal(1, session.SelectedIndex());
+        Assert.Equal(2, session.Fights().Count);
+        Assert.Equal(2_000, session.Current(0)!.CombatMs);
+        Assert.NotNull(session.Breakdown(0)!.Detail(Me));
+        Assert.False(session.Breakdown(0)!.IsLive);
+        Assert.False(session.Delete());
+
+        session.Filter = new HistoryFilter(KillsOnly: true);
+        Assert.True(session.IsLive);
+    }
+
+    [Fact]
+    public void A_new_pull_while_browsing_goes_back_to_live()
+    {
+        var session = Session(out var tracker);
+        Setup(tracker);
+        Fight(tracker, start: 1_000, seconds: 30);
+        session.Older();
+        Assert.False(session.IsLive);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 1_000;
+        tracker.Process(new DamageEvent(now, Me, Boss, 16040000, 1_000, HitFlags.None));
+        session.Tick(now);
+
+        Assert.True(session.IsLive);
+    }
+
+    [Fact]
+    public void History_titles_and_zones_follow_the_names_of_the_game_data()
+    {
+        using var world = new BossWorld();
+        world.Data.Maps[4321] = "Altgard";
+        var renamed = Entry("Линкс", minute: 1, zone: "Map 4321") with { BossCode = BossWorld.Linx };
+        var withAdds = Entry("Old + 2", minute: 2, zone: "Zona") with { TargetCode = BossWorld.Gartua };
+
+        var rows = MeterView.History([renamed, withAdds], world.Data);
+
+        Assert.Equal(["Linx", "Gartua + 2"], rows.Select(r => r.Title));
+        Assert.Equal(["Altgard", "Zona"], rows.Select(r => r.Zone));
+    }
+
+    [Fact]
     public void Session_reset_closes_the_running_fight_saves_it_and_returns_to_live()
     {
         var session = Session(out var tracker);
