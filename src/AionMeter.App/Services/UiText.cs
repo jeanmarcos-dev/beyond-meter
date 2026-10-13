@@ -1,25 +1,39 @@
 namespace AionMeter.App.Services;
 
 /// <summary>
-/// All interface wording, in English (default) or Russian. Plain properties so XAML binds to them:
+/// All interface wording, in English (default), Spanish or Russian. Plain properties so XAML binds to them:
 /// <c>{Binding TabDps, Source={x:Static s:UiText.Current}}</c> in windows, <c>{Binding T.ColDps}</c> in the overlay.
 /// Switching language swaps <see cref="Current"/>; the overlay re-binds, other windows are reopened.
 /// </summary>
-public sealed class UiText
+public sealed partial class UiText
 {
-    public static readonly string[] Languages = ["en", "ru"];
+    public static readonly string[] Languages = ["en", "es", "ru"];
 
     public static UiText Current { get; private set; } = new();
 
-    public static string Normalize(string? language) => language == "ru" ? "ru" : "en";
+    public static string Normalize(string? language) => language is not null && Languages.Contains(language) ? language : "en";
 
-    public static void Use(string? language) => Current = Normalize(language) == "ru" ? Ru : new UiText();
+    public static UiText For(string? language) => Normalize(language) switch
+    {
+        "es" => Es,
+        "ru" => Ru,
+        _ => new UiText(),
+    };
+
+    public static void Use(string? language) => Current = For(language);
 
     public string Code { get; init; } = "en";
     public string LanguageName { get; init; } = "English";
 
     /// <summary>Dates in the interface language ("06 Oct"), not in the Windows one.</summary>
-    public System.Globalization.CultureInfo Culture => System.Globalization.CultureInfo.GetCultureInfo(Code == "ru" ? "ru-RU" : "en-US");
+    public System.Globalization.CultureInfo Culture => System.Globalization.CultureInfo.GetCultureInfo(Code switch
+    {
+        "es" => "es-ES",
+        "ru" => "ru-RU",
+        _ => "en-US",
+    });
+
+    public string DateFormat { get; init; } = "MMMM d, yyyy";
 
     public IReadOnlyDictionary<Core.Events.GameClass, string> ClassNames { get; init; } = new Dictionary<Core.Events.GameClass, string>
     {
@@ -192,7 +206,7 @@ public sealed class UiText
     public string YourPlace { get; init; } = "Your place in this fight";
     public string Party { get; init; } = "party";
     public string Seconds { get; init; } = "s";
-    public string SwitchLanguage { get; init; } = "Language: English → Русский";
+    public string LanguageMenu { get; init; } = "Language";
 
     // ---------------------------------------------------------------- tray
     public string TrayHide { get; init; } = "Hide overlay";
@@ -392,6 +406,7 @@ public sealed class UiText
     {
         Code = "ru",
         LanguageName = "Русский",
+        DateFormat = "d MMMM yyyy",
         ClassNames = new Dictionary<Core.Events.GameClass, string>
         {
             [Core.Events.GameClass.Gladiator] = "Гладиатор",
@@ -517,7 +532,7 @@ public sealed class UiText
         YourPlace = "Ваше место в этом бою",
         Party = "группа",
         Seconds = "с",
-        SwitchLanguage = "Язык: Русский → English",
+        LanguageMenu = "Язык",
 
         TrayHide = "Скрыть оверлей",
         TrayShow = "Показать оверлей",

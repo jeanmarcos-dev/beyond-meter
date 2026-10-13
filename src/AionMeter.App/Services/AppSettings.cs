@@ -59,7 +59,7 @@ public sealed class AppSettings
     public int IdleTimeoutSec { get; set; } = 10;
     public int BossIdleTimeoutSec { get; set; } = 30;
 
-    /// <summary>Interface and skill / NPC name language: "en" (default) or "ru".</summary>
+    /// <summary>Interface and skill / NPC name language: "en" (default), "es" or "ru".</summary>
     public string Language { get; set; } = "en";
 
     /// <summary>Fetch skill icons from the official AION 2 game-data CDN (cached locally).</summary>

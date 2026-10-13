@@ -41,7 +41,7 @@ public partial class UpdateWindow : Window
     public ReleaseInfo Release { get; }
 
     private static string FormatDate(DateTimeOffset at) =>
-        at.LocalDateTime.ToString(UiText.Current.Code == "ru" ? "d MMMM yyyy" : "MMMM d, yyyy", UiText.Current.Culture);
+        at.LocalDateTime.ToString(UiText.Current.DateFormat, UiText.Current.Culture);
 
     private async void Update_Click(object sender, RoutedEventArgs e)
     {
