@@ -15,6 +15,7 @@
 #define OldAppName "AION2 DPS Meter"
 #define OldAppExe "AION2DpsMeter.exe"
 #define RepoUrl "https://github.com/jeanmarcos-dev/beyond-meter"
+#define AppUserModelId "JeanmarcosDev.BeyondMeter"
 
 [Setup]
 ; Identifies the program for upgrades and uninstall: never change it.
@@ -90,13 +91,58 @@ es.RemoveUserData=¿Borrar también tus ajustes, el historial de peleas y los ti
 Type: files; Name: "{app}\{#OldAppExe}"
 Type: files; Name: "{autoprograms}\{#OldAppName}.lnk"
 Type: files; Name: "{autodesktop}\{#OldAppName}.lnk"
+Type: files; Name: "{app}\Accessibility.dll"
+Type: files; Name: "{app}\D3DCompiler_47_cor3.dll"
+Type: files; Name: "{app}\DirectWriteForwarder.dll"
+Type: files; Name: "{app}\Microsoft.VisualBasic.Forms.dll"
+Type: files; Name: "{app}\Microsoft.Win32.Registry.AccessControl.dll"
+Type: files; Name: "{app}\Microsoft.Win32.SystemEvents.dll"
+Type: files; Name: "{app}\PenImc_cor3.dll"
+Type: files; Name: "{app}\Presentation*.dll"
+Type: files; Name: "{app}\ReachFramework.dll"
+Type: files; Name: "{app}\System.CodeDom.dll"
+Type: files; Name: "{app}\System.Configuration.ConfigurationManager.dll"
+Type: files; Name: "{app}\System.Design.dll"
+Type: files; Name: "{app}\System.Diagnostics.EventLog*.dll"
+Type: files; Name: "{app}\System.Diagnostics.PerformanceCounter.dll"
+Type: files; Name: "{app}\System.DirectoryServices.dll"
+Type: files; Name: "{app}\System.Drawing.Common.dll"
+Type: files; Name: "{app}\System.Drawing.Design.dll"
+Type: files; Name: "{app}\System.Formats.Nrbf.dll"
+Type: files; Name: "{app}\System.IO.Packaging.dll"
+Type: files; Name: "{app}\System.Printing.dll"
+Type: files; Name: "{app}\System.Private.Windows.*.dll"
+Type: files; Name: "{app}\System.Resources.Extensions.dll"
+Type: files; Name: "{app}\System.Security.Cryptography.Pkcs.dll"
+Type: files; Name: "{app}\System.Security.Cryptography.ProtectedData.dll"
+Type: files; Name: "{app}\System.Security.Cryptography.Xml.dll"
+Type: files; Name: "{app}\System.Security.Permissions.dll"
+Type: files; Name: "{app}\System.Windows.*.dll"
+Type: files; Name: "{app}\System.Xaml.dll"
+Type: files; Name: "{app}\UIAutomation*.dll"
+Type: files; Name: "{app}\vcruntime140_cor3.dll"
+Type: files; Name: "{app}\WindowsFormsIntegration.dll"
+Type: files; Name: "{app}\wpfgfx_cor3.dll"
+Type: filesandordirs; Name: "{app}\cs"
+Type: filesandordirs; Name: "{app}\de"
+Type: filesandordirs; Name: "{app}\es"
+Type: filesandordirs; Name: "{app}\fr"
+Type: filesandordirs; Name: "{app}\it"
+Type: filesandordirs; Name: "{app}\ja"
+Type: filesandordirs; Name: "{app}\ko"
+Type: filesandordirs; Name: "{app}\pl"
+Type: filesandordirs; Name: "{app}\pt-BR"
+Type: filesandordirs; Name: "{app}\ru"
+Type: filesandordirs; Name: "{app}\tr"
+Type: filesandordirs; Name: "{app}\zh-Hans"
+Type: filesandordirs; Name: "{app}\zh-Hant"
 
 [Files]
 Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Check: DesktopShortcutWanted
+Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"; AppUserModelID: "{#AppUserModelId}"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; AppUserModelID: "{#AppUserModelId}"; Check: DesktopShortcutWanted
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent

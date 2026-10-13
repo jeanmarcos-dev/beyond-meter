@@ -23,6 +23,62 @@ public sealed class InstallerTests
         Assert.All(english, kv => Assert.NotEqual(kv.Value, spanish[kv.Key]));
     }
 
+    [Fact]
+    public void Shortcuts_carry_the_app_user_model_id_of_the_notifications()
+    {
+        var shortcuts = Section("[Icons]").Where(line => line.StartsWith("Name:", StringComparison.Ordinal)).ToList();
+
+        Assert.Equal(2, shortcuts.Count);
+        Assert.All(shortcuts, line => Assert.Contains("AppUserModelID: \"{#AppUserModelId}\"", line));
+        Assert.Contains($"#define AppUserModelId \"{AionMeter.Overlay.Platform.WindowsDesktop.AppUserModelId}\"", Script);
+    }
+
+    [Theory]
+    [InlineData("PresentationFramework.dll")]
+    [InlineData("PresentationCore.dll")]
+    [InlineData("wpfgfx_cor3.dll")]
+    [InlineData("System.Windows.Forms.dll")]
+    [InlineData("System.Private.Windows.Core.dll")]
+    [InlineData("UIAutomationTypes.dll")]
+    [InlineData("System.Xaml.dll")]
+    [InlineData("es/PresentationFramework.resources.dll")]
+    [InlineData("zh-Hant/WindowsBase.resources.dll")]
+    public void An_update_removes_the_files_of_the_wpf_app(string file)
+    {
+        Assert.True(Removed(file), file);
+    }
+
+    [Theory]
+    [InlineData("BeyondMeter.exe")]
+    [InlineData("BeyondMeter.dll")]
+    [InlineData("Avalonia.Base.dll")]
+    [InlineData("libSkiaSharp.dll")]
+    [InlineData("System.Windows.dll")]
+    [InlineData("System.Private.CoreLib.dll")]
+    [InlineData("System.Drawing.dll")]
+    [InlineData("Microsoft.Win32.Registry.dll")]
+    [InlineData("System.Security.Cryptography.dll")]
+    [InlineData("app.ico")]
+    [InlineData("data/npcs/en.json")]
+    public void An_update_keeps_the_files_of_the_avalonia_app(string file)
+    {
+        Assert.False(Removed(file), file);
+    }
+
+    private static bool Removed(string file) =>
+        Section("[InstallDelete]")
+            .Select(line => Regex.Match(line, @"^Type: (files|filesandordirs); Name: ""\{app\}\\([^""]+)"""))
+            .Where(m => m.Success)
+            .Any(m => m.Groups[1].Value == "files"
+                ? !file.Contains('/') && Regex.IsMatch(file, "^" + Regex.Escape(m.Groups[2].Value).Replace(@"\*", ".*") + "$", RegexOptions.IgnoreCase)
+                : file.StartsWith(m.Groups[2].Value + "/", StringComparison.OrdinalIgnoreCase));
+
+    private static IEnumerable<string> Section(string header) =>
+        Script.ReplaceLineEndings("\n").Split('\n')
+            .SkipWhile(line => line != header)
+            .Skip(1)
+            .TakeWhile(line => !line.StartsWith('['));
+
     private static Dictionary<string, string> Messages(string language) =>
         Regex.Matches(Script, $@"^{language}\.(\w+)=(.*)$", RegexOptions.Multiline)
             .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value.TrimEnd('\r'));
