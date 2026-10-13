@@ -6,7 +6,7 @@ using Windows.UI.Notifications;
 
 namespace AionMeter.Overlay.Platform;
 
-public sealed class ToastAlert(string errorLog, bool silent = false) : IBossAlert
+public sealed class ToastAlert(string errorLog, bool silent = false, IBossAlert? fallback = null) : IBossAlert
 {
     private bool _registered;
 
@@ -22,6 +22,7 @@ public sealed class ToastAlert(string errorLog, bool silent = false) : IBossAler
         catch (Exception ex) when (ex is COMException or UnauthorizedAccessException or ArgumentException or IOException)
         {
             Report(ex);
+            fallback?.Notify(title, body);
         }
     }
 

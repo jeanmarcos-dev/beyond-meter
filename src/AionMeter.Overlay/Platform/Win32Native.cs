@@ -15,12 +15,15 @@ public interface IWin32
     void UnregisterHotKey(IntPtr window, int id);
 
     (int X, int Y)? WindowOrigin(IntPtr window);
+
+    void Beep();
 }
 
 public sealed partial class Win32Native : IWin32
 {
     private const int ExStyleIndex = -20;
     private const uint LayerAlpha = 0x2;
+    private const uint AsteriskSound = 0x40;
 
     public long GetExStyle(IntPtr window) => GetWindowLongPtr(window, ExStyleIndex);
 
@@ -33,6 +36,8 @@ public sealed partial class Win32Native : IWin32
     public void UnregisterHotKey(IntPtr window, int id) => UnregisterHotKeyNative(window, id);
 
     public (int X, int Y)? WindowOrigin(IntPtr window) => GetWindowRect(window, out var rect) ? (rect.Left, rect.Top) : null;
+
+    public void Beep() => MessageBeep(AsteriskSound);
 
     [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static partial nint GetWindowLongPtr(nint window, int index);
@@ -55,6 +60,10 @@ public sealed partial class Win32Native : IWin32
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetWindowRect(nint window, out Rect rect);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool MessageBeep(uint type);
 
     private struct Rect
     {

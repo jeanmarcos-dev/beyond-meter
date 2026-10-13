@@ -420,6 +420,7 @@ public sealed partial class UiText
         OvVersion = "Versión {0}",
         OvReplayTitle = "Reproducir una grabación de AION 2",
         OvCaptureFiles = "Capturas de paquetes",
+        OvHotkeyTaken = "Atajo no disponible porque otro programa lo usa: {0}. Los demás atajos funcionan.",
         OvLinuxUpdateHint = "Descarga el nuevo tarball desde la página del release y ejecuta su install.sh: reemplaza esta copia y conserva tus ajustes, peleas y timers.",
     };
 }

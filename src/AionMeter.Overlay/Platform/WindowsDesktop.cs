@@ -16,6 +16,7 @@ public sealed class WindowsDesktop : IDesktopPlatform
     public const long LayeredStyle = 0x00080000;
     public const uint NoRepeat = 0x4000;
     public const int FirstHotkeyId = 0x4D00;
+    public const string InstanceMutex = "AionMeter.SingleInstance";
 
     private readonly IWin32 _native;
     private readonly Func<bool> _npcapInstalled;
@@ -26,10 +27,12 @@ public sealed class WindowsDesktop : IDesktopPlatform
     private readonly Dictionary<int, OverlayCommand> _hotkeys = [];
     private readonly Dictionary<OverlayCommand, string> _hints = [];
     private readonly HashSet<TopLevel> _hooked = [];
+    private readonly string _instanceName;
+    private Mutex? _instance;
     private IntPtr _hotkeyWindow;
     private Action<OverlayCommand>? _pressed;
 
-    public WindowsDesktop(IWin32 native, Func<string, IBossAlert> alert, Func<string, string?>? environment = null, Func<ProcessStartInfo, Process?>? start = null, Func<bool>? npcapInstalled = null, Func<string, IBossAlert>? notice = null, Func<bool>? installed = null, Func<string, string?>? productName = null)
+    public WindowsDesktop(IWin32 native, Func<string, IBossAlert> alert, Func<string, string?>? environment = null, Func<ProcessStartInfo, Process?>? start = null, Func<bool>? npcapInstalled = null, Func<string, IBossAlert>? notice = null, Func<bool>? installed = null, Func<string, string?>? productName = null, string instanceName = InstanceMutex)
     {
         var env = environment ?? Environment.GetEnvironmentVariable;
         var roaming = NonEmpty(env("APPDATA")) ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -44,6 +47,7 @@ public sealed class WindowsDesktop : IDesktopPlatform
         Notice = notice?.Invoke(DataDirectory) ?? Alert;
         _installed = installed ?? (() => false);
         _productName = productName ?? (path => FileVersionInfo.GetVersionInfo(path).ProductName);
+        _instanceName = instanceName;
     }
 
     public string ConfigDirectory { get; }
@@ -61,6 +65,19 @@ public sealed class WindowsDesktop : IDesktopPlatform
     public IBossAlert Notice { get; }
 
     public bool IsInstalledCopy => _installed();
+
+    public bool ClaimInstance()
+    {
+        if (_instance is not null) return true;
+        var mutex = new Mutex(true, _instanceName, out var first);
+        if (first)
+        {
+            _instance = mutex;
+            return true;
+        }
+        mutex.Dispose();
+        return false;
+    }
 
     public void LaunchInstaller(string path, bool quiet)
     {
@@ -137,7 +154,14 @@ public sealed class WindowsDesktop : IDesktopPlatform
         }
     }
 
-    public void Dispose() => UnregisterHotkeys();
+    public void Dispose()
+    {
+        UnregisterHotkeys();
+        if (_instance is null) return;
+        _instance.ReleaseMutex();
+        _instance.Dispose();
+        _instance = null;
+    }
 
     private void UnregisterHotkeys()
     {

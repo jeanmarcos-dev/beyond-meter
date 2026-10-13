@@ -20,6 +20,8 @@ public interface IDesktopPlatform : IDisposable
 
     bool IsInstalledCopy { get; }
 
+    bool ClaimInstance();
+
     void LaunchInstaller(string path, bool quiet);
 
     IReadOnlyDictionary<OverlayCommand, string> ShortcutHints();

@@ -483,6 +483,7 @@ public sealed partial class UiText
     public string OvVersion { get; init; } = "Version {0}";
     public string OvReplayTitle { get; init; } = "Replay an AION 2 capture";
     public string OvCaptureFiles { get; init; } = "Packet captures";
+    public string OvHotkeyTaken { get; init; } = "Shortcut not available because another program uses it: {0}. The other shortcuts work.";
     public string OvLinuxUpdateHint { get; init; } = "Download the new tarball from the release page and run its install.sh: it replaces this copy and keeps your settings, fights and timers.";
 
     private static readonly UiText Ru = new()
@@ -900,6 +901,7 @@ public sealed partial class UiText
         OvVersion = "Версия {0}",
         OvReplayTitle = "Воспроизвести запись AION 2",
         OvCaptureFiles = "Захваты пакетов",
+        OvHotkeyTaken = "Сочетание клавиш недоступно, его использует другая программа: {0}. Остальные сочетания работают.",
         OvLinuxUpdateHint = "Скачайте новый архив со страницы релиза и запустите его install.sh: он заменит эту копию и сохранит настройки, бои и таймеры.",
     };
 

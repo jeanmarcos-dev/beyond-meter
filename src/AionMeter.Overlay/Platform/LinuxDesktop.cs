@@ -37,6 +37,8 @@ public sealed class LinuxDesktop : IDesktopPlatform
 
     public bool IsInstalledCopy => false;
 
+    public bool ClaimInstance() => true;
+
     public void LaunchInstaller(string path, bool quiet) => throw new NotSupportedException("Linux updates come from the release tarball");
 
     public IReadOnlyDictionary<OverlayCommand, string> ShortcutHints() => Overlay.ShortcutHints.Load();

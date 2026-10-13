@@ -26,6 +26,7 @@ public sealed class OverlayTextTests
         ".tmp",
         "ms-winsoundevent:Notification.Reminder",
         "JeanmarcosDev.BeyondMeter",
+        "AionMeter.SingleInstance",
         "Control",
         "Primary",
         "Ctrl",

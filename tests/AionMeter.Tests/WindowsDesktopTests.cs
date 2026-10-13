@@ -28,6 +28,27 @@ public sealed class WindowsDesktopTests
     }
 
     [Fact]
+    public void Only_one_copy_holds_the_single_instance_lock_until_it_exits()
+    {
+        var name = "AionMeter.Test." + Guid.NewGuid().ToString("N");
+        var first = new WindowsDesktop(_native, _ => new NullBossAlert(), instanceName: name);
+        using var second = new WindowsDesktop(_native, _ => new NullBossAlert(), instanceName: name);
+
+        Assert.True(first.ClaimInstance());
+        Assert.True(first.ClaimInstance());
+        Assert.False(second.ClaimInstance());
+
+        first.Dispose();
+        Assert.True(second.ClaimInstance());
+    }
+
+    [Fact]
+    public void The_lock_has_the_name_the_windows_app_uses()
+    {
+        Assert.Equal("AionMeter.SingleInstance", WindowsDesktop.InstanceMutex);
+    }
+
+    [Fact]
     public void The_command_channel_lives_in_local_app_data()
     {
         using var desktop = Create();
@@ -218,5 +239,9 @@ public sealed class WindowsDesktopTests
         public void UnregisterHotKey(IntPtr window, int id) => Hotkeys.Remove(id);
 
         public (int X, int Y)? WindowOrigin(IntPtr window) => Origins.TryGetValue(window, out var origin) ? origin : null;
+
+        public void Beep()
+        {
+        }
     }
 }

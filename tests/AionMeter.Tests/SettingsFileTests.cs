@@ -112,5 +112,9 @@ public sealed class SettingsFileTests : IDisposable
         }
 
         public (int X, int Y)? WindowOrigin(IntPtr window) => null;
+
+        public void Beep()
+        {
+        }
     }
 }

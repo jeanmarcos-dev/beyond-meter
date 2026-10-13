@@ -34,6 +34,12 @@ else
     }
 }
 
+if (!desktop.ClaimInstance())
+{
+    CommandChannel.TrySend(socket, OverlayCommand.Show);
+    return 0;
+}
+
 OverlayApp.Desktop = desktop;
 OverlayApp.Options = new OverlayOptions(parsed.Demo, socket, parsed.Hidden, parsed.ReplayPath, parsed.Fast, parsed.Updated);
 return AppBuilder.Configure<OverlayApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);

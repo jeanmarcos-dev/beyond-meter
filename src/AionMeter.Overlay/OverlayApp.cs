@@ -77,8 +77,14 @@ public sealed class OverlayApp : Application
         var window = new OverlayWindow(session, settings, settingsPath, desktopPlatform, tuning.Apply, board, options.Hidden);
 
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-        desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(settings), window.Apply);
-        window.Shortcuts = desktopPlatform.ShortcutHints();
+        void BindHotkeys(UserSettings current)
+        {
+            var hotkeys = HotkeyBindings.From(current);
+            var taken = desktopPlatform.RegisterHotkeys(window, hotkeys, window.Apply);
+            window.Shortcuts = desktopPlatform.ShortcutHints();
+            if (HotkeyBindings.TakenWarning(UiText.Current, hotkeys, taken) is { } warning) desktopPlatform.Notice.Notify(AppInfo.Name, warning);
+        }
+        BindHotkeys(settings);
         var updates = replaying ? null : NewUpdates(window, desktopPlatform, log);
         window.Updates = updates;
         if (updates is not null)
@@ -89,11 +95,7 @@ public sealed class OverlayApp : Application
         }
         window.SettingsSource = () => SettingsContexts.For(desktopPlatform, history, dataDirectory, OperatingSystem.IsWindows(), LiveCapture.ListDevices, updates);
         Func<string?, IEventSource>? liveCapture = capture is LiveCapture ? device => NewLiveCapture(data, device) : null;
-        window.SettingsChanged += (previous, next) => SettingsEffects.Apply(previous, next, session, liveCapture, () =>
-        {
-            desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(next), window.Apply);
-            window.Shortcuts = desktopPlatform.ShortcutHints();
-        });
+        window.SettingsChanged += (previous, next) => SettingsEffects.Apply(previous, next, session, liveCapture, () => BindHotkeys(next));
         var images = ImageStore.For(dataDirectory, dataHome, settings.DownloadIcons);
         window.Images = images;
         window.ReplaySource = path => new PcapReplaySource(data, path, realtime: false);

@@ -1,4 +1,6 @@
+using System.Globalization;
 using AionMeter.Core.Settings;
+using AionMeter.Core.Text;
 
 namespace AionMeter.Overlay;
 
@@ -14,4 +16,7 @@ public static class HotkeyBindings
         }
         .Where(binding => !string.IsNullOrWhiteSpace(binding.Value))
         .ToDictionary();
+
+    public static string? TakenWarning(UiText text, IReadOnlyDictionary<OverlayCommand, string> hotkeys, IReadOnlyList<OverlayCommand> taken) =>
+        taken.Count == 0 ? null : string.Format(CultureInfo.InvariantCulture, text.OvHotkeyTaken, string.Join(", ", taken.Select(command => hotkeys[command])));
 }

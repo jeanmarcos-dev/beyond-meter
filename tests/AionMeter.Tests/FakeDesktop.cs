@@ -32,6 +32,8 @@ public sealed class FakeDesktop : IDesktopPlatform, IBossAlert
 
     public bool IsInstalledCopy { get; set; }
 
+    public bool ClaimInstance() => true;
+
     public List<(string Path, bool Quiet)> Installers { get; } = [];
 
     public void LaunchInstaller(string path, bool quiet) => Installers.Add((path, quiet));
