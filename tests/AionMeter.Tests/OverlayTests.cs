@@ -81,6 +81,15 @@ public sealed class OverlayTests : IDisposable
     }
 
     [Fact]
+    public void Header_says_a_demo_fight_is_running_while_live()
+    {
+        var capturing = new CaptureStatus(CaptureState.Capturing, "");
+
+        Assert.Equal("Demo fight running", MeterView.Header(null, capturing, -1, 0, demo: true).Source);
+        Assert.Equal("History 1/3", MeterView.Header(null, capturing, 0, 3, demo: true).Source);
+    }
+
+    [Fact]
     public void Only_show_and_toggle_start_a_new_instance()
     {
         Assert.True(OverlayCommands.StartsInstance(OverlayCommand.Show));

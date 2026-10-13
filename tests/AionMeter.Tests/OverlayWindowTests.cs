@@ -191,6 +191,22 @@ public sealed class OverlayWindowTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void A_file_that_cannot_be_replayed_is_reported()
+    {
+        var desktop = new FakeDesktop(_dir);
+        var tracker = new CombatTracker(GameData.Empty, new MeterOptions());
+        var session = new MeterSession(tracker, new HistoryStore(Path.Combine(_dir, "fights")), null, null, new HistoryPolicy());
+        var window = new OverlayWindow(session, new UserSettings(), SettingsPath, desktop) { ReplaySource = _ => throw new InvalidOperationException() };
+        var broken = Path.Combine(_dir, "broken.pcap");
+        File.WriteAllText(broken, "not a capture");
+
+        Assert.False(window.Replay(broken));
+
+        Assert.Equal([(AppInfo.Name, string.Format(UiText.Current.OvReplayFailed, "broken.pcap"))], desktop.Notices);
+        Assert.False(session.ReplayingFile);
+    }
+
+    [AvaloniaFact]
     public void Close_button_quits_and_hides_while_locked()
     {
         var window = Open(new HistoryStore(Path.Combine(_dir, "fights")), out _);

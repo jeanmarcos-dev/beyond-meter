@@ -1,3 +1,4 @@
+using System.Globalization;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Settings;
@@ -207,7 +208,12 @@ public sealed class OverlayWindow : Window
 
     public bool Replay(string path)
     {
-        if (ReplaySource is not { } create || ReplayFile.Problem(path) is not null) return false;
+        if (ReplaySource is not { } create) return false;
+        if (ReplayFile.Problem(path) is not null)
+        {
+            _desktop?.Notice.Notify(AppInfo.Name, string.Format(CultureInfo.InvariantCulture, UiText.Current.OvReplayFailed, Path.GetFileName(path)));
+            return false;
+        }
         _session.ReplayFile(create(path));
         Reveal();
         return true;
@@ -215,10 +221,12 @@ public sealed class OverlayWindow : Window
 
     public async Task PickReplay()
     {
+        var captures = _session.CapturesDirectory is { } folder && Directory.Exists(folder) ? await StorageProvider.TryGetFolderFromPathAsync(folder) : null;
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = UiText.Current.OvReplayTitle,
             AllowMultiple = false,
+            SuggestedStartLocation = captures,
             FileTypeFilter = [new FilePickerFileType(UiText.Current.OvCaptureFiles) { Patterns = ReplayFile.Patterns }],
         });
         if (files.Count > 0 && files[0].TryGetLocalPath() is { } path) Replay(path);
@@ -603,7 +611,8 @@ public sealed class OverlayWindow : Window
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         _session.Tick(now);
         var snapshot = _session.Current(now);
-        var header = MeterView.Header(snapshot, _session.Status, _session.SelectedIndex(), _session.Filtered().Count, _viewMode, _session.IsReplay, _session.IsRecording);
+        var replaying = _session.IsReplay || _session.ReplayingFile;
+        var header = MeterView.Header(snapshot, _session.Status, _session.SelectedIndex(), _session.Filtered().Count, _viewMode, replaying, _session.IsRecording, _session.DemoRunning);
         _recording.IsVisible = header.Recording;
         _title.Text = header.Title;
         _time.Text = header.Time;
@@ -616,7 +625,7 @@ public sealed class OverlayWindow : Window
         var banner = _updates?.Banner();
         _updateBanner.IsVisible = banner is not null;
         _updateBanner.Content = banner;
-        ShowLimit(header.IsLive && !_session.IsReplay ? MeterView.Limit(_session.Tracker.NextTimer(now), now) : null);
+        ShowLimit(header.IsLive && !replaying ? MeterView.Limit(_session.Tracker.NextTimer(now), now) : null);
 
         var browsing = !_session.IsLive;
         var asking = browsing && _confirmation.IsPending(_session.SelectedFight);

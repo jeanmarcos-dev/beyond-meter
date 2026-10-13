@@ -420,6 +420,8 @@ public sealed partial class UiText
         OvReplayTitle = "Reproducir una grabación de AION 2",
         OvCaptureFiles = "Capturas de paquetes",
         OvHotkeyTaken = "Atajo no disponible porque otro programa lo usa: {0}. Los demás atajos funcionan.",
+        OvDemoRunning = "Pelea de demostración en curso",
+        OvReplayFailed = "No se puede reproducir {0}: el medidor no puede leerlo como captura.",
         OvLinuxUpdateHint = "Descarga el nuevo tarball desde la página del release y ejecuta su install.sh: reemplaza esta copia y conserva tus ajustes, peleas y timers.",
     };
 }

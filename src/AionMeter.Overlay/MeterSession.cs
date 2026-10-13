@@ -64,6 +64,8 @@ public sealed class MeterSession : IDisposable
     public bool IsRecording => _capture is IRecordable { IsRecording: true };
     public bool DemoRunning => _demo?.IsRunning == true;
     public bool ReplayingFile => _replayingFile;
+
+    public string? CapturesDirectory => _capturesDirectory;
     public bool DetailSelf { get; private set; }
     public uint? DetailActor { get; private set; }
     public bool? GameRunning => _capture is null || IsReplay ? true : Status.State switch

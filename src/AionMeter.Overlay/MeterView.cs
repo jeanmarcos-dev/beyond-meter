@@ -140,10 +140,12 @@ public static class MeterView
 
     private static string Hits(int hits, int dotTicks) => dotTicks > 0 ? $"{hits}+{dotTicks}" : hits.ToString(Invariant);
 
-    public static HeaderView Header(EncounterSnapshot? snapshot, CaptureStatus status, int historyIndex, int historyCount, ViewMode mode = ViewMode.Damage, bool replay = false, bool recording = false)
+    public static HeaderView Header(EncounterSnapshot? snapshot, CaptureStatus status, int historyIndex, int historyCount, ViewMode mode = ViewMode.Damage, bool replay = false, bool recording = false, bool demo = false)
     {
         var live = historyIndex < 0;
-        var source = live ? (replay ? ReplayText(status) : StatusText(status)) : string.Format(Invariant, T.OvHistoryPosition, historyIndex + 1, historyCount);
+        var source = !live ? string.Format(Invariant, T.OvHistoryPosition, historyIndex + 1, historyCount)
+            : demo ? T.OvDemoRunning
+            : replay ? ReplayText(status) : StatusText(status);
         if (snapshot is null)
             return new HeaderView(live ? T.WaitingTitle : T.OvFightUnavailable, "0:00", "", source, live, recording);
 

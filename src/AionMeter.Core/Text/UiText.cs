@@ -483,6 +483,8 @@ public sealed partial class UiText
     public string OvReplayTitle { get; init; } = "Replay an AION 2 capture";
     public string OvCaptureFiles { get; init; } = "Packet captures";
     public string OvHotkeyTaken { get; init; } = "Shortcut not available because another program uses it: {0}. The other shortcuts work.";
+    public string OvDemoRunning { get; init; } = "Demo fight running";
+    public string OvReplayFailed { get; init; } = "Cannot replay {0}: the meter cannot read it as a capture.";
     public string OvLinuxUpdateHint { get; init; } = "Download the new tarball from the release page and run its install.sh: it replaces this copy and keeps your settings, fights and timers.";
 
     private static readonly UiText Ru = new()
@@ -900,6 +902,8 @@ public sealed partial class UiText
         OvReplayTitle = "Воспроизвести запись AION 2",
         OvCaptureFiles = "Захваты пакетов",
         OvHotkeyTaken = "Сочетание клавиш недоступно, его использует другая программа: {0}. Остальные сочетания работают.",
+        OvDemoRunning = "Идёт демо-бой",
+        OvReplayFailed = "Не удаётся воспроизвести {0}: метр не может прочитать его как запись.",
         OvLinuxUpdateHint = "Скачайте новый архив со страницы релиза и запустите его install.sh: он заменит эту копию и сохранит настройки, бои и таймеры.",
     };
 
