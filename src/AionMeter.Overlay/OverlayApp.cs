@@ -2,6 +2,7 @@ using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Demo;
 using AionMeter.Core.Game;
+using AionMeter.Core.Logging;
 using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
 using AionMeter.Core.Text;
@@ -63,6 +64,11 @@ public sealed class OverlayApp : Application
         var names = throwAway ? null : new NameCache(Path.Combine(dataHome, "names-cache.json"));
         var board = BossBoard.Create(dataHome, data, dataDirectory, throwAway, desktopPlatform.Alert);
         var session = new MeterSession(tracker, history, capture, names, new HistoryPolicy(), board.Timers, Path.Combine(dataHome, "captures"), replaying);
+        var log = new AppLog(Path.Combine(dataHome, "logs"));
+        log.Info($"{AppInfo.Name} {SettingsContexts.AppVersion()} on {System.Runtime.InteropServices.RuntimeInformation.OSDescription}");
+        session.Log = message => log.Error(message);
+        if (capture is LiveCapture) capture.StatusChanged += status => log.Info($"Capture {status.State}: {status.Message}");
+        if (!throwAway) tracker.FieldBossListed += log.FieldBossList;
         var tuning = new MeterTuning(meter, data, dataDirectory, session);
         tuning.Apply(settings);
         var demo = options.Demo ? new DemoFightSource(tracker.Process) : null;
@@ -91,6 +97,7 @@ public sealed class OverlayApp : Application
             demo?.Dispose();
             session.Dispose();
             images.Dispose();
+            log.Info("Exit");
             desktopPlatform.Dispose();
         };
 

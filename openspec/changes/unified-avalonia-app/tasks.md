@@ -33,7 +33,7 @@
 - [x] 5.3 Íconos de skills en el desglose y retratos de jefes, con su opción de descarga; tests Headless con imágenes en caché; verificar que pasan
 - [x] 5.4 Copiar la línea de un jugador y la tabla para Discord desde el overlay y el desglose; tests del contenido del portapapeles; verificar que pasan
 - [x] 5.5 Aviso de Npcap al arrancar en Windows cuando falta, con enlace a npcap.com; test con `FakeDesktop`; verificar que pasa
-- [ ] 5.6 Logs en la carpeta de datos con rotación como en la app WPF; tests; verificar que pasan
+- [x] 5.6 Logs en la carpeta de datos con rotación como en la app WPF; tests; verificar que pasan
 - [ ] 5.7 Banner y ventana de actualización con novedades en el idioma de la interfaz; en Windows, descarga e instalación como la app WPF; en Linux, solo el aviso y el enlace al release; tests con un feed falso; verificar que pasan
 - [ ] 5.8 Revisar que el historial, el desglose (precisión, rotación, defensa), los timers con alertas y la demo, el replay y la grabación cubren lo de la app WPF, completando lo que falte con sus tests; verificar con la lista de la spec `single-app`
 

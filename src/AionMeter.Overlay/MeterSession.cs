@@ -47,6 +47,7 @@ public sealed class MeterSession : IDisposable
 
     public CombatTracker Tracker { get; }
     public HistoryPolicy Policy { get; set; }
+    public Action<string> Log { get; set; } = Console.Error.WriteLine;
     public HistoryStore History { get; }
     public string? SelectedFight { get; private set; }
     public HistoryFilter Filter
@@ -131,7 +132,7 @@ public sealed class MeterSession : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Console.Error.WriteLine("No se pudo grabar: " + ex.Message);
+            Log("Could not record: " + ex.Message);
         }
         return recorder.IsRecording;
     }
@@ -304,7 +305,7 @@ public sealed class MeterSession : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Console.Error.WriteLine("No se pudo guardar la pelea: " + ex.Message);
+            Log("Could not save the fight: " + ex.Message);
         }
     }
 }
