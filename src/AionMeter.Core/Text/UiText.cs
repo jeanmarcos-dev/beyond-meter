@@ -483,6 +483,7 @@ public sealed partial class UiText
     public string OvVersion { get; init; } = "Version {0}";
     public string OvReplayTitle { get; init; } = "Replay an AION 2 capture";
     public string OvCaptureFiles { get; init; } = "Packet captures";
+    public string OvLinuxUpdateHint { get; init; } = "Download the new tarball from the release page and run its install.sh: it replaces this copy and keeps your settings, fights and timers.";
 
     private static readonly UiText Ru = new()
     {
@@ -899,6 +900,7 @@ public sealed partial class UiText
         OvVersion = "Версия {0}",
         OvReplayTitle = "Воспроизвести запись AION 2",
         OvCaptureFiles = "Захваты пакетов",
+        OvLinuxUpdateHint = "Скачайте новый архив со страницы релиза и запустите его install.sh: он заменит эту копию и сохранит настройки, бои и таймеры.",
     };
 
     private static string RuPlural(int n, string one, string few, string many)

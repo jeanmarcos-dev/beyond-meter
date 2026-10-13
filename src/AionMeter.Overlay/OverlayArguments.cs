@@ -1,12 +1,12 @@
 namespace AionMeter.Overlay;
 
-public sealed record OverlayArguments(OverlayCommand Command, bool Demo, bool Hidden, string? ReplayPath, bool Fast, string? Error)
+public sealed record OverlayArguments(OverlayCommand Command, bool Demo, bool Hidden, string? ReplayPath, bool Fast, string? Error, bool Updated = false)
 {
     public static OverlayArguments Parse(IReadOnlyList<string> args)
     {
         string? word = null;
         string? replay = null;
-        bool demo = false, hidden = false, fast = false, replayFlag = false;
+        bool demo = false, hidden = false, fast = false, replayFlag = false, updated = false;
         for (var i = 0; i < args.Count; i++)
         {
             switch (args[i])
@@ -19,6 +19,9 @@ public sealed record OverlayArguments(OverlayCommand Command, bool Demo, bool Hi
                     break;
                 case "--fast":
                     fast = true;
+                    break;
+                case "--updated":
+                    updated = true;
                     break;
                 case "--replay":
                     replayFlag = true;
@@ -36,7 +39,7 @@ public sealed record OverlayArguments(OverlayCommand Command, bool Demo, bool Hi
         if (fast && !replayFlag) return Fail("--fast solo se usa junto con --replay.");
         if (replayFlag && demo) return Fail("--replay y --demo no se pueden combinar.");
         if (replayFlag && !OverlayCommands.StartsInstance(command.Value)) return Fail("--replay abre un overlay nuevo; no se combina con el comando " + OverlayCommands.Name(command.Value) + ".");
-        return new OverlayArguments(command.Value, demo, hidden, replay, fast, null);
+        return new OverlayArguments(command.Value, demo, hidden, replay, fast, null, updated);
     }
 
     private static OverlayArguments Fail(string error) => new(OverlayCommand.Show, false, false, null, false, error);

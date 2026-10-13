@@ -18,6 +18,7 @@ public sealed class LinuxDesktop : IDesktopPlatform
         CommandChannelPath = Path.Combine(NonEmpty(env("XDG_RUNTIME_DIR")) ?? Path.GetTempPath(), "aionmeter-overlay.sock");
         _start = start ?? Process.Start;
         Alert = new DesktopBossAlert(_start);
+        Notice = new DesktopBossAlert(_start, quiet: true);
     }
 
     public string ConfigDirectory { get; }
@@ -31,6 +32,12 @@ public sealed class LinuxDesktop : IDesktopPlatform
     public IBossAlert Alert { get; }
 
     public bool CaptureLibraryMissing => false;
+
+    public IBossAlert Notice { get; }
+
+    public bool IsInstalledCopy => false;
+
+    public void LaunchInstaller(string path, bool quiet) => throw new NotSupportedException("Linux updates come from the release tarball");
 
     public IReadOnlyDictionary<OverlayCommand, string> ShortcutHints() => Overlay.ShortcutHints.Load();
 

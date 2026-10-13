@@ -6,6 +6,7 @@ using AionMeter.Core.Logging;
 using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
 using AionMeter.Core.Text;
+using AionMeter.Core.Updates;
 using AionMeter.Overlay.Platform;
 using Avalonia;
 using Avalonia.Controls;
@@ -17,7 +18,7 @@ using Avalonia.Threading;
 
 namespace AionMeter.Overlay;
 
-public sealed record OverlayOptions(bool Demo, string SocketPath, bool Hidden = false, string? ReplayPath = null, bool Fast = false);
+public sealed record OverlayOptions(bool Demo, string SocketPath, bool Hidden = false, string? ReplayPath = null, bool Fast = false, bool Updated = false);
 
 public sealed class OverlayApp : Application
 {
@@ -78,7 +79,15 @@ public sealed class OverlayApp : Application
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(settings), window.Apply);
         window.Shortcuts = desktopPlatform.ShortcutHints();
-        window.SettingsSource = () => SettingsContexts.For(desktopPlatform, history, dataDirectory, OperatingSystem.IsWindows(), LiveCapture.ListDevices);
+        var updates = replaying ? null : NewUpdates(window, desktopPlatform, log);
+        window.Updates = updates;
+        if (updates is not null)
+        {
+            updates.ShutdownRequested += () => window.Apply(OverlayCommand.Quit);
+            updates.Changed += () => Dispatcher.UIThread.Post(window.Refresh);
+            if (options.Updated) updates.AnnounceUpdated();
+        }
+        window.SettingsSource = () => SettingsContexts.For(desktopPlatform, history, dataDirectory, OperatingSystem.IsWindows(), LiveCapture.ListDevices, updates);
         Func<string?, IEventSource>? liveCapture = capture is LiveCapture ? device => NewLiveCapture(data, device) : null;
         window.SettingsChanged += (previous, next) => SettingsEffects.Apply(previous, next, session, liveCapture, () =>
         {
@@ -88,7 +97,7 @@ public sealed class OverlayApp : Application
         var images = ImageStore.For(dataDirectory, dataHome, settings.DownloadIcons);
         window.Images = images;
         window.ReplaySource = path => new PcapReplaySource(data, path, realtime: false);
-        TrayIcon.SetIcons(Current!, [TrayMenu.Create(window, desktopPlatform.Alert)]);
+        TrayIcon.SetIcons(Current!, [TrayMenu.Create(window, desktopPlatform.Alert, updates)]);
         window.QuitRequested += () => desktop.Shutdown();
         var channel = CommandChannel.Listen(options.SocketPath, command => Dispatcher.UIThread.Post(() => window.Apply(command)));
         desktop.Exit += (_, _) =>
@@ -97,6 +106,7 @@ public sealed class OverlayApp : Application
             demo?.Dispose();
             session.Dispose();
             images.Dispose();
+            updates?.Dispose();
             log.Info("Exit");
             desktopPlatform.Dispose();
         };
@@ -106,6 +116,16 @@ public sealed class OverlayApp : Application
         demo?.Start(TimeSpan.FromSeconds(30));
         if (!options.Hidden) window.Show();
         if (NpcapNotice.Needed(desktopPlatform, capture is LiveCapture)) new NpcapNotice(desktopPlatform).Show();
+    }
+
+    private static UpdateCoordinator NewUpdates(OverlayWindow window, IDesktopPlatform desktop, AppLog log)
+    {
+        var current = UpdateFeed.Normalize(typeof(OverlayApp).Assembly.GetName().Version ?? new Version(0, 0, 0));
+        var downloads = Path.Combine(Path.GetTempPath(), "BeyondMeter-update");
+        UpdateService.CleanDownloads(downloads);
+        var policy = UpdateCoordinator.Policy(() => window.Settings, window.SaveSettings, desktop.IsInstalledCopy);
+        var service = new UpdateService(current, new UpdateFeed($"BeyondMeter/{current.ToString(3)}"), policy, downloads, log.Info);
+        return new UpdateCoordinator(service, desktop, () => window.Settings, () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
     }
 
     private static LiveCapture NewLiveCapture(GameData data, string? device) =>

@@ -35,5 +35,5 @@ else
 }
 
 OverlayApp.Desktop = desktop;
-OverlayApp.Options = new OverlayOptions(parsed.Demo, socket, parsed.Hidden, parsed.ReplayPath, parsed.Fast);
+OverlayApp.Options = new OverlayOptions(parsed.Demo, socket, parsed.Hidden, parsed.ReplayPath, parsed.Fast, parsed.Updated);
 return AppBuilder.Configure<OverlayApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);

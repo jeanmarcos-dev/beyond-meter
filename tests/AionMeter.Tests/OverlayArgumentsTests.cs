@@ -40,6 +40,13 @@ public sealed class OverlayArgumentsTests
     }
 
     [Fact]
+    public void The_installer_marks_the_first_start_after_an_update()
+    {
+        Assert.True(OverlayArguments.Parse(["--updated"]).Updated);
+        Assert.False(OverlayArguments.Parse(["show"]).Updated);
+    }
+
+    [Fact]
     public void Record_is_a_command_word()
     {
         Assert.Equal(OverlayCommand.Record, OverlayArguments.Parse(["record"]).Command);

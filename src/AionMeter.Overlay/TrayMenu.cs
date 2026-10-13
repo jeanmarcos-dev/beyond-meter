@@ -6,13 +6,21 @@ namespace AionMeter.Overlay;
 
 public sealed record TrayAction(string Header, Action Run, bool? Checked = null, IReadOnlyList<TrayAction>? Items = null);
 
-public sealed record TrayState(bool Visible, bool Locked, string Language);
+public sealed record TrayState(bool Visible, bool Locked, string Language, string? Update = null);
 
-public sealed record TrayHandlers(Action<OverlayCommand> Apply, Action<string> ChangeLanguage, Action PickReplay, IBossAlert Alert);
+public sealed record TrayHandlers(Action<OverlayCommand> Apply, Action<string> ChangeLanguage, Action PickReplay, IBossAlert Alert, Action? ShowUpdate = null, Action? CheckUpdates = null);
 
 public static class TrayMenu
 {
-    public static IReadOnlyList<TrayAction> Actions(UiText text, TrayState state, TrayHandlers on) =>
+    public static IReadOnlyList<TrayAction> Actions(UiText text, TrayState state, TrayHandlers on)
+    {
+        var updates = new List<TrayAction>();
+        if (state.Update is { } update && on.ShowUpdate is { } show) updates.Add(new(update, show));
+        if (on.CheckUpdates is { } check) updates.Add(new(text.TrayCheckUpdates, check));
+        return [.. Entries(text, state, on), .. updates, new(text.TrayExit, () => on.Apply(OverlayCommand.Quit))];
+    }
+
+    private static IReadOnlyList<TrayAction> Entries(UiText text, TrayState state, TrayHandlers on) =>
     [
         new(state.Visible ? text.TrayHide : text.TrayShow, () => on.Apply(OverlayCommand.Toggle)),
         new(text.TrayClickThrough, () => on.Apply(OverlayCommand.Lock), state.Locked),
@@ -30,21 +38,23 @@ public static class TrayMenu
         new(text.TrayDemo, () => on.Apply(OverlayCommand.Demo)),
         new(text.TrayReplay, on.PickReplay),
         new(text.TrayTestAlert, () => on.Alert.Notify(AppInfo.Name, text.TrayTestAlert)),
-        new(text.TrayExit, () => on.Apply(OverlayCommand.Quit)),
     ];
 
-    public static TrayIcon Create(OverlayWindow window, IBossAlert alert)
+    public static TrayIcon Create(OverlayWindow window, IBossAlert alert, UpdateCoordinator? updates = null)
     {
         var menu = new NativeMenu();
-        var handlers = new TrayHandlers(window.Apply, window.ChangeLanguage, () => _ = window.PickReplay(), alert);
+        var handlers = new TrayHandlers(window.Apply, window.ChangeLanguage, () => _ = window.PickReplay(), alert,
+            updates is null ? null : () => window.ShowUpdate(updates.Service.Available),
+            updates is null ? null : () => _ = updates.CheckFromTrayAsync());
         void Fill()
         {
-            var state = new TrayState(window.IsVisible, window.Locked, UiText.Current.Code);
+            var state = new TrayState(window.IsVisible, window.Locked, UiText.Current.Code, updates?.TrayEntry());
             Populate(menu, Actions(UiText.Current, state, handlers), Fill);
         }
         Fill();
         menu.Opening += (_, _) => Fill();
         window.LanguageChanged += Fill;
+        if (updates is not null) updates.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(Fill);
         var tray = new TrayIcon { Icon = Icon(), ToolTipText = AppInfo.Name, Menu = menu, IsVisible = true };
         tray.Clicked += (_, _) =>
         {

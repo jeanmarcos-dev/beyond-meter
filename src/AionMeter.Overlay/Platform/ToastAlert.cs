@@ -6,7 +6,7 @@ using Windows.UI.Notifications;
 
 namespace AionMeter.Overlay.Platform;
 
-public sealed class ToastAlert(string errorLog) : IBossAlert
+public sealed class ToastAlert(string errorLog, bool silent = false) : IBossAlert
 {
     private bool _registered;
 
@@ -16,7 +16,7 @@ public sealed class ToastAlert(string errorLog) : IBossAlert
         {
             Register();
             var xml = new XmlDocument();
-            xml.LoadXml(ToastContent.Xml(title, body));
+            xml.LoadXml(ToastContent.Xml(title, body, silent));
             ToastNotificationManager.CreateToastNotifier(WindowsDesktop.AppUserModelId).Show(new ToastNotification(xml));
         }
         catch (Exception ex) when (ex is COMException or UnauthorizedAccessException or ArgumentException or IOException)

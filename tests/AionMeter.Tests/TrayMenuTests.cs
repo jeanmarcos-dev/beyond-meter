@@ -27,6 +27,21 @@ public sealed class TrayMenuTests
     }
 
     [Fact]
+    public void Update_entries_come_before_exit_when_updates_are_handled()
+    {
+        var shown = 0;
+        var checks = 0;
+        var en = UiText.For("en");
+        var actions = TrayMenu.Actions(en, new TrayState(true, false, "en", "Update to 1.1.0…"),
+            new TrayHandlers(_applied.Add, _languages.Add, () => _replays++, _desktop, () => shown++, () => checks++));
+
+        Assert.Equal(["Update to 1.1.0…", en.TrayCheckUpdates, en.TrayExit], actions.TakeLast(3).Select(a => a.Header));
+        actions[^3].Run();
+        actions[^2].Run();
+        Assert.Equal((1, 1), (shown, checks));
+    }
+
+    [Fact]
     public void Hiding_from_the_tray_turns_the_entry_into_show()
     {
         Item("es", t => t.TrayHide).Run();

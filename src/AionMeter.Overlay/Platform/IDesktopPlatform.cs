@@ -16,6 +16,12 @@ public interface IDesktopPlatform : IDisposable
 
     bool CaptureLibraryMissing { get; }
 
+    IBossAlert Notice { get; }
+
+    bool IsInstalledCopy { get; }
+
+    void LaunchInstaller(string path, bool quiet);
+
     IReadOnlyDictionary<OverlayCommand, string> ShortcutHints();
 
     IReadOnlyList<OverlayCommand> RegisterHotkeys(TopLevel window, IReadOnlyDictionary<OverlayCommand, string> hotkeys, Action<OverlayCommand> pressed);

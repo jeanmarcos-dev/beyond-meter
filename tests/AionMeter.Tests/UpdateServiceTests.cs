@@ -6,7 +6,7 @@ namespace AionMeter.Tests;
 
 public sealed class UpdateServiceTests : IDisposable
 {
-    private static readonly byte[] Installer = [7, 7, 7, 7];
+    internal static readonly byte[] Installer = [7, 7, 7, 7];
 
     private readonly string _dir = Directory.CreateTempSubdirectory("update-service").FullName;
     private string? _skipped;
@@ -120,7 +120,7 @@ public sealed class UpdateServiceTests : IDisposable
         Assert.True(condition());
     }
 
-    private sealed class GitHub(string? tag) : HttpMessageHandler
+    internal sealed class GitHub(string? tag) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {

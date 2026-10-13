@@ -78,6 +78,8 @@ public sealed class OverlayWindow : Window
     private readonly Button _language = new() { Name = "LanguageButton", FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly List<Action> _texts = [];
     private ImageStore? _images;
+    private UpdateCoordinator? _updates;
+    private readonly Button _updateBanner = new() { Name = "UpdateBanner", FontSize = 12, Padding = new Thickness(8, 3), HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 0, 0, 6), IsVisible = false };
     private readonly Button _filterBosses = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly Button _filterKills = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly TextBlock _historyCount = new() { Name = "HistoryCount", Foreground = Muted, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0) };
@@ -146,6 +148,40 @@ public sealed class OverlayWindow : Window
     public const int RowSizeStep = 5;
 
     public Func<SettingsContext>? SettingsSource { get; set; }
+
+    public UpdateWindow? UpdateDialog { get; private set; }
+
+    public UpdateCoordinator? Updates
+    {
+        get => _updates;
+        set
+        {
+            _updates = value;
+            if (value is not null) value.WindowRequested += release => ShowUpdate(release);
+        }
+    }
+
+    public void ShowUpdate(Core.Updates.ReleaseInfo? release)
+    {
+        if (release is null || _updates is null || _desktop is null) return;
+        if (UpdateDialog is { } open)
+        {
+            if (open.Release.Version == release.Version)
+            {
+                open.Activate();
+                return;
+            }
+            open.Close();
+        }
+        var dialog = new UpdateWindow(_updates, release, _desktop);
+        dialog.Installing += () => Apply(OverlayCommand.Quit);
+        dialog.Closed += (_, _) =>
+        {
+            if (UpdateDialog == dialog) UpdateDialog = null;
+        };
+        UpdateDialog = dialog;
+        dialog.Show();
+    }
 
     public ImageStore? Images
     {
@@ -495,7 +531,8 @@ public sealed class OverlayWindow : Window
         _bossBar.Children.Add(track);
         _bossBar.Children.Add(_bossHp);
         _bossBar.Children.Add(_bossPercent);
-        var layout = new StackPanel { Children = { header, _bossBar, _nextBoss, columns, _rows, _skills } };
+        _updateBanner.Click += (_, _) => _updates?.OpenBanner();
+        var layout = new StackPanel { Children = { _updateBanner, header, _bossBar, _nextBoss, columns, _rows, _skills } };
         if (_bossPanel is not null) layout.Children.Add(_bossPanel);
         layout.Children.Add(_toolbar);
         layout.Children.Add(_historyPanel);
@@ -565,6 +602,10 @@ public sealed class OverlayWindow : Window
         _source.Foreground = header.IsLive ? Muted : HistoryTint;
         _frame.BorderBrush = header.IsLive ? (_settings.Locked ? null : Gold) : HistoryTint;
         ShowBossBar(_settings.ShowBossPanel ? MeterView.BossBar(snapshot) : null);
+        _updates?.Tick(new UpdateMoment(_session.Tracker.LiveFight() is not null, _session.GameRunning));
+        var banner = _updates?.Banner();
+        _updateBanner.IsVisible = banner is not null;
+        _updateBanner.Content = banner;
         ShowLimit(header.IsLive && !_session.IsReplay ? MeterView.Limit(_session.Tracker.NextTimer(now), now) : null);
 
         var browsing = !_session.IsLive;

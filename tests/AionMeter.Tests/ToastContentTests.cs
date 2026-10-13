@@ -16,6 +16,15 @@ public sealed class ToastContentTests
     }
 
     [Fact]
+    public void A_silent_toast_plays_no_sound()
+    {
+        var audio = XElement.Parse(ToastContent.Xml("Beyond Meter", "1.1.0", silent: true)).Element("audio")!;
+
+        Assert.Equal("true", audio.Attribute("silent")!.Value);
+        Assert.Null(audio.Attribute("src"));
+    }
+
+    [Fact]
     public void Markup_in_names_stays_text()
     {
         var toast = XElement.Parse(ToastContent.Xml("<b>Boss & co</b>", "\"zone\""));

@@ -26,6 +26,21 @@ public sealed class FakeDesktop : IDesktopPlatform, IBossAlert
 
     public bool CaptureLibraryMissing { get; set; }
 
+    public IBossAlert Notice => new Recorder(Notices);
+
+    public List<(string Title, string Body)> Notices { get; } = [];
+
+    public bool IsInstalledCopy { get; set; }
+
+    public List<(string Path, bool Quiet)> Installers { get; } = [];
+
+    public void LaunchInstaller(string path, bool quiet) => Installers.Add((path, quiet));
+
+    private sealed class Recorder(List<(string Title, string Body)> into) : IBossAlert
+    {
+        public void Notify(string title, string body) => into.Add((title, body));
+    }
+
     public List<(string Title, string Body)> Notifications { get; } = [];
 
     public List<(IntPtr Window, bool Enabled)> ClickThrough { get; } = [];

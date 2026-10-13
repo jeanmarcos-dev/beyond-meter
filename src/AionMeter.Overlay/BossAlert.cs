@@ -15,13 +15,18 @@ public sealed class NullBossAlert : IBossAlert
     }
 }
 
-public sealed class DesktopBossAlert(Func<ProcessStartInfo, Process?>? start = null) : IBossAlert
+public sealed class DesktopBossAlert(Func<ProcessStartInfo, Process?>? start = null, bool quiet = false) : IBossAlert
 {
     private readonly Func<ProcessStartInfo, Process?> _start = start ?? Process.Start;
     private readonly HashSet<string> _missing = [];
 
     public void Notify(string title, string body)
     {
+        if (quiet)
+        {
+            Run("notify-send", "--app-name", "AION meter", "--", title, body);
+            return;
+        }
         Run("notify-send", "--app-name", "AION meter", "--urgency=critical", "--", title, body);
         Run("canberra-gtk-play", "-i", "alarm-clock-elapsed");
     }

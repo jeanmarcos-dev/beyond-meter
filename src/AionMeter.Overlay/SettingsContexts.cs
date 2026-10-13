@@ -9,7 +9,7 @@ namespace AionMeter.Overlay;
 
 public static class SettingsContexts
 {
-    public static SettingsContext For(IDesktopPlatform desktop, HistoryStore history, string dataDirectory, bool isWindows, Func<IReadOnlyList<(string Name, string Description)>> listDevices)
+    public static SettingsContext For(IDesktopPlatform desktop, HistoryStore history, string dataDirectory, bool isWindows, Func<IReadOnlyList<(string Name, string Description)>> listDevices, UpdateCoordinator? updates = null)
     {
         var t = UiText.Current;
         return new SettingsContext(
@@ -17,12 +17,13 @@ public static class SettingsContexts
             NamesLanguages(dataDirectory),
             isWindows ? Devices(listDevices) : [],
             string.Format(CultureInfo.InvariantCulture, t.HistoryInfo, history.List().Count, history.Directory),
-            string.Format(CultureInfo.InvariantCulture, t.OvVersion, AppVersion()),
-            false,
+            updates?.VersionText() ?? string.Format(CultureInfo.InvariantCulture, t.OvVersion, AppVersion()),
+            updates?.CanInstall ?? false,
             desktop.Open,
             dataDirectory,
             desktop.DataDirectory,
-            Path.Combine(desktop.DataDirectory, "logs"));
+            Path.Combine(desktop.DataDirectory, "logs"),
+            updates is null ? null : updates.CheckNowAsync);
     }
 
     public static IReadOnlyList<string> NamesLanguages(string dataDirectory)

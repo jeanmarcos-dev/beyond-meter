@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Input;
+using AionMeter.Core.Text;
+using AionMeter.Core.Updates;
 using Avalonia.Controls;
 
 namespace AionMeter.Overlay.Platform;
@@ -17,6 +19,8 @@ public sealed class WindowsDesktop : IDesktopPlatform
 
     private readonly IWin32 _native;
     private readonly Func<bool> _npcapInstalled;
+    private readonly Func<bool> _installed;
+    private readonly Func<string, string?> _productName;
     private readonly Func<ProcessStartInfo, Process?> _start;
     private readonly Dictionary<IntPtr, long> _stylesBeforeClickThrough = [];
     private readonly Dictionary<int, OverlayCommand> _hotkeys = [];
@@ -25,7 +29,7 @@ public sealed class WindowsDesktop : IDesktopPlatform
     private IntPtr _hotkeyWindow;
     private Action<OverlayCommand>? _pressed;
 
-    public WindowsDesktop(IWin32 native, Func<string, IBossAlert> alert, Func<string, string?>? environment = null, Func<ProcessStartInfo, Process?>? start = null, Func<bool>? npcapInstalled = null)
+    public WindowsDesktop(IWin32 native, Func<string, IBossAlert> alert, Func<string, string?>? environment = null, Func<ProcessStartInfo, Process?>? start = null, Func<bool>? npcapInstalled = null, Func<string, IBossAlert>? notice = null, Func<bool>? installed = null, Func<string, string?>? productName = null)
     {
         var env = environment ?? Environment.GetEnvironmentVariable;
         var roaming = NonEmpty(env("APPDATA")) ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -37,6 +41,9 @@ public sealed class WindowsDesktop : IDesktopPlatform
         _start = start ?? Process.Start;
         Alert = alert(DataDirectory);
         _npcapInstalled = npcapInstalled ?? LiveCapture.IsNpcapInstalled;
+        Notice = notice?.Invoke(DataDirectory) ?? Alert;
+        _installed = installed ?? (() => false);
+        _productName = productName ?? (path => FileVersionInfo.GetVersionInfo(path).ProductName);
     }
 
     public string ConfigDirectory { get; }
@@ -50,6 +57,17 @@ public sealed class WindowsDesktop : IDesktopPlatform
     public IBossAlert Alert { get; }
 
     public bool CaptureLibraryMissing => !_npcapInstalled();
+
+    public IBossAlert Notice { get; }
+
+    public bool IsInstalledCopy => _installed();
+
+    public void LaunchInstaller(string path, bool quiet)
+    {
+        if (!UpdateFeed.IsProductName(_productName(path), AppInfo.Name))
+            throw new InvalidDataException($"{Path.GetFileName(path)} is not the {AppInfo.Name} installer");
+        _start(new ProcessStartInfo(path, (quiet ? "/VERYSILENT" : "/SILENT") + " /SUPPRESSMSGBOXES /NORESTART /RELAUNCH=1") { UseShellExecute = true })?.Dispose();
+    }
 
     public IReadOnlyDictionary<OverlayCommand, string> ShortcutHints() => new Dictionary<OverlayCommand, string>(_hints);
 
