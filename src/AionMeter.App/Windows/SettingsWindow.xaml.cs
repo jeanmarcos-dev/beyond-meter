@@ -62,7 +62,7 @@ public partial class SettingsWindow : Window
         var idx = _devices.FindIndex(d => d.Name == s.CaptureDevice);
         Device.SelectedIndex = Math.Max(0, idx);
 
-        LanguageBox.SelectedIndex = UiText.Normalize(s.Language) == "ru" ? 1 : 0;
+        LanguageBox.SelectedItem = LanguageBox.Items.OfType<ComboBoxItem>().First(i => (string)i.Tag == UiText.Normalize(s.Language));
         Icons.IsChecked = s.DownloadIcons;
         CheckUpdates.IsChecked = s.CheckUpdates;
         AutoInstallUpdates.IsChecked = s.AutoInstallUpdates;

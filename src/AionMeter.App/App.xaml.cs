@@ -129,7 +129,7 @@ public partial class App : Application
             Settings: ShowSettings,
             Demo: () => _meter.StartDemo(),
             Replay: PickReplay,
-            ToggleLanguage: ToggleLanguage,
+            SetLanguage: SetLanguage,
             Update: () => ShowUpdate(),
             CheckUpdates: () => _ = CheckUpdatesFromTrayAsync(),
             Exit: () =>
@@ -344,7 +344,7 @@ public partial class App : Application
         w.Show();
     }
 
-    /// <summary>English ⇄ Russian, live: names reload, the overlay re-binds, other windows reopen in the new language.</summary>
+    /// <summary>English / Spanish / Russian, live: names reload, the overlay re-binds, other windows reopen in the new language.</summary>
     public void SetLanguage(string language)
     {
         _meter.SetLanguage(language);
@@ -355,8 +355,6 @@ public partial class App : Application
         _tray?.ApplyTexts();
         _overlay.OnLanguageChanged();
     }
-
-    public void ToggleLanguage() => SetLanguage(UiText.Current.Code == "ru" ? "en" : "ru");
 
     public void ShowSavedInOverlay(Core.Storage.HistoryEntry entry)
     {

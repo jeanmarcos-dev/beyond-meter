@@ -176,7 +176,17 @@ public partial class OverlayWindow : Window
         ShowUpdateBanner();
     }
 
-    private void Language_Click(object sender, RoutedEventArgs e) => AppHost.Current.ToggleLanguage();
+    private void Language_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = PlacementMode.Bottom };
+        foreach (var code in UiText.Languages)
+        {
+            var item = new MenuItem { Header = UiText.For(code).LanguageName, IsCheckable = true, IsChecked = code == UiText.Current.Code };
+            item.Click += (_, _) => AppHost.Current.SetLanguage(code);
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
+    }
 
     /// <summary>Re-reads appearance settings changed in the Settings window.</summary>
     public void ApplyAppearance()

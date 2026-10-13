@@ -41,7 +41,11 @@ public sealed class TrayIcon : IDisposable
         _history = new ToolStripMenuItem("", null, (_, _) => actions.History());
         _timers = new ToolStripMenuItem("", null, (_, _) => actions.BossTimers());
         _settings = new ToolStripMenuItem("", null, (_, _) => actions.Settings());
-        _language = new ToolStripMenuItem("", null, (_, _) => actions.ToggleLanguage());
+        _language = new ToolStripMenuItem("");
+        foreach (var code in UiText.Languages)
+            _language.DropDownItems.Add(new ToolStripMenuItem(UiText.For(code).LanguageName, null, (_, _) => actions.SetLanguage(code)) { Tag = code });
+        ((ToolStripDropDownMenu)_language.DropDown).ShowImageMargin = false;
+        ((ToolStripDropDownMenu)_language.DropDown).ShowCheckMargin = true;
         _demo = new ToolStripMenuItem("", null, (_, _) => actions.Demo());
         _replay = new ToolStripMenuItem("", null, (_, _) => actions.Replay());
         _exit = new ToolStripMenuItem("", null, (_, _) => actions.Exit());
@@ -83,7 +87,8 @@ public sealed class TrayIcon : IDisposable
         _history.Text = t.TrayHistory;
         _timers.Text = t.TrayTimers;
         _settings.Text = t.TraySettings;
-        _language.Text = t.SwitchLanguage;
+        _language.Text = t.LanguageMenu;
+        foreach (ToolStripMenuItem item in _language.DropDownItems) item.Checked = (string)item.Tag! == t.Code;
         _demo.Text = t.TrayDemo;
         _replay.Text = t.TrayReplay;
         _exit.Text = t.TrayExit;
@@ -152,7 +157,7 @@ public sealed record TrayActions(
     Action Settings,
     Action Demo,
     Action Replay,
-    Action ToggleLanguage,
+    Action<string> SetLanguage,
     Action Update,
     Action CheckUpdates,
     Action Exit);

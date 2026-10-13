@@ -67,6 +67,7 @@
                                 <TextBlock Text="Language / Язык" Style="{StaticResource Label}" />
                                 <ComboBox x:Name="LanguageBox" MinWidth="160">
                                     <ComboBoxItem Content="English" Tag="en" />
+                                    <ComboBoxItem Content="Español" Tag="es" />
                                     <ComboBoxItem Content="Русский" Tag="ru" />
                                 </ComboBox>
                             </StackPanel>
