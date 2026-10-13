@@ -1,0 +1,134 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      upstream: ${{ steps.version.outputs.upstream }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        name: Tag matches the version in Directory.Build.props
+        run: |
+          version="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)"
+          upstream="$(sed -n 's:.*<UpstreamVersion>\(.*\)</UpstreamVersion>.*:\1:p' Directory.Build.props)"
+          case "$GITHUB_REF_NAME" in
+            "v$version") prerelease=false ;;
+            "v$version"-*) prerelease=true ;;
+            *) echo "::error::Tag $GITHUB_REF_NAME does not match version $version in Directory.Build.props"; exit 1 ;;
+          esac
+          if [[ ! -f "release-notes/$version.md" ]]; then
+            echo "::error::release-notes/$version.md is missing"
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            echo "upstream=$upstream"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Install libpcap
+        run: sudo apt-get update && sudo apt-get install -y libpcap0.8
+      - name: Test
+        run: dotnet test tests/AionMeter.Tests/AionMeter.Tests.csproj -c Release
+      - name: Format
+        run: |
+          dotnet format tests/AionMeter.Tests/AionMeter.Tests.csproj --verify-no-changes --exclude tests/AionMeter.Tests/ChatLineTests.cs
+          dotnet format src/AionMeter.Cli/AionMeter.Cli.csproj --verify-no-changes
+
+  windows:
+    needs: verify
+    runs-on: windows-latest
+    env:
+      INNO_URL: https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe
+      INNO_SHA256: 0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Install Inno Setup 7
+        shell: pwsh
+        run: |
+          $setup = Join-Path $env:RUNNER_TEMP "innosetup.exe"
+          Invoke-WebRequest $env:INNO_URL -OutFile $setup
+          $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $env:INNO_SHA256) { throw "Inno Setup checksum mismatch: $hash" }
+          $dir = Join-Path $env:RUNNER_TEMP "InnoSetup7"
+          Start-Process $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/CURRENTUSER", "/DIR=`"$dir`"" -Wait
+          if (-not (Test-Path (Join-Path $dir "ISCC.exe"))) { throw "ISCC.exe not found in $dir" }
+          $dir | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+      - name: Build
+        shell: pwsh
+        run: ./build-release.ps1
+      - name: Check outputs
+        shell: pwsh
+        run: |
+          $v = "${{ needs.verify.outputs.version }}"
+          "BeyondMeter-Setup-v$v.exe", "BeyondMeter-Setup.exe", "BeyondMeter-v$v-win-x64.zip", "BeyondMeter-win-x64.zip", "BeyondMeter-v$v-source.zip" |
+            ForEach-Object { if (-not (Test-Path (Join-Path dist $_))) { throw "dist/$_ is missing" } }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/*.exe
+            dist/*.zip
+          if-no-files-found: error
+
+  linux:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build
+        run: packaging/linux/build-tarball.sh dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: [verify, windows, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          UPSTREAM: ${{ needs.verify.outputs.upstream }}
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+        run: |
+          {
+            cat "release-notes/$VERSION.md"
+            echo
+            echo "Based on upstream [AION2 DPS Meter $UPSTREAM](https://github.com/cyberbadger6969/aion2-dps-meter/releases/tag/v$UPSTREAM)."
+          } > notes.md
+          flags=()
+          if [[ "$PRERELEASE" == "true" ]]; then flags+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" files/* --title "Beyond Meter $VERSION" --notes-file notes.md "${flags[@]}"
