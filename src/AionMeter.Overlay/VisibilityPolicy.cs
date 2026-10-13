@@ -1,6 +1,6 @@
 namespace AionMeter.Overlay;
 
-public readonly record struct VisibilityInput(long NowMs, bool? GameRunning, bool FightActive, bool Locked, int AutoHideSeconds);
+public readonly record struct VisibilityInput(long NowMs, bool? GameRunning, bool FightActive, bool Locked, int AutoHideSeconds, bool AutoShow = true, bool ShowOnStart = true);
 
 public sealed class VisibilityPolicy
 {
@@ -34,19 +34,20 @@ public sealed class VisibilityPolicy
 
     public bool Update(VisibilityInput input)
     {
-        ObserveGame(input.GameRunning);
+        ObserveGame(input.GameRunning, input.ShowOnStart);
         if (_restartIdle || input.FightActive || !input.Locked)
         {
             _lastCombatMs = input.NowMs;
             _restartIdle = false;
         }
 
+        if (!input.AutoShow) return Visible;
         if (input.FightActive && _gameRunning == true && !_manualHidden) Visible = true;
         else if (Visible && IdleExpired(input)) Visible = false;
         return Visible;
     }
 
-    private void ObserveGame(bool? running)
+    private void ObserveGame(bool? running, bool showOnStart)
     {
         if (running is not { } now) return;
         var first = _gameRunning is null;
@@ -57,8 +58,8 @@ public sealed class VisibilityPolicy
         {
             if (first && _manualHidden) return;
             _manualHidden = false;
-            Visible = true;
             _restartIdle = true;
+            if (showOnStart) Visible = true;
         }
         else if (!first)
         {

@@ -166,6 +166,30 @@ public sealed class OverlayWindowTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void Hiding_and_showing_by_hand_is_remembered_for_the_next_start()
+    {
+        var window = Open(new HistoryStore(Path.Combine(_dir, "fights")), out _);
+
+        window.Apply(OverlayCommand.Toggle);
+        Assert.False(UserSettings.Load(SettingsPath).OverlayVisible);
+
+        window.Apply(OverlayCommand.Show);
+        Assert.True(UserSettings.Load(SettingsPath).OverlayVisible);
+    }
+
+    [Theory]
+    [InlineData(false, true, true, false)]
+    [InlineData(true, true, true, true)]
+    [InlineData(false, false, true, false)]
+    [InlineData(false, false, false, true)]
+    public void The_overlay_starts_hidden_when_asked_or_when_it_was_hidden_and_should_not_show_on_start(bool hiddenFlag, bool overlayVisible, bool showOnStart, bool startsHidden)
+    {
+        var settings = new UserSettings { OverlayVisible = overlayVisible, ShowOnStart = showOnStart };
+
+        Assert.Equal(startsHidden, OverlayApp.OverlayStartsHidden(new OverlayOptions(false, "", Hidden: hiddenFlag), settings));
+    }
+
+    [AvaloniaFact]
     public void Close_button_quits_and_hides_while_locked()
     {
         var window = Open(new HistoryStore(Path.Combine(_dir, "fights")), out _);

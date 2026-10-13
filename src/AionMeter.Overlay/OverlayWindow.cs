@@ -224,6 +224,13 @@ public sealed class OverlayWindow : Window
         if (files.Count > 0 && files[0].TryGetLocalPath() is { } path) Replay(path);
     }
 
+    private void RememberVisibility()
+    {
+        if (_settings.OverlayVisible == _policy.Visible) return;
+        _settings.OverlayVisible = _policy.Visible;
+        SaveSettings();
+    }
+
     private void Reveal()
     {
         _policy.Show();
@@ -335,10 +342,12 @@ public sealed class OverlayWindow : Window
             case OverlayCommand.Show:
                 _policy.Show();
                 SetVisible(true);
+                RememberVisibility();
                 break;
             case OverlayCommand.Toggle:
                 _policy.Toggle();
                 SetVisible(_policy.Visible);
+                RememberVisibility();
                 break;
             case OverlayCommand.Lock:
                 _settings.Locked = !_settings.Locked;
@@ -583,7 +592,8 @@ public sealed class OverlayWindow : Window
 
     private void ApplyVisibility()
     {
-        var input = new VisibilityInput(_clock(), _session.GameRunning, _session.Tracker.LiveFight() is not null, _settings.Locked, _settings.AutoHideSeconds);
+        var engaged = _session.Tracker.LiveFight() is { } fight && (fight.Boss || fight.Self);
+        var input = new VisibilityInput(_clock(), _session.GameRunning, engaged, _settings.Locked, _settings.AutoHideSeconds, _settings.AutoShow, _settings.ShowOnStart);
         var visible = _policy.Update(input);
         if (visible != IsVisible) SetVisible(visible);
     }

@@ -192,8 +192,8 @@ interface stays in Spanish and its `Language` becomes `NamesLanguage`. `overlay.
 | `LockedOpacity` | `0.55` | 0.15–1 | Background opacity while locked |
 | `Locked` | `false` | `true` / `false` | Start locked (click-through) |
 | `ClickThrough` | `false` | `true` / `false` | Click-through flag of the old Windows app; the overlay uses `Locked` |
-| `OverlayVisible` | `true` | `true` / `false` | Visibility flag of the old Windows app |
-| `AutoShow` | `true` | `true` / `false` | Show by itself when a fight starts |
+| `OverlayVisible` | `true` | `true` / `false` | Whether you left the overlay shown or hidden; hidden stays hidden at start unless `ShowOnStart` is on |
+| `AutoShow` | `true` | `true` / `false` | Show by itself when a boss fight or your own fight starts, and hide again after `AutoHideSeconds` |
 | `AutoHideSeconds` | `60` | 0–600 | Seconds without combat before a locked overlay hides itself; `0` never hides it |
 | `ShowOnStart` | `true` | `true` / `false` | Show the overlay when the meter or the game starts |
 | `BossAlertMinutes` | `2` | 0–30 | Minutes before a watched boss respawns that the alert fires; `0` turns alerts off |

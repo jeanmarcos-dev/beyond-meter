@@ -6,8 +6,8 @@ public sealed class VisibilityPolicyTests
 {
     private const long Second = 1_000;
 
-    private static VisibilityInput At(long seconds, bool? game = true, bool fight = false, bool locked = true, int autoHide = 60) =>
-        new(seconds * Second, game, fight, locked, autoHide);
+    private static VisibilityInput At(long seconds, bool? game = true, bool fight = false, bool locked = true, int autoHide = 60, bool autoShow = true, bool showOnStart = true) =>
+        new(seconds * Second, game, fight, locked, autoHide, autoShow, showOnStart);
 
     private static VisibilityPolicy Hidden() => new(startVisible: false);
 
@@ -27,6 +27,29 @@ public sealed class VisibilityPolicyTests
         policy.Update(At(0, game: false));
 
         Assert.True(policy.Update(At(5, game: true)));
+    }
+
+    [Fact]
+    public void Without_show_on_start_opening_the_game_leaves_the_overlay_hidden()
+    {
+        var policy = Hidden();
+        policy.Update(At(0, game: false, showOnStart: false));
+
+        Assert.False(policy.Update(At(5, game: true, showOnStart: false)));
+        Assert.True(policy.Update(At(10, game: true, fight: true, showOnStart: false)));
+    }
+
+    [Fact]
+    public void Without_auto_show_fights_neither_show_nor_hide_the_overlay()
+    {
+        var hidden = Hidden();
+        hidden.Update(At(0, game: true, autoShow: false));
+        hidden.Hide();
+        Assert.False(hidden.Update(At(5, fight: true, autoShow: false)));
+
+        var shown = new VisibilityPolicy(startVisible: true);
+        shown.Update(At(0, autoShow: false));
+        Assert.True(shown.Update(At(600, autoShow: false)));
     }
 
     [Fact]

@@ -74,7 +74,7 @@ public sealed class OverlayApp : Application
         tuning.Apply(settings);
         var demo = options.Demo ? new DemoFightSource(tracker.Process) : null;
 
-        var window = new OverlayWindow(session, settings, settingsPath, desktopPlatform, tuning.Apply, board, options.Hidden);
+        var window = new OverlayWindow(session, settings, settingsPath, desktopPlatform, tuning.Apply, board, OverlayStartsHidden(options, settings));
 
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         void BindHotkeys(UserSettings current)
@@ -119,6 +119,9 @@ public sealed class OverlayApp : Application
         if (!options.Hidden) window.Show();
         if (NpcapNotice.Needed(desktopPlatform, capture is LiveCapture)) new NpcapNotice(desktopPlatform).Show();
     }
+
+    public static bool OverlayStartsHidden(OverlayOptions options, UserSettings settings) =>
+        options.Hidden || (!settings.OverlayVisible && !settings.ShowOnStart);
 
     private static UpdateCoordinator NewUpdates(OverlayWindow window, IDesktopPlatform desktop, AppLog log)
     {
