@@ -69,7 +69,7 @@ driver — see [Installation](#installation).
   respawn counting down, per server, with a tray alert before a boss you watch returns.
 - **Share in chat** — the chat button on the overlay (or a right-click on a player) copies a one-line result for the game chat, with units, places and the boss result spelled out, or the ranking as a table for Discord.
 - **Gear score and combat power** — GS and CP columns right after the names in the overlay (set apart from the fight's numbers by a rule) for you and your party members, in the breakdown header and in the chat lines as `(GS 1859 / CP 82.1K)` (the party roster is the only place the game sends them; *Settings → Overlay* turns them off). The overlay's value columns are only as wide as their numbers, so names get the rest.
-- **English and Russian** — interface and skill / NPC names in either language, switchable at any time.
+- **English, Spanish and Russian** — interface and skill / NPC names in any of them, switchable at any time.
 - **Updates itself** — new versions download in the background and install themselves when you are not playing.
 - **Passive** — reads only your own game's network traffic; never touches game memory or sends anything to the game.
 
@@ -97,7 +97,7 @@ driver — see [Installation](#installation).
    Npcap and opens the download page if it is missing. (Npcap's licence does not allow bundling it with other
    programs, so it is a separate step.)
 2. **Run `BeyondMeter-Setup-v<version>.exe`.** If Windows says *"Windows protected your PC"*, click *More info* →
-   *Run anyway*: the program is not code-signed yet. The installer speaks English and Russian, asks for a folder
+   *Run anyway*: the program is not code-signed yet. The installer speaks English, Spanish and Russian, asks for a folder
    (default `%LocalAppData%\Programs\Beyond Meter`, or the folder of the AION2 DPS Meter it replaces) and puts shortcuts on the desktop and in the Start menu.
 3. **Start the meter before entering a dungeon** — the game sends player names on loading screens, so players who were
    already around show as `#12345` until the next loading screen. Then just play: the overlay comes up when the fight
@@ -110,7 +110,7 @@ driver — see [Installation](#installation).
 closes the running meter by itself. **Uninstalling:** *Settings → Apps → Beyond Meter*; it asks whether to delete your settings and history too.
 
 Settings, fight history and timers live in `%AppData%\AionMeter` and survive updates. `INSTALL.txt` in the download has
-the same instructions in English and Russian.
+the same instructions in English, Spanish and Russian.
 
 **Requirements:** Windows 10 or 11 (64-bit) · AION 2 on Global servers (EU or NA; Korean and Taiwanese clients are not
 supported) · Npcap · about 200 MB of disk space.
@@ -269,6 +269,27 @@ check ignores. The installer and zip also come under fixed names (`BeyondMeter-S
 
 ```bash
 git tag v<version> && git push origin v<version>
+```
+
+The update window shows only the sections of the notes in the interface language. Mark each language with an HTML
+comment before its first heading; GitHub does not show it. Unmarked sections count as Russian when their heading has
+Cyrillic letters and as English otherwise, and notes with no section in the interface language are shown whole.
+
+```markdown
+<!-- lang: en -->
+## What's new in 1.1.0
+
+- Spanish interface.
+
+<!-- lang: es -->
+## Novedades de la 1.1.0
+
+- Interfaz en español.
+
+<!-- lang: ru -->
+## Что нового в 1.1.0
+
+- Испанский интерфейс.
 ```
 
 **Screenshots and video:** `tools/make-site-kit.ps1` renders the pictures in this README, English and Russian
