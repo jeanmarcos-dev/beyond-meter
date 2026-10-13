@@ -1,5 +1,6 @@
 using System.Net;
 using System.Security.Cryptography;
+using AionMeter.Core.Text;
 using AionMeter.Core.Updates;
 
 namespace AionMeter.Tests;
@@ -152,11 +153,12 @@ public class UpdateTests
         var markdown = File.ReadAllText(Repository.Path("release-notes", version + ".md"));
         var headings = markdown.Split('\n').Where(l => l.StartsWith("## ")).Select(l => l[3..].Trim()).ToList();
 
-        var lines = ReleaseNotes.Lines(markdown, "en");
+        var shown = UiText.Languages.Select(language => ReleaseNotes.Lines(markdown, language)).ToList();
 
         Assert.NotEmpty(headings);
-        Assert.Equal(headings, lines.Where(l => l.Heading).Select(l => l.Text));
-        Assert.Equal(lines, ReleaseNotes.Lines(markdown, "ru"));
+        Assert.All(shown, lines => Assert.True(lines[0].Heading));
+        Assert.Equal(UiText.Languages.Length, shown.Select(lines => lines[0].Text).Distinct().Count());
+        Assert.Equal(headings, shown.SelectMany(lines => lines.Where(l => l.Heading).Select(l => l.Text)));
     }
 
     private const string MarkedNotes = """
