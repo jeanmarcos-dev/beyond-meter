@@ -11,11 +11,11 @@ public sealed class BossRowControl : StackPanel
     private static readonly IBrush Gold = new SolidColorBrush(Color.FromRgb(0xF5, 0xC5, 0x42));
     private static readonly IBrush Muted = new SolidColorBrush(Color.FromRgb(0xA8, 0xB3, 0xC7));
     private static readonly IBrush Green = new SolidColorBrush(Color.FromRgb(0x6F, 0xD0, 0x8C));
+    private static readonly IBrush Amber = new SolidColorBrush(Color.FromRgb(0xFF, 0xB0, 0x4C));
 
     private readonly TextBlock _name = new() { FontSize = 13, FontWeight = FontWeight.SemiBold, Foreground = Brushes.White, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock _status = new() { FontSize = 13, FontWeight = FontWeight.Bold, HorizontalAlignment = HorizontalAlignment.Right };
     private readonly TextBlock _detail = new() { FontSize = 11, Foreground = Muted, TextTrimming = TextTrimming.CharacterEllipsis };
-    private readonly TextBlock _interval = new() { FontSize = 11, Foreground = Muted, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0), MinWidth = 52, TextAlignment = TextAlignment.Center };
     private readonly WrapPanel _actions = new() { ItemSpacing = 3, LineSpacing = 3 };
     private bool _watch;
 
@@ -31,7 +31,7 @@ public sealed class BossRowControl : StackPanel
         top.Children.Add(_status);
         _actions.Children.Add(WatchButton);
         _actions.Children.Add(LessButton);
-        _actions.Children.Add(_interval);
+        _actions.Children.Add(IntervalButton);
         _actions.Children.Add(MoreButton);
         _actions.Children.Add(DeadButton);
         _actions.Children.Add(RemoveButton);
@@ -42,6 +42,14 @@ public sealed class BossRowControl : StackPanel
     }
 
     public int NpcCode { get; }
+
+    public int RespawnMinutes { get; private set; }
+
+    public Button IntervalButton { get; } = new() { FontSize = 11, Padding = new Thickness(6, 1), MinWidth = 64, HorizontalContentAlignment = HorizontalAlignment.Center };
+
+    public TextBlock Status => _status;
+
+    public TextBlock Detail => _detail;
 
     public Image Portrait { get; } = new() { Width = 28, Height = 28, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center, IsVisible = false };
 
@@ -74,12 +82,16 @@ public sealed class BossRowControl : StackPanel
         _status.Text = view.Status;
         _status.Foreground = view.State switch
         {
-            BossState.Countdown => Gold,
+            BossState.Countdown => view.Soon ? Amber : Gold,
             BossState.Unknown => Muted,
             _ => Green,
         };
-        _detail.Text = string.IsNullOrEmpty(view.Detail) ? view.Zone : $"{view.Zone} · {view.Detail}";
-        _interval.Text = view.Interval;
+        _detail.Text = string.Join(" · ", new[] { view.Zone, view.Death, view.Detail }.Where(part => !string.IsNullOrEmpty(part)));
+        ToolTip.SetTip(_name, view.Source);
+        ToolTip.SetTip(_detail, view.Source);
+        IntervalButton.Content = view.Interval + " ▾";
+        ToolTip.SetTip(IntervalButton, view.IntervalTip);
+        RespawnMinutes = view.RespawnMinutes;
         _watch = view.Watch;
         ApplyTexts();
     }

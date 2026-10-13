@@ -49,6 +49,7 @@ public sealed class LanguageSwitchTests : IDisposable
         Assert.Contains(Buttons(window), b => Equals(b.Content, ru.OvLock));
         Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == ru.OvPlayer);
         Assert.Contains(Buttons(window), b => Equals(b.Content, ru.BtnKilled));
+        Assert.Contains(window.GetLogicalDescendants().OfType<BossRowControl>(), row => row.Detail.Text!.StartsWith("Альтгард"));
         Assert.Contains(Buttons(window), b => Equals(b.Content, ru.OvRemove));
         var breakdown = window.Breakdown!;
         Assert.Equal($"{AppInfo.Name} · {ru.OvBreakdown}", breakdown.Title);
@@ -105,7 +106,7 @@ public sealed class LanguageSwitchTests : IDisposable
     {
         var timers = _world.Timers();
         timers.SetCurrentServer(BossWorld.Server);
-        timers.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, BossWorld.Now.AddMinutes(30))));
+        timers.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, BossWorld.Now.AddMinutes(30)), BossWorld.Alive(2, BossWorld.Now.AddHours(-1))));
         var board = new BossBoard(timers, _world.Data, new NullBossAlert(), () => BossWorld.Now);
         var tracker = new CombatTracker(GameData.Empty, new MeterOptions { TargetMode = TargetMode.All });
         var session = new MeterSession(tracker, new HistoryStore(Path.Combine(_dir, "fights")), null, null, new HistoryPolicy(HistoryMode.All, 20));

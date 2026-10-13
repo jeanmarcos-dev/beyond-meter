@@ -17,7 +17,7 @@ public sealed class BossWorld : IDisposable
         Data = GameData.Empty;
         Data.Npcs[Linx] = new NpcDef(Linx, "Linx", IsBoss: true, IsDummy: false);
         Data.Npcs[Gartua] = new NpcDef(Gartua, "Gartua", IsBoss: true, IsDummy: false);
-        File.WriteAllText(Path.Combine(Directory, "field_boss_maps.json"), """{"maps":{"1110":{"block":2400,"en":"Altgard"}}}""");
+        File.WriteAllText(Path.Combine(Directory, "field_boss_maps.json"), """{"maps":{"1110":{"block":2400,"en":"Altgard","ru":"Альтгард"}}}""");
     }
 
     public string Directory { get; }

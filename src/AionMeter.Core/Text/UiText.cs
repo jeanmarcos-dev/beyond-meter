@@ -424,7 +424,6 @@ public sealed partial class UiText
     public string OvError { get; init; } = "Error: {0}";
     public string OvNoCapture { get; init; } = "No capture";
     public string OvNextBoss { get; init; } = "Next: {0} {1}";
-    public string OvRespawnAlert { get; init; } = "{0} respawns";
     public string OvBossAlive { get; init; } = "Alive";
     public string OvShouldBeUp { get; init; } = "Should be up";
     public string OvUnknownInterval { get; init; } = "Unknown interval";
@@ -842,7 +841,6 @@ public sealed partial class UiText
         OvError = "Ошибка: {0}",
         OvNoCapture = "Нет захвата",
         OvNextBoss = "Следующий: {0} {1}",
-        OvRespawnAlert = "{0} возрождается",
         OvBossAlive = "Жив",
         OvShouldBeUp = "Должен быть жив",
         OvUnknownInterval = "Интервал неизвестен",

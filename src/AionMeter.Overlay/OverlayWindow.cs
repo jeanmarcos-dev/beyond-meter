@@ -96,10 +96,10 @@ public sealed class OverlayWindow : Window
         _clock = clock ?? (() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         _confirmation = new DeleteConfirmation(_clock);
         _board = board;
-        if (board is not null) _bossPanel = new BossPanel(board, Refresh) { IsVisible = false };
         _tune = tune ?? (_ => { });
         _session = session;
         _settings = settings;
+        if (board is not null) _bossPanel = new BossPanel(board, Refresh, () => _settings.BossAlertMinutes, SetAlertMinutes) { IsVisible = false };
         _settingsPath = settingsPath;
         _desktop = desktop;
 
@@ -646,6 +646,12 @@ public sealed class OverlayWindow : Window
         if (_historyPanel.IsVisible && _historyDirty) ReloadHistory();
     }
 
+    private void SetAlertMinutes(int minutes)
+    {
+        _settings.BossAlertMinutes = minutes;
+        SaveSettings();
+    }
+
     private void RefreshBosses()
     {
         if (_board is null || _bossPanel is null) return;
@@ -653,7 +659,7 @@ public sealed class OverlayWindow : Window
         _columnHeader!.IsVisible = !_bossPanelOpen;
         _rows.IsVisible = !_bossPanelOpen;
         _bossPanel.IsVisible = _bossPanelOpen;
-        if (_bossPanelOpen) _bossPanel.Show(_board.Rows());
+        if (_bossPanelOpen) _bossPanel.Show(_board.Rows(_settings.BossAlertMinutes));
         var summary = _bossPanelOpen ? null : _board.Summary();
         _nextBoss.IsVisible = summary is not null;
         _nextBoss.Text = summary;

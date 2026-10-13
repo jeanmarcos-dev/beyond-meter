@@ -4,6 +4,7 @@ using AionMeter.Core.Events;
 using AionMeter.Core.Game;
 using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
+using AionMeter.Core.Text;
 using AionMeter.Overlay;
 using Avalonia;
 using Avalonia.Controls;
@@ -408,6 +409,38 @@ public sealed class OverlayWindowTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void The_panel_header_picks_the_alert_time_the_filter_and_a_preset_interval()
+    {
+        var (window, world) = OpenWithBoard(Now.AddMinutes(12));
+        window.Apply(OverlayCommand.Timers);
+        var panel = window.GetLogicalDescendants().OfType<BossPanel>().Single();
+
+        Pick(window, panel.AlertMenu(), UiText.Current.Duration(5));
+        Assert.Equal(5, UserSettings.Load(SettingsPath).BossAlertMinutes);
+        Assert.Equal(UiText.Current.Duration(5) + " ▾", panel.AlertButton.Content);
+
+        var linx = panel.Rows.Single(r => r.NpcCode == BossWorld.Linx);
+        Pick(window, panel.IntervalMenu(linx), UiText.Current.Duration(45));
+        Assert.Equal(45, world.Timers().ForServer(BossWorld.Server).Single(t => t.NpcCode == BossWorld.Linx).RespawnMinutes);
+
+        Click(window, panel.Rows.Single(r => r.NpcCode == BossWorld.Gartua).WatchButton);
+        Click(window, panel.WatchedButton);
+        Assert.Equal([BossWorld.Gartua], panel.Rows.Select(r => r.NpcCode));
+        Assert.True(panel.WatchedButton.IsChecked);
+
+        Click(window, panel.AllButton);
+        Assert.Equal(2, panel.Rows.Count);
+        Assert.Equal([true], panel.ServerMenu().Select(item => item.IsChecked));
+    }
+
+    private static void Pick(Window window, IReadOnlyList<MenuItem> items, string header)
+    {
+        items.Single(item => Equals(item.Header, header)).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+    }
+
+    [AvaloniaFact]
     public void Panel_actions_are_hidden_while_the_overlay_is_locked()
     {
         var (window, _) = OpenWithBoard(Now.AddMinutes(12));
@@ -422,16 +455,15 @@ public sealed class OverlayWindowTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void Summary_line_shows_the_next_watched_boss_with_the_panel_closed_and_hides_without_one()
+    public void Summary_line_shows_the_next_boss_with_the_panel_closed()
     {
         var (window, _) = OpenWithBoard(Now.AddMinutes(12).AddSeconds(34));
         window.Apply(OverlayCommand.Lock);
-        Assert.DoesNotContain(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text!.StartsWith("Next"));
-
-        _board!.ToggleWatch(BossWorld.Linx);
-        window.Apply(OverlayCommand.Reset);
-
         Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text == "Next: Linx 12:34");
+
+        window.Apply(OverlayCommand.Timers);
+
+        Assert.DoesNotContain(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text!.StartsWith("Next"));
     }
 
     [AvaloniaFact]

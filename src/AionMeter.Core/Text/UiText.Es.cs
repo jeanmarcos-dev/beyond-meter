@@ -361,7 +361,6 @@ public sealed partial class UiText
         OvError = "Error: {0}",
         OvNoCapture = "Sin captura",
         OvNextBoss = "Próximo: {0} {1}",
-        OvRespawnAlert = "Reaparece {0}",
         OvBossAlive = "Vivo",
         OvShouldBeUp = "Debería estar vivo",
         OvUnknownInterval = "Intervalo desconocido",

@@ -4,6 +4,7 @@ using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
 using AionMeter.Core.Game;
 using AionMeter.Core.Storage;
+using AionMeter.Core.Text;
 using AionMeter.Overlay;
 
 namespace AionMeter.Tests;
@@ -49,6 +50,105 @@ public sealed class BossBoardTests : IDisposable
     }
 
     [Fact]
+    public void Bosses_up_come_first_then_countdowns_then_unknown()
+    {
+        var (board, _, _) = Open(t => t.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, Now.AddMinutes(12)), BossWorld.Alive(2, Now.AddHours(-1)))));
+
+        Assert.Equal([BossWorld.Gartua, BossWorld.Linx], board.Rows().Select(r => r.NpcCode));
+    }
+
+    [Fact]
+    public void A_list_slot_whose_boss_has_no_name_yet_stays_out_of_the_list()
+    {
+        var (board, _, _) = Open(t => t.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, Now.AddMinutes(12)))));
+
+        Assert.Empty(board.Rows());
+    }
+
+    [Fact]
+    public void Rows_tell_where_the_time_comes_from_when_it_died_and_whether_it_is_close()
+    {
+        var (board, _, _) = Open(t =>
+        {
+            t.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, Now.AddMinutes(12)), BossWorld.Alive(2, Now.AddHours(-1))));
+            t.SetRespawn(BossWorld.Server, BossWorld.Gartua, 90);
+        });
+        board.MarkDead(BossWorld.Gartua);
+
+        var linx = board.Rows(alertMinutes: 15).Single(r => r.NpcCode == BossWorld.Linx);
+        Assert.True(linx.Soon);
+        Assert.False(board.Rows(alertMinutes: 10).Single(r => r.NpcCode == BossWorld.Linx).Soon);
+        Assert.Equal(string.Format(UiText.Current.SourceGame, Now.ToString("HH:mm")), linx.Source);
+        Assert.Equal(UiText.Current.RespawnFromGame, linx.Interval);
+        var gartua = board.Rows().Single(r => r.NpcCode == BossWorld.Gartua);
+        Assert.Equal(string.Format(UiText.Current.TimerKilled, Now.ToString("HH:mm")), gartua.Death);
+        Assert.Equal(UiText.Current.Duration(90), gartua.Interval);
+        Assert.Equal(UiText.Current.TipRespawn, gartua.IntervalTip);
+    }
+
+    [Fact]
+    public void The_watched_filter_keeps_only_watched_bosses()
+    {
+        var (board, _, _) = Open(t =>
+        {
+            t.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, Now.AddMinutes(12)), BossWorld.Alive(2, Now.AddHours(-1))));
+            t.SetWatch(BossWorld.Server, BossWorld.Linx, true);
+        });
+
+        board.WatchedOnly = true;
+
+        Assert.Equal([BossWorld.Linx], board.Rows().Select(r => r.NpcCode));
+    }
+
+    [Fact]
+    public void Another_servers_timers_can_be_shown_until_the_current_one_is_picked_again()
+    {
+        var (board, _, _) = Open(t =>
+        {
+            t.OnList(BossWorld.List(2002, BossWorld.Dead(1, Now.AddMinutes(12)), BossWorld.Alive(2, Now.AddHours(-1))));
+            t.SetCurrentServer(BossWorld.Server);
+        });
+        Assert.Empty(board.Rows());
+
+        var servers = board.Servers();
+        Assert.Equal([BossWorld.Server, 2002], servers.Select(s => s.Server));
+        Assert.EndsWith(UiText.Current.ServerYours, servers[0].Label);
+        Assert.Equal([true, false], servers.Select(s => s.Shown));
+
+        board.ShowServer(2002);
+        Assert.Equal(2, board.Rows().Count);
+        board.MarkDead(BossWorld.Gartua);
+        Assert.NotEmpty(board.Rows().Single(r => r.NpcCode == BossWorld.Gartua).Death);
+
+        board.ShowServer(BossWorld.Server);
+        Assert.Empty(board.Rows());
+    }
+
+    [Theory]
+    [InlineData(60, false)]
+    [InlineData(50, true)]
+    public void Interval_presets_include_the_current_value_in_order(int current, bool added)
+    {
+        var presets = BossBoard.PresetsFor(current);
+
+        Assert.Contains(current, presets);
+        Assert.Equal(presets.Order(), presets);
+        Assert.Equal(BossBoard.Presets.Length + (added ? 1 : 0), presets.Count);
+    }
+
+    [Fact]
+    public void Picking_an_interval_sets_it_by_hand()
+    {
+        var (board, _, _) = Open(t => t.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, Now.AddMinutes(12)), BossWorld.Alive(2, Now.AddHours(-1)))));
+
+        board.SetInterval(BossWorld.Gartua, 240);
+
+        var gartua = board.Rows().Single(r => r.NpcCode == BossWorld.Gartua);
+        Assert.Equal(240, gartua.RespawnMinutes);
+        Assert.Equal(UiText.Current.Duration(240), gartua.Interval);
+    }
+
+    [Fact]
     public void A_passed_respawn_reads_as_should_be_alive()
     {
         var (board, _, _) = Open(t => t.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, Now.AddMinutes(-3)), BossWorld.Dead(2, Now.AddHours(2)))));
@@ -68,6 +168,9 @@ public sealed class BossBoardTests : IDisposable
 
         Assert.Equal(BossState.Unknown, linx.State);
         Assert.Equal("Unknown interval", linx.Status);
+        Assert.Equal(UiText.Current.TimerNeedsInterval, linx.Detail);
+        Assert.Equal(UiText.Current.SourceMeter, linx.Source);
+        Assert.Equal(UiText.Current.RespawnUnknown, linx.Interval);
     }
 
     [Fact]
@@ -95,9 +198,17 @@ public sealed class BossBoardTests : IDisposable
     }
 
     [Fact]
-    public void Summary_is_empty_without_a_watched_boss()
+    public void Without_a_watched_boss_the_summary_names_the_next_of_all()
     {
         var (board, _, _) = Open(t => t.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, Now.AddMinutes(12)), BossWorld.Dead(2, Now.AddMinutes(5)))));
+
+        Assert.Equal("Next: Gartua 05:00", board.Summary());
+    }
+
+    [Fact]
+    public void Summary_is_empty_without_a_countdown()
+    {
+        var (board, _, _) = Open(t => t.OnList(BossWorld.List(BossWorld.Server, BossWorld.Alive(1, Now.AddHours(-1)))));
 
         Assert.Null(board.Summary());
     }
@@ -177,9 +288,8 @@ public sealed class BossBoardTests : IDisposable
         at = back.AddMinutes(-2);
         board.Poll(2);
         var (title, body) = Assert.Single(alert.Sent);
-        Assert.Contains("Linx", title);
-        Assert.Contains("Altgard", body);
-        Assert.Contains(back.ToString("HH:mm"), body);
+        Assert.Equal("Boss timers", title);
+        Assert.Equal($"Linx respawns in about 2 min ({back.ToLocalTime():HH:mm})", body);
 
         at = back.AddMinutes(-1);
         board.Poll(2);
