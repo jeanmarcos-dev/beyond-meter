@@ -1,4 +1,5 @@
 using AionMeter.Core.Combat;
+using AionMeter.Overlay.Platform;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -26,7 +27,7 @@ public sealed class OverlayWindow : Window
     private readonly VisibilityPolicy _policy;
     private readonly Func<long> _clock;
     private readonly string _settingsPath;
-    private readonly X11Window? _x11;
+    private readonly IDesktopPlatform? _desktop;
     private readonly DispatcherTimer _timer;
     private readonly Border _frame = new() { CornerRadius = new CornerRadius(8), Padding = new Thickness(8) };
     private readonly TextBlock _title = new() { Foreground = Gold, FontSize = 15, FontWeight = FontWeight.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
@@ -69,7 +70,7 @@ public sealed class OverlayWindow : Window
     private readonly DeleteConfirmation _confirmation;
     private bool _historyDirty = true;
 
-    public OverlayWindow(MeterSession session, OverlaySettings settings, string settingsPath, X11Window? x11, Action<OverlaySettings>? tune = null, BossBoard? board = null, bool startHidden = false, Func<long>? clock = null)
+    public OverlayWindow(MeterSession session, OverlaySettings settings, string settingsPath, IDesktopPlatform? desktop, Action<OverlaySettings>? tune = null, BossBoard? board = null, bool startHidden = false, Func<long>? clock = null)
     {
         _policy = new VisibilityPolicy(startVisible: !startHidden);
         _clock = clock ?? (() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
@@ -80,7 +81,7 @@ public sealed class OverlayWindow : Window
         _session = session;
         _settings = settings;
         _settingsPath = settingsPath;
-        _x11 = x11;
+        _desktop = desktop;
 
         Title = "AION 2 DPS";
         Topmost = true;
@@ -208,7 +209,7 @@ public sealed class OverlayWindow : Window
 
     public void SaveSettings()
     {
-        if (IsVisible && TryGetPlatformHandle() is { } handle && _x11?.RootPosition(handle.Handle) is { } root)
+        if (IsVisible && TryGetPlatformHandle() is { } handle && _desktop?.WindowPosition(handle.Handle) is { } root)
             _settings = _settings with { X = root.X, Y = root.Y };
         _settings.Save(_settingsPath);
     }
@@ -414,7 +415,7 @@ public sealed class OverlayWindow : Window
         if (locked) _historyPanel.IsVisible = false;
         _frame.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round((locked ? _settings.LockedOpacity : _settings.Opacity) * 255), 0x0A, 0x0E, 0x16));
         _frame.BorderThickness = new Thickness(1);
-        if (_x11 is not null && TryGetPlatformHandle() is { } handle) _x11.SetClickThrough(handle.Handle, locked);
+        if (_desktop is not null && TryGetPlatformHandle() is { } handle) _desktop.SetClickThrough(handle.Handle, locked);
     }
 
     private void SetVisible(bool visible)

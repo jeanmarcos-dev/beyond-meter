@@ -21,13 +21,6 @@ public sealed class CommandChannel : IDisposable
 
     public string Path { get; }
 
-    public static string DefaultPath()
-    {
-        var runtime = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
-        var dir = string.IsNullOrEmpty(runtime) ? System.IO.Path.GetTempPath() : runtime;
-        return System.IO.Path.Combine(dir, "aionmeter-overlay.sock");
-    }
-
     public static CommandChannel Listen(string path, Action<OverlayCommand> received) => new(path, received);
 
     public static bool IsListening(string path)

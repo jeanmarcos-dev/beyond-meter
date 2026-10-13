@@ -229,7 +229,7 @@ public sealed class BossBoardTests : IDisposable
     {
         var home = Path.Combine(_world.Directory, "demo-home");
 
-        var board = BossBoard.Create(home, _world.Data, _world.Directory, demo: true);
+        var board = BossBoard.Create(home, _world.Data, _world.Directory, demo: true, new FakeDesktop().Alert);
         board.Timers.OnNotice(new BossNotice(BossWorld.Linx, BossWorld.Map, "Altgard", BossNoticeKind.Killed, Now.ToUnixTimeMilliseconds(), ServerId: BossWorld.Server));
         board.Timers.OnList(BossWorld.List(BossWorld.Server, BossWorld.Dead(1, Now.AddHours(1)), BossWorld.Dead(2, Now.AddHours(2))));
 
@@ -242,11 +242,12 @@ public sealed class BossBoardTests : IDisposable
     {
         var home = Path.Combine(_world.Directory, "live-home");
 
-        var board = BossBoard.Create(home, _world.Data, _world.Directory, demo: false);
+        var desktop = new FakeDesktop();
+        var board = BossBoard.Create(home, _world.Data, _world.Directory, demo: false, desktop.Alert);
         board.Timers.OnNotice(new BossNotice(BossWorld.Linx, BossWorld.Map, "Altgard", BossNoticeKind.Killed, Now.ToUnixTimeMilliseconds(), ServerId: BossWorld.Server));
 
         Assert.True(File.Exists(Path.Combine(home, "boss-timers.json")));
-        Assert.IsType<DesktopBossAlert>(board.Alert);
+        Assert.Same(desktop.Alert, board.Alert);
     }
 
     [Fact]

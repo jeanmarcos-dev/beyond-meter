@@ -25,11 +25,11 @@ public sealed class BossBoard(BossTimers timers, GameData data, IBossAlert alert
 
     public IBossAlert Alert => alert;
 
-    public static BossBoard Create(string dataHome, GameData data, string dataDirectory, bool demo)
+    public static BossBoard Create(string dataHome, GameData data, string dataDirectory, bool demo, IBossAlert alert)
     {
         if (!demo) Directory.CreateDirectory(dataHome);
         var timers = new BossTimers(Path.Combine(dataHome, "boss-timers.json"), data, dataDirectory, persistent: !demo);
-        return new BossBoard(timers, data, demo ? new NullBossAlert() : new DesktopBossAlert(), () => DateTimeOffset.Now);
+        return new BossBoard(timers, data, demo ? new NullBossAlert() : alert, () => DateTimeOffset.Now);
     }
 
     public static int Step(int minutes, int direction)

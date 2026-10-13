@@ -26,14 +26,6 @@ public sealed partial record OverlaySettings(
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
 
-    public static string DefaultPath()
-    {
-        var config = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-        if (string.IsNullOrEmpty(config))
-            config = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
-        return Path.Combine(config, "aionmeter", "overlay.json");
-    }
-
     public static OverlaySettings Load(string path)
     {
         try

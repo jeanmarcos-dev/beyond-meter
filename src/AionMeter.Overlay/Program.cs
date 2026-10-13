@@ -1,4 +1,5 @@
 using AionMeter.Overlay;
+using AionMeter.Overlay.Platform;
 using Avalonia;
 
 var parsed = OverlayArguments.Parse(args);
@@ -8,7 +9,8 @@ if (parsed.Error is { } error)
     return 2;
 }
 
-var socket = CommandChannel.DefaultPath();
+var desktop = DesktopPlatforms.ForThisSystem();
+var socket = desktop.CommandChannelPath;
 if (parsed.ReplayPath is { } replayPath)
 {
     if (CommandChannel.IsListening(socket))
@@ -32,5 +34,6 @@ else
     }
 }
 
+OverlayApp.Desktop = desktop;
 OverlayApp.Options = new OverlayOptions(parsed.Demo, socket, parsed.Hidden, parsed.ReplayPath, parsed.Fast);
 return AppBuilder.Configure<OverlayApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
