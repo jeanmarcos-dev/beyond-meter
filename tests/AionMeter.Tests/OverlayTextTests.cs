@@ -10,6 +10,8 @@ public sealed class OverlayTextTests
 
     private static readonly Regex Word = new(@"[^\W\d_]{3,}");
 
+    private static readonly Regex Link = new(@"^https?://\S+$");
+
     private static readonly Regex TechnicalUse = new(
         @"Console\.Error|Name = ""|Import\(|Definitions\(|Path\.Combine\(|env\(""|XElement\(|XAttribute\(|SetValue\(""|ArgumentList\.Add\(|Run\(""|ProcessStartInfo\(|avares://|CreateSubKey\(|CreateTempSubdirectory\(|ProgramName =|KeybindingsPath =|\.Length\.\.\]|StartsWith\(""|Stat\(""|EnumerateFiles\(");
 
@@ -38,7 +40,7 @@ public sealed class OverlayTextTests
             .SelectMany(file => File.ReadLines(file).Select((line, i) => (file, line, number: i + 1)))
             .Where(x => !TechnicalUse.IsMatch(x.line))
             .SelectMany(x => Literal.Matches(x.line).Select(m => (x.file, x.number, text: m.Groups[2].Value, interpolated: m.Groups[1].Length > 0)))
-            .Where(x => Word.IsMatch(x.interpolated ? Hole.Replace(x.text, "") : x.text) && !NotInterfaceText.Contains(x.text))
+            .Where(x => Word.IsMatch(x.interpolated ? Hole.Replace(x.text, "") : x.text) && !NotInterfaceText.Contains(x.text) && !Link.IsMatch(x.text))
             .Select(x => $"{Path.GetRelativePath(root, x.file)}:{x.number}: \"{x.text}\"")
             .ToList();
 

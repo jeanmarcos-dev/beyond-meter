@@ -98,6 +98,7 @@ public sealed class OverlayApp : Application
         if (settings.RecordPackets && capture is LiveCapture) session.ToggleRecording();
         demo?.Start(TimeSpan.FromSeconds(30));
         if (!options.Hidden) window.Show();
+        if (NpcapNotice.Needed(desktopPlatform, capture is LiveCapture)) new NpcapNotice(desktopPlatform).Show();
     }
 
     private static LiveCapture NewLiveCapture(GameData data, string? device) =>

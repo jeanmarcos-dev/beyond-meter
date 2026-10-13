@@ -30,6 +30,8 @@ public sealed class LinuxDesktop : IDesktopPlatform
 
     public IBossAlert Alert { get; }
 
+    public bool CaptureLibraryMissing => false;
+
     public IReadOnlyDictionary<OverlayCommand, string> ShortcutHints() => Overlay.ShortcutHints.Load();
 
     public IReadOnlyList<OverlayCommand> RegisterHotkeys(TopLevel window, IReadOnlyDictionary<OverlayCommand, string> hotkeys, Action<OverlayCommand> pressed) => [];

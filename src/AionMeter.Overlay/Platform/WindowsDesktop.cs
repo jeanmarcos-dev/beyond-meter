@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using AionMeter.Core.Capture;
 using AionMeter.Core.Input;
 using Avalonia.Controls;
 
@@ -15,6 +16,7 @@ public sealed class WindowsDesktop : IDesktopPlatform
     public const int FirstHotkeyId = 0x4D00;
 
     private readonly IWin32 _native;
+    private readonly Func<bool> _npcapInstalled;
     private readonly Func<ProcessStartInfo, Process?> _start;
     private readonly Dictionary<IntPtr, long> _stylesBeforeClickThrough = [];
     private readonly Dictionary<int, OverlayCommand> _hotkeys = [];
@@ -23,7 +25,7 @@ public sealed class WindowsDesktop : IDesktopPlatform
     private IntPtr _hotkeyWindow;
     private Action<OverlayCommand>? _pressed;
 
-    public WindowsDesktop(IWin32 native, Func<string, IBossAlert> alert, Func<string, string?>? environment = null, Func<ProcessStartInfo, Process?>? start = null)
+    public WindowsDesktop(IWin32 native, Func<string, IBossAlert> alert, Func<string, string?>? environment = null, Func<ProcessStartInfo, Process?>? start = null, Func<bool>? npcapInstalled = null)
     {
         var env = environment ?? Environment.GetEnvironmentVariable;
         var roaming = NonEmpty(env("APPDATA")) ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -34,6 +36,7 @@ public sealed class WindowsDesktop : IDesktopPlatform
         _native = native;
         _start = start ?? Process.Start;
         Alert = alert(DataDirectory);
+        _npcapInstalled = npcapInstalled ?? LiveCapture.IsNpcapInstalled;
     }
 
     public string ConfigDirectory { get; }
@@ -45,6 +48,8 @@ public sealed class WindowsDesktop : IDesktopPlatform
     public string CommandChannelPath { get; }
 
     public IBossAlert Alert { get; }
+
+    public bool CaptureLibraryMissing => !_npcapInstalled();
 
     public IReadOnlyDictionary<OverlayCommand, string> ShortcutHints() => new Dictionary<OverlayCommand, string>(_hints);
 

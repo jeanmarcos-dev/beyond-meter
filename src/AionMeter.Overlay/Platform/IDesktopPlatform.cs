@@ -14,6 +14,8 @@ public interface IDesktopPlatform : IDisposable
 
     IBossAlert Alert { get; }
 
+    bool CaptureLibraryMissing { get; }
+
     IReadOnlyDictionary<OverlayCommand, string> ShortcutHints();
 
     IReadOnlyList<OverlayCommand> RegisterHotkeys(TopLevel window, IReadOnlyDictionary<OverlayCommand, string> hotkeys, Action<OverlayCommand> pressed);

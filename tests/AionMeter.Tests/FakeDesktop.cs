@@ -24,6 +24,8 @@ public sealed class FakeDesktop : IDesktopPlatform, IBossAlert
 
     public IBossAlert Alert => this;
 
+    public bool CaptureLibraryMissing { get; set; }
+
     public List<(string Title, string Body)> Notifications { get; } = [];
 
     public List<(IntPtr Window, bool Enabled)> ClickThrough { get; } = [];
