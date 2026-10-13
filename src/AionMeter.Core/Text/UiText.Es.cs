@@ -142,6 +142,8 @@ public sealed partial class UiText
         TrayDemo = "Pelea de demostración",
         TrayReplay = "Reproducir una grabación…",
         TrayExit = "Salir",
+        TrayClickThrough = "Clic a través",
+        TrayTestAlert = "Probar el aviso de jefe",
         ClickThroughOn = "Clic a través ACTIVADO: el overlay ignora el mouse. {0} para desactivarlo.",
         ClickThroughOff = "Clic a través DESACTIVADO",
 

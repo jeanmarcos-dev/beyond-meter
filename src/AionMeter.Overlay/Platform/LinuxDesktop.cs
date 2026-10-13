@@ -1,6 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using AionMeter.Core.Input;
+using Avalonia.Controls;
 
 namespace AionMeter.Overlay.Platform;
 
@@ -30,7 +30,7 @@ public sealed class LinuxDesktop : IDesktopPlatform
 
     public IReadOnlyDictionary<OverlayCommand, string> ShortcutHints() => Overlay.ShortcutHints.Load();
 
-    public IReadOnlyList<OverlayCommand> RegisterHotkeys(IntPtr window, IReadOnlyDictionary<OverlayCommand, HotkeyGesture> hotkeys, Action<OverlayCommand> pressed) => [];
+    public IReadOnlyList<OverlayCommand> RegisterHotkeys(TopLevel window, IReadOnlyDictionary<OverlayCommand, string> hotkeys, Action<OverlayCommand> pressed) => [];
 
     public void SetClickThrough(IntPtr window, bool enabled) => _x11.Value?.SetClickThrough(window, enabled);
 

@@ -207,6 +207,8 @@ public sealed class OverlayWindow : Window
         Refresh();
     }
 
+    public bool Locked => _settings.Locked;
+
     public void SaveSettings()
     {
         if (IsVisible && TryGetPlatformHandle() is { } handle && _desktop?.WindowPosition(handle.Handle) is { } root)

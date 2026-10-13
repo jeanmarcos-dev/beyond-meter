@@ -216,6 +216,8 @@ public sealed partial class UiText
     public string TrayDemo { get; init; } = "Run demo fight";
     public string TrayReplay { get; init; } = "Replay capture file…";
     public string TrayExit { get; init; } = "Exit";
+    public string TrayClickThrough { get; init; } = "Click-through";
+    public string TrayTestAlert { get; init; } = "Test boss alert";
     public string ClickThroughOn { get; init; } = "Click-through ON — the overlay ignores the mouse. {0} to turn it off.";
     public string ClickThroughOff { get; init; } = "Click-through OFF";
 
@@ -541,6 +543,8 @@ public sealed partial class UiText
         TrayDemo = "Демо-бой",
         TrayReplay = "Воспроизвести запись…",
         TrayExit = "Выход",
+        TrayClickThrough = "Клики сквозь оверлей",
+        TrayTestAlert = "Проверить оповещение о боссе",
         ClickThroughOn = "Клики сквозь оверлей ВКЛ — он не реагирует на мышь. {0} — выключить.",
         ClickThroughOff = "Клики сквозь оверлей ВЫКЛ",
 

@@ -1,4 +1,4 @@
-using AionMeter.Core.Input;
+using Avalonia.Controls;
 
 namespace AionMeter.Overlay.Platform;
 
@@ -14,7 +14,7 @@ public interface IDesktopPlatform : IDisposable
 
     IReadOnlyDictionary<OverlayCommand, string> ShortcutHints();
 
-    IReadOnlyList<OverlayCommand> RegisterHotkeys(IntPtr window, IReadOnlyDictionary<OverlayCommand, HotkeyGesture> hotkeys, Action<OverlayCommand> pressed);
+    IReadOnlyList<OverlayCommand> RegisterHotkeys(TopLevel window, IReadOnlyDictionary<OverlayCommand, string> hotkeys, Action<OverlayCommand> pressed);
 
     void SetClickThrough(IntPtr window, bool enabled);
 

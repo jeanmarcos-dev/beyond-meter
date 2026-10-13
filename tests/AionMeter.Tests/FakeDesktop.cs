@@ -1,4 +1,4 @@
-using AionMeter.Core.Input;
+using Avalonia.Controls;
 using AionMeter.Overlay;
 using AionMeter.Overlay.Platform;
 
@@ -28,7 +28,7 @@ public sealed class FakeDesktop : IDesktopPlatform, IBossAlert
 
     public List<string> Opened { get; } = [];
 
-    public Dictionary<OverlayCommand, HotkeyGesture> Hotkeys { get; } = [];
+    public Dictionary<OverlayCommand, string> Hotkeys { get; } = [];
 
     public HashSet<OverlayCommand> TakenHotkeys { get; } = [];
 
@@ -40,7 +40,7 @@ public sealed class FakeDesktop : IDesktopPlatform, IBossAlert
 
     public IReadOnlyDictionary<OverlayCommand, string> ShortcutHints() => Hints;
 
-    public IReadOnlyList<OverlayCommand> RegisterHotkeys(IntPtr window, IReadOnlyDictionary<OverlayCommand, HotkeyGesture> hotkeys, Action<OverlayCommand> pressed)
+    public IReadOnlyList<OverlayCommand> RegisterHotkeys(TopLevel window, IReadOnlyDictionary<OverlayCommand, string> hotkeys, Action<OverlayCommand> pressed)
     {
         Hotkeys.Clear();
         foreach (var (command, gesture) in hotkeys)

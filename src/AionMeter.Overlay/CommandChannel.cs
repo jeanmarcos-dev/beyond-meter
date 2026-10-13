@@ -12,6 +12,7 @@ public sealed class CommandChannel : IDisposable
     private CommandChannel(string path, Action<OverlayCommand> received)
     {
         Path = path;
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
         if (File.Exists(path)) File.Delete(path);
         _listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         _listener.Bind(new UnixDomainSocketEndPoint(path));

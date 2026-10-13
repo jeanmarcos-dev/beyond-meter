@@ -24,7 +24,7 @@ public static class ClassIcons
 
     private static Bitmap? Load(GameClass cls)
     {
-        var uri = new Uri($"avares://aionmeter-overlay/Assets/Classes/{cls.ToString().ToLowerInvariant()}.png");
+        var uri = new Uri($"avares://{typeof(ClassIcons).Assembly.GetName().Name}/Assets/Classes/{cls.ToString().ToLowerInvariant()}.png");
         if (!AssetLoader.Exists(uri)) return null;
         using var stream = AssetLoader.Open(uri);
         return new Bitmap(stream);

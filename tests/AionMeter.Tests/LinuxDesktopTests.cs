@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using AionMeter.Overlay;
 using AionMeter.Overlay.Platform;
+using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
 
 namespace AionMeter.Tests;
 
@@ -58,11 +60,11 @@ public sealed class LinuxDesktopTests
         Assert.Equal(["https://example.test"], info.ArgumentList);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void Linux_leaves_global_hotkeys_to_the_desktop()
     {
         using var desktop = new LinuxDesktop(_ => null);
 
-        Assert.Empty(desktop.RegisterHotkeys(IntPtr.Zero, new Dictionary<OverlayCommand, Core.Input.HotkeyGesture> { [OverlayCommand.Toggle] = default }, _ => { }));
+        Assert.Empty(desktop.RegisterHotkeys(new Window(), new Dictionary<OverlayCommand, string> { [OverlayCommand.Toggle] = "Ctrl+Shift+D" }, _ => { }));
     }
 }

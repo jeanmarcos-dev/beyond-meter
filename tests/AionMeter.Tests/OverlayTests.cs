@@ -100,6 +100,18 @@ public sealed class OverlayTests : IDisposable
     }
 
     [Fact]
+    public async Task Channel_creates_its_missing_folder()
+    {
+        var path = Path.Combine(_dir, "bm", "o.sock");
+        var received = new TaskCompletionSource<OverlayCommand>();
+
+        using var channel = CommandChannel.Listen(path, c => received.TrySetResult(c));
+
+        Assert.True(CommandChannel.TrySend(path, OverlayCommand.Show));
+        Assert.Equal(OverlayCommand.Show, await received.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
     public void Channel_reports_no_instance_for_missing_or_stale_sockets()
     {
         var path = Path.Combine(_dir, "o.sock");

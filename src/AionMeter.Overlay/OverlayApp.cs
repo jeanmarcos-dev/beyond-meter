@@ -2,6 +2,7 @@ using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Demo;
 using AionMeter.Core.Game;
+using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
 using AionMeter.Overlay.Platform;
 using Avalonia;
@@ -67,7 +68,9 @@ public sealed class OverlayApp : Application
         var window = new OverlayWindow(session, settings, settingsPath, desktopPlatform, tuning.Apply, board, options.Hidden);
 
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(new UserSettings()), window.Apply);
         window.Shortcuts = desktopPlatform.ShortcutHints();
+        if (OperatingSystem.IsWindows()) TrayIcon.SetIcons(Current!, [TrayMenu.Create(window, desktopPlatform.Alert)]);
         window.QuitRequested += () => desktop.Shutdown();
         var channel = CommandChannel.Listen(options.SocketPath, command => Dispatcher.UIThread.Post(() => window.Apply(command)));
         desktop.Exit += (_, _) =>
