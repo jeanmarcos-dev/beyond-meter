@@ -1,19 +1,10 @@
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
-using System.Text.Json;
 using System.Windows.Threading;
 using AionMeter.Core.Updates;
 using Microsoft.Win32;
 
 namespace AionMeter.App.Services;
-
-public enum UpdateCheckResult
-{
-    UpToDate,
-    Available,
-    Failed,
-}
 
 /// <summary>
 /// New versions of the meter. Asks GitHub shortly after start and every few hours (Settings → Updates) and raises
@@ -29,43 +20,48 @@ public sealed class Updater : IDisposable
     private const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\{AE1B2590-0A93-4500-9CB1-0F543771957A}_is1"; // AppId in installer/AION2DpsMeter.iss
 
     private readonly AppSettings _settings;
-    private readonly UpdateFeed _feed;
+    private readonly UpdateService _service;
     private DispatcherTimer? _timer;
-    private Task<UpdateCheckResult>? _running;
 
     public Updater(AppSettings settings)
     {
         _settings = settings;
-        Current = UpdateFeed.Normalize(typeof(Updater).Assembly.GetName().Version ?? new Version(0, 0, 0));
-        _feed = new UpdateFeed($"BeyondMeter/{Current.ToString(3)}");
+        var current = UpdateFeed.Normalize(typeof(Updater).Assembly.GetName().Version ?? new Version(0, 0, 0));
+        var policy = new UpdatePolicy(
+            () => _settings.SkippedUpdate,
+            version =>
+            {
+                _settings.SkippedUpdate = version;
+                _settings.Save();
+            },
+            () => _settings.AutoInstallUpdates,
+            IsInstalled);
+        _service = new UpdateService(current, new UpdateFeed($"BeyondMeter/{current.ToString(3)}"), policy, DownloadFolder, Log.Info);
+        _service.Changed += () => Changed?.Invoke();
     }
 
     /// <summary>This copy's version (major.minor.patch).</summary>
-    public Version Current { get; }
+    public Version Current => _service.Current;
 
     /// <summary>The newest release GitHub reported, newer or not; null before the first successful check.</summary>
-    public ReleaseInfo? Latest { get; private set; }
+    public ReleaseInfo? Latest => _service.Latest;
 
-    public string? LastError { get; private set; }
+    public string? LastError => _service.LastError;
 
     /// <summary>A release newer than this copy, unless the user chose to skip that version.</summary>
-    public ReleaseInfo? Available =>
-        Latest is { } r && r.Version > Current && r.Version.ToString(3) != _settings.SkippedUpdate ? r : null;
+    public ReleaseInfo? Available => _service.Available;
 
     /// <summary>True when this copy runs from the folder the installer put it in (it can update itself).</summary>
     public static bool IsInstalled { get; } = DetectInstalled();
 
     /// <summary>This copy fetches and installs new versions by itself (installed copies, unless turned off).</summary>
-    public bool AutoInstall => IsInstalled && _settings.AutoInstallUpdates;
+    public bool AutoInstall => _service.AutoInstall;
 
     /// <summary>The update whose installer is downloaded and checked, waiting for a quiet moment to be installed.</summary>
-    public ReleaseInfo? Downloaded { get; private set; }
+    public ReleaseInfo? Downloaded => _service.Downloaded;
 
     /// <summary>The background download of <see cref="Available"/> failed: fall back to asking the player.</summary>
-    public bool DownloadFailed { get; private set; }
-
-    private string? _downloadedPath;
-    private bool _downloading;
+    public bool DownloadFailed => _service.DownloadFailed;
 
     /// <summary>Raised on the UI thread after every check and when a version is skipped.</summary>
     public event Action? Changed;
@@ -84,86 +80,20 @@ public sealed class Updater : IDisposable
     }
 
     /// <summary>Asks GitHub now. <see cref="UpdateCheckResult.Available"/> also for a skipped version (the user asked).</summary>
-    public async Task<UpdateCheckResult> CheckAsync()
-    {
-        if (_running is { } running) return await running; // a check is already on its way: share its answer
-        _running = RunCheckAsync();
-        try
-        {
-            return await _running;
-        }
-        finally
-        {
-            _running = null;
-        }
-    }
-
-    private async Task<UpdateCheckResult> RunCheckAsync()
-    {
-        try
-        {
-            Latest = await _feed.GetLatestAsync();
-            LastError = null;
-            Log.Info($"Update check: newest release {Latest?.Tag ?? "none"}, this copy {Current.ToString(3)}.");
-            if (Available is { Installer: not null } update && AutoInstall) _ = PrepareAsync(update);
-            return Latest is { } r && r.Version > Current ? UpdateCheckResult.Available : UpdateCheckResult.UpToDate;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException)
-        {
-            LastError = ex is TaskCanceledException ? "timeout" : ex.Message;
-            Log.Info($"Update check failed: {LastError}");
-            return UpdateCheckResult.Failed;
-        }
-        finally
-        {
-            Changed?.Invoke();
-        }
-    }
+    public Task<UpdateCheckResult> CheckAsync() => _service.CheckAsync();
 
     /// <summary>Stop announcing this version; a newer one is announced again.</summary>
-    public void Skip(ReleaseInfo release)
-    {
-        _settings.SkippedUpdate = release.Version.ToString(3);
-        _settings.Save();
-        Changed?.Invoke();
-    }
+    public void Skip(ReleaseInfo release) => _service.Skip(release);
 
     /// <summary>Downloads the release's installer to the temp folder, checked against GitHub's size and SHA-256.</summary>
     public Task<string> DownloadInstallerAsync(ReleaseInfo release, IProgress<double>? progress, CancellationToken ct) =>
-        release.Installer is { } installer
-            ? _feed.DownloadAsync(installer, DownloadFolder, progress, ct)
-            : throw new InvalidOperationException($"Release {release.Tag} has no installer");
-
-    /// <summary>Fetches the update in the background, so it can go in at the next quiet moment.</summary>
-    private async Task PrepareAsync(ReleaseInfo release)
-    {
-        if (_downloading || Downloaded?.Version == release.Version) return;
-        _downloading = true;
-        DownloadFailed = false;
-        try
-        {
-            _downloadedPath = await DownloadInstallerAsync(release, null, CancellationToken.None);
-            Downloaded = release;
-            Log.Info($"Update {release.Tag} downloaded: {_downloadedPath}");
-        }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidDataException or InvalidOperationException
-                                       or OperationCanceledException)
-        {
-            DownloadFailed = true;
-            Log.Info($"Update {release.Tag} not downloaded: {ex.Message}");
-        }
-        finally
-        {
-            _downloading = false;
-            Changed?.Invoke();
-        }
-    }
+        _service.DownloadInstallerAsync(release, progress, ct);
 
     /// <summary>Runs the downloaded installer without any window; the caller exits right after.</summary>
     public void InstallDownloaded()
     {
-        if (_downloadedPath is null) throw new InvalidOperationException("No update downloaded");
-        LaunchInstaller(_downloadedPath, quiet: true);
+        if (_service.DownloadedPath is not { } path) throw new InvalidOperationException("No update downloaded");
+        LaunchInstaller(path, quiet: true);
     }
 
     /// <summary>
@@ -195,31 +125,17 @@ public sealed class Updater : IDisposable
     private static string DownloadFolder => Path.Combine(Path.GetTempPath(), "BeyondMeter-update");
 
     /// <summary>Installers of earlier updates are no longer needed (the one running right now is locked and stays).</summary>
-    public static void CleanDownloads()
-    {
-        try
-        {
-            if (!Directory.Exists(DownloadFolder)) return;
-            foreach (var file in Directory.EnumerateFiles(DownloadFolder))
-                if (DateTime.UtcNow - File.GetLastWriteTimeUtc(file) > TimeSpan.FromHours(1))
-                    File.Delete(file);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-        }
-    }
+    public static void CleanDownloads() => UpdateService.CleanDownloads(DownloadFolder);
 
     /// <summary>The render tool shows the update window and the overlay's update button with a made-up release.</summary>
-    internal void Preview(ReleaseInfo release) => Latest = release;
+    internal void Preview(ReleaseInfo release) => _service.Preview(release);
 
     private static bool DetectInstalled()
     {
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(UninstallKey);
-            return key?.GetValue("InstallLocation") is string location && location.Length > 0 &&
-                   string.Equals(Path.GetFullPath(location).TrimEnd('\\'), Path.GetFullPath(AppContext.BaseDirectory).TrimEnd('\\'),
-                       StringComparison.OrdinalIgnoreCase);
+            return UpdateService.RunsFrom(key?.GetValue("InstallLocation") as string, Path.GetFullPath(AppContext.BaseDirectory));
         }
         catch (Exception ex) when (ex is System.Security.SecurityException or IOException or UnauthorizedAccessException or ArgumentException)
         {
@@ -230,6 +146,6 @@ public sealed class Updater : IDisposable
     public void Dispose()
     {
         _timer?.Stop();
-        _feed.Dispose();
+        _service.Dispose();
     }
 }

@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using AionMeter.App.Services;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
+using AionMeter.Core.Updates;
 
 namespace AionMeter.App.Windows;
 

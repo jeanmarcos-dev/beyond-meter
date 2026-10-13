@@ -2,11 +2,11 @@
 
 ## 1. Base compartida en Core
 
-- [ ] 1.1 Mover `UiText.cs`, `UiText.Es.cs` y `AppInfo.cs` a `src/AionMeter.Core/Text/` (namespace `AionMeter.Core.Text`), quitar los `<Compile Include>` enlazados del proyecto de tests y ajustar los `using` de la App y del test de identidad; verificar que la suite pasa y que la App compila con `-p:EnableWindowsTargeting=true` sin warnings
-- [ ] 1.2 Mover el parser de atajos (`HotkeyManager.TryParse`) a Core con tests de los formatos aceptados y rechazados (`Ctrl+Shift+D`, `Alt+F9`, vacío, tecla desconocida); verificar que pasan y que la App compila
-- [ ] 1.3 Crear en Core el modelo de configuración unificado (claves de `AppSettings` más las del overlay) con lectura tolerante por clave y escritura atómica; tests de valores por defecto, rangos, valores ilegibles, round-trip y lectura de un `settings.json` real de la app WPF; verificar que pasan
-- [ ] 1.4 Mover a Core la descarga y caché de íconos de skills y retratos de jefes (devolviendo rutas de archivo), con tests sobre un `HttpMessageHandler` falso; dejar en la App solo la conversión a `ImageSource`; verificar que pasan y que la App compila
-- [ ] 1.5 Mover a Core la lógica de `Updater` que no es de interfaz (cuándo buscar, versión omitida, descarga y verificación, si la copia está instalada), con tests; verificar que pasan y que la App compila
+- [x] 1.1 Mover `UiText.cs`, `UiText.Es.cs` y `AppInfo.cs` a `src/AionMeter.Core/Text/` (namespace `AionMeter.Core.Text`), quitar los `<Compile Include>` enlazados del proyecto de tests y ajustar los `using` de la App y del test de identidad; verificar que la suite pasa y que la App compila con `-p:EnableWindowsTargeting=true` sin warnings
+- [x] 1.2 Mover el parser de atajos (`HotkeyManager.TryParse`) a Core con tests de los formatos aceptados y rechazados (`Ctrl+Shift+D`, `Alt+F9`, vacío, tecla desconocida); verificar que pasan y que la App compila
+- [x] 1.3 Crear en Core el modelo de configuración unificado (claves de `AppSettings` más las del overlay) con lectura tolerante por clave y escritura atómica; tests de valores por defecto, rangos, valores ilegibles, round-trip y lectura de un `settings.json` real de la app WPF; verificar que pasan
+- [x] 1.4 Mover a Core la descarga y caché de íconos de skills y retratos de jefes (devolviendo rutas de archivo), con tests sobre un `HttpMessageHandler` falso; dejar en la App solo la conversión a `ImageSource`; verificar que pasan y que la App compila
+- [x] 1.5 Mover a Core la lógica de `Updater` que no es de interfaz (cuándo buscar, versión omitida, descarga y verificación, si la copia está instalada), con tests; verificar que pasan y que la App compila
 
 ## 2. Capa de plataforma
 
