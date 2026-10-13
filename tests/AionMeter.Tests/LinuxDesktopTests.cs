@@ -17,9 +17,9 @@ public sealed class LinuxDesktopTests
         };
         using var desktop = new LinuxDesktop(name => env.GetValueOrDefault(name));
 
-        Assert.Equal("/cfg/aionmeter", desktop.ConfigDirectory);
-        Assert.Equal("/data/aionmeter", desktop.DataDirectory);
-        Assert.Equal("/run/user/1000/aionmeter-overlay.sock", desktop.CommandChannelPath);
+        Assert.Equal(Path.Combine("/cfg", "aionmeter"), desktop.ConfigDirectory);
+        Assert.Equal(Path.Combine("/data", "aionmeter"), desktop.DataDirectory);
+        Assert.Equal(Path.Combine("/run/user/1000", "aionmeter-overlay.sock"), desktop.CommandChannelPath);
     }
 
     [Fact]

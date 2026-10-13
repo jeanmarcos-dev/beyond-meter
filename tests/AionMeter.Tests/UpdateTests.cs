@@ -215,7 +215,7 @@ public class UpdateTests
     [Fact]
     public void Readme_example_of_marked_notes_shows_one_language()
     {
-        var readme = File.ReadAllText(Repository.Path("README.md"));
+        var readme = File.ReadAllText(Repository.Path("README.md")).ReplaceLineEndings("\n");
         var example = System.Text.RegularExpressions.Regex.Match(readme, "```markdown\n(.*?)```", System.Text.RegularExpressions.RegexOptions.Singleline).Groups[1].Value;
 
         Assert.Equal(("Novedades de la 1.1.0", true), Assert.Single(ReleaseNotes.Lines(example, "es"), l => l.Heading));

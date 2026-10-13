@@ -70,7 +70,7 @@ public sealed class ReplayFileTests : IDisposable
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
-    [Fact]
+    [PcapFact]
     public void A_valid_capture_has_no_problem()
     {
         Assert.Null(ReplayFile.Problem(GamePcap.Write(Path.Combine(_dir, "ok.pcap"))));

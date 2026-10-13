@@ -13,7 +13,7 @@ public sealed class ReplaySessionTests : IDisposable
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
-    [Fact]
+    [PcapFact]
     public async Task A_fast_replay_shows_the_recorded_fight_without_waiting_for_real_time_and_leaves_no_trace()
     {
         var pcap = GamePcap.Write(Path.Combine(_dir, "game.pcap"));
@@ -36,7 +36,7 @@ public sealed class ReplaySessionTests : IDisposable
         Assert.False(Directory.Exists(Path.Combine(_dir, "captures")));
     }
 
-    [Fact]
+    [PcapFact]
     public async Task A_replay_is_not_closed_by_the_wall_clock_while_it_runs()
     {
         var pcap = GamePcap.Write(Path.Combine(_dir, "game.pcap"));

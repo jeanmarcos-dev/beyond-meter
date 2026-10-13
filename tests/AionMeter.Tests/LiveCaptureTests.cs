@@ -12,7 +12,7 @@ public sealed class LiveCaptureTests : IDisposable
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
-    [Fact]
+    [PcapFact]
     public void Recording_started_and_stopped_on_an_open_device_leaves_a_pcap_the_replay_can_read()
     {
         var packets = GamePcap.Packets();
@@ -34,7 +34,7 @@ public sealed class LiveCaptureTests : IDisposable
         Assert.Contains(events, e => e is DamageEvent { SourceId: GamePcap.SelfId });
     }
 
-    [Fact]
+    [PcapFact]
     public void Packets_written_while_not_recording_are_dropped()
     {
         var recorder = new CaptureRecorder();
@@ -46,7 +46,7 @@ public sealed class LiveCaptureTests : IDisposable
         Assert.Equal(0, new PcapReplaySource(GameData.Empty, path, realtime: false).RunToEnd());
     }
 
-    [Fact]
+    [PcapFact]
     public void Every_recording_gets_its_own_file()
     {
         var recorder = new CaptureRecorder();
@@ -83,7 +83,7 @@ public sealed class LiveCaptureTests : IDisposable
         Assert.True(capture.IsRecording);
     }
 
-    [Fact]
+    [PcapFact]
     public void Replaying_the_synthetic_game_pcap_produces_the_fight()
     {
         var path = GamePcap.Write(Path.Combine(_dir, "game.pcap"));

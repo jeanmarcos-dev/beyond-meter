@@ -34,7 +34,7 @@ public sealed class OverlayProcessTests : IDisposable
         Assert.Equal(0, await Exit(process));
     }
 
-    [Fact]
+    [LinuxFact]
     public async Task An_unhandled_startup_exception_ends_the_process_with_a_non_zero_code()
     {
         using var process = Launch(display: ":9999");
