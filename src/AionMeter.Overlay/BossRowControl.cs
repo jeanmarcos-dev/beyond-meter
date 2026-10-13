@@ -1,3 +1,4 @@
+using AionMeter.Core.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -38,15 +39,15 @@ public sealed class BossRowControl : StackPanel
 
     public int NpcCode { get; }
 
-    public Button WatchButton { get; } = Small("Vigilar");
+    public Button WatchButton { get; } = Small(UiText.Current.OvWatch);
 
     public Button LessButton { get; } = Small("−");
 
     public Button MoreButton { get; } = Small("+");
 
-    public Button DeadButton { get; } = Small("Muerto");
+    public Button DeadButton { get; } = Small(UiText.Current.BtnKilled);
 
-    public Button RemoveButton { get; } = Small("Quitar");
+    public Button RemoveButton { get; } = Small(UiText.Current.OvRemove);
 
     public void Show(BossRowView view)
     {
@@ -60,7 +61,7 @@ public sealed class BossRowControl : StackPanel
         };
         _detail.Text = string.IsNullOrEmpty(view.Detail) ? view.Zone : $"{view.Zone} · {view.Detail}";
         _interval.Text = view.Interval;
-        WatchButton.Content = view.Watch ? "Vigilado ✓" : "Vigilar";
+        WatchButton.Content = view.Watch ? UiText.Current.OvWatched : UiText.Current.OvWatch;
     }
 
     public void ShowActions(bool visible) => _actions.IsVisible = visible;

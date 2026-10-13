@@ -72,10 +72,10 @@ public sealed class OverlayTests : IDisposable
         var stopped = new CaptureStatus(CaptureState.Stopped, "Replay finished");
 
         var replay = MeterView.Header(null, capturing, -1, 0, replay: true);
-        Assert.Equal("Repetición", replay.Source);
+        Assert.Equal("Replay", replay.Source);
         Assert.False(replay.Recording);
-        Assert.Equal("Repetición terminada", MeterView.Header(null, stopped, -1, 0, replay: true).Source);
-        Assert.Equal("En vivo", MeterView.Header(null, capturing, -1, 0, recording: true).Source);
+        Assert.Equal("Replay finished", MeterView.Header(null, stopped, -1, 0, replay: true).Source);
+        Assert.Equal("Live", MeterView.Header(null, capturing, -1, 0, recording: true).Source);
         Assert.True(MeterView.Header(null, capturing, -1, 0, recording: true).Recording);
     }
 
@@ -192,7 +192,7 @@ public sealed class OverlayTests : IDisposable
         Assert.Equal([1, 2, 3], rows.Select(r => r.Place));
         Assert.Equal([1.0, 0.5, 0.25], rows.Select(r => r.Bar));
         Assert.True(rows[2].IsSelf);
-        Assert.Equal("Invocaciones", MeterView.Rows(snapshot, max: 4)[3].Name);
+        Assert.Equal("Summons", MeterView.Rows(snapshot, max: 4)[3].Name);
     }
 
     [Fact]
@@ -224,8 +224,8 @@ public sealed class OverlayTests : IDisposable
 
         var rows = MeterView.Rows(snapshot, max: 5);
 
-        Assert.Equal(["Nv 45", ""], rows.Select(r => r.Level));
-        Assert.Equal(["Nv 45", ""], MeterView.Rows(snapshot with { Combatants = [.. snapshot.Combatants.Select(c => c with { Healing = 10 })] }, max: 5, ViewMode.Healing).Select(r => r.Level));
+        Assert.Equal(["Lv 45", ""], rows.Select(r => r.Level));
+        Assert.Equal(["Lv 45", ""], MeterView.Rows(snapshot with { Combatants = [.. snapshot.Combatants.Select(c => c with { Healing = 10 })] }, max: 5, ViewMode.Healing).Select(r => r.Level));
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public sealed class OverlayTests : IDisposable
     {
         var quality = new HitQuality(0, 0, null, null, null, null, null, null, 0, null);
 
-        Assert.Equal("Nv 45", MeterView.Detail(Detail(quality) with { Level = 45 }, maxSkills: 5).Level);
+        Assert.Equal("Lv 45", MeterView.Detail(Detail(quality) with { Level = 45 }, maxSkills: 5).Level);
         Assert.Equal("", MeterView.Detail(Detail(quality), maxSkills: 5).Level);
     }
 
@@ -263,10 +263,10 @@ public sealed class OverlayTests : IDisposable
         var snapshot = Snapshot(Combatant(1, "Fighter", 5_000), Healer(2, "Cleric", 600), Healer(3, "Chanter", 200));
         var status = new CaptureStatus(CaptureState.Capturing, "");
 
-        Assert.Equal("Total 5000 · Grupo 100/s", MeterView.Header(snapshot, status, -1, 0).Totals);
-        Assert.Equal("Curación 800 · Grupo 80/s", MeterView.Header(snapshot, status, -1, 0, ViewMode.Healing).Totals);
-        Assert.Equal(["Jugador", "DPS", "Daño", "%", "Crit"], MeterView.Columns(ViewMode.Damage));
-        Assert.Equal(["Jugador", "HPS", "Curación", "%", ""], MeterView.Columns(ViewMode.Healing));
+        Assert.Equal("Total 5000 · Party 100/s", MeterView.Header(snapshot, status, -1, 0).Totals);
+        Assert.Equal("Healing 800 · Party 80/s", MeterView.Header(snapshot, status, -1, 0, ViewMode.Healing).Totals);
+        Assert.Equal(["Player", "DPS", "Damage", "%", "Crit"], MeterView.Columns(ViewMode.Damage));
+        Assert.Equal(["Player", "HPS", "Healing", "%", ""], MeterView.Columns(ViewMode.Healing));
     }
 
     [Fact]
@@ -347,23 +347,23 @@ public sealed class OverlayTests : IDisposable
         var header = MeterView.Header(live, capturing, historyIndex: -1, historyCount: 4);
         Assert.Equal("Berk · 25%", header.Title);
         Assert.Equal("1:05", header.Time);
-        Assert.Equal("En vivo", header.Source);
+        Assert.Equal("Live", header.Source);
         Assert.True(header.IsLive);
 
         var browsing = MeterView.Header(live with { IsActive = false }, capturing, historyIndex: 1, historyCount: 4);
         Assert.EndsWith(" Berk", browsing.Title);
-        Assert.Equal("Historial 2/4", browsing.Source);
+        Assert.Equal("History 2/4", browsing.Source);
         Assert.False(browsing.IsLive);
 
-        Assert.Equal("Esperando combate", MeterView.Header(null, capturing, -1, 0).Title);
+        Assert.Equal("Waiting for combat", MeterView.Header(null, capturing, -1, 0).Title);
     }
 
     [Theory]
-    [InlineData(CaptureState.Capturing, "x", "En vivo")]
-    [InlineData(CaptureState.WaitingForGame, "AION 2 is not running", "Juego cerrado")]
-    [InlineData(CaptureState.WaitingForGame, "Listening on any…", "Esperando tráfico")]
+    [InlineData(CaptureState.Capturing, "x", "Live")]
+    [InlineData(CaptureState.WaitingForGame, "AION 2 is not running", "Game closed")]
+    [InlineData(CaptureState.WaitingForGame, "Listening on any…", "Waiting for traffic")]
     [InlineData(CaptureState.Error, "boom", "Error: boom")]
-    [InlineData(CaptureState.Stopped, "Capture stopped", "Sin captura")]
+    [InlineData(CaptureState.Stopped, "Capture stopped", "No capture")]
     public void StatusText_summarises_the_capture_state(CaptureState state, string message, string expected)
     {
         Assert.Equal(expected, MeterView.StatusText(new CaptureStatus(state, message)));
@@ -457,8 +457,8 @@ public sealed class OverlayTests : IDisposable
         var view = MeterView.Detail(detail, maxSkills: 2);
 
         Assert.Equal("Ilvane", view.Title);
-        Assert.Equal("Golpes 40+6 · Crit 25% · Espalda - · Perfecto 10%", view.Quality);
-        Assert.Equal("Máx 1.23M (Flame Burst) · Recibido 45.0K (7 golpes)", view.Extremes);
+        Assert.Equal("Hits 40+6 · Crit 25% · Back - · Perfect 10%", view.Quality);
+        Assert.Equal("Max 1.23M (Flame Burst) · Taken 45.0K (7 hits)", view.Extremes);
         Assert.Equal(["Flame Burst", "Burn"], view.Skills.Select(k => k.Name));
         Assert.Equal(new SkillView("Burn", "4+6", "500.0K", "33%", "250.0K", "-", "-"), view.Skills[1]);
     }
@@ -468,7 +468,7 @@ public sealed class OverlayTests : IDisposable
     {
         var view = MeterView.Detail(Detail(new HitQuality(0, 0, null, null, null, null, null, null, 0, null)), maxSkills: 5);
 
-        Assert.StartsWith("Máx 0 · ", view.Extremes);
+        Assert.StartsWith("Max 0 · ", view.Extremes);
         Assert.Empty(view.Skills);
     }
 
@@ -537,7 +537,7 @@ public sealed class OverlayTests : IDisposable
         Assert.Equal("✔", row.Result);
         Assert.Equal("Cuevas", row.Zone);
         Assert.Equal("1:35", row.Duration);
-        Assert.Equal("4 jugadores", row.Players);
+        Assert.Equal("4 players", row.Players);
         Assert.Equal("1500/s", row.Dps);
         Assert.Equal("#2", row.Place);
     }
@@ -550,9 +550,9 @@ public sealed class OverlayTests : IDisposable
         var row = Assert.Single(MeterView.History([wipe]));
 
         Assert.Equal("✖", row.Result);
-        Assert.Equal("Grupo 12.0K/s", row.Dps);
+        Assert.Equal("Party 12.0K/s", row.Dps);
         Assert.Equal("", row.Place);
-        Assert.Equal("1 jugador", row.Players);
+        Assert.Equal("1 player", row.Players);
         Assert.Equal("•", Assert.Single(MeterView.History([Entry("b", minute: 6, reason: EncounterEndReason.Idle)])).Result);
         Assert.Equal("", Assert.Single(MeterView.History([Entry("c", minute: 7, zone: null)])).Zone);
     }
@@ -663,7 +663,7 @@ public sealed class OverlayTests : IDisposable
 
         var header = MeterView.Header(snapshot, new CaptureStatus(CaptureState.Capturing, ""), historyIndex: 0, historyCount: 3);
 
-        Assert.Equal("Historial 1/3", header.Source);
+        Assert.Equal("History 1/3", header.Source);
     }
 
     [Fact]

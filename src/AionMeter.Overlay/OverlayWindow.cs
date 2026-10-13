@@ -1,4 +1,5 @@
 using AionMeter.Core.Combat;
+using AionMeter.Core.Text;
 using AionMeter.Overlay.Platform;
 using Avalonia;
 using Avalonia.Controls;
@@ -14,8 +15,8 @@ public sealed class OverlayWindow : Window
 {
     private static readonly IBrush Gold = new SolidColorBrush(Color.FromRgb(0xF5, 0xC5, 0x42));
     private static readonly IBrush Muted = new SolidColorBrush(Color.FromRgb(0xA8, 0xB3, 0xC7));
-    private const string CopyLabel = "Copiar DPS";
-    private const string CopiedLabel = "Copiado ✓";
+    private static string CopyLabel => UiText.Current.OvCopyDps;
+    private static string CopiedLabel => UiText.Current.OvCopied;
 
     private static readonly IBrush Win = new SolidColorBrush(Color.FromRgb(0x6B, 0xD1, 0x7F));
     private static readonly IBrush Loss = new SolidColorBrush(Color.FromRgb(0xE5, 0x5B, 0x5B));
@@ -60,12 +61,12 @@ public sealed class OverlayWindow : Window
     private OverlaySettings _settings;
     private readonly Button _close = new() { Content = "✕", FontSize = 12, Padding = new Thickness(8, 2), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top };
     private readonly Button _copy = new() { Content = CopyLabel, FontSize = 12, Padding = new Thickness(8, 2) };
-    private readonly Button _filterBosses = new() { Content = "Solo jefes", FontSize = 12, Padding = new Thickness(8, 2) };
-    private readonly Button _filterKills = new() { Content = "Solo kills", FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly Button _filterBosses = new() { Content = UiText.Current.OvBossesOnly, FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly Button _filterKills = new() { Content = UiText.Current.OvKillsOnly, FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly TextBlock _historyCount = new() { Name = "HistoryCount", Foreground = Muted, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0) };
-    private readonly Button _delete = new() { Content = "Borrar", FontSize = 12, Padding = new Thickness(8, 2), IsVisible = false };
-    private readonly Button _confirmYes = new() { Content = "Sí", FontSize = 12, Padding = new Thickness(8, 2) };
-    private readonly Button _confirmNo = new() { Content = "No", FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly Button _delete = new() { Content = UiText.Current.OvDelete, FontSize = 12, Padding = new Thickness(8, 2), IsVisible = false };
+    private readonly Button _confirmYes = new() { Content = UiText.Current.OvYes, FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly Button _confirmNo = new() { Content = UiText.Current.OvNo, FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly StackPanel _confirmBar = new() { Orientation = Orientation.Horizontal, Spacing = 4, IsVisible = false };
     private readonly DeleteConfirmation _confirmation;
     private bool _historyDirty = true;
@@ -83,7 +84,7 @@ public sealed class OverlayWindow : Window
         _settingsPath = settingsPath;
         _desktop = desktop;
 
-        Title = "AION 2 DPS";
+        Title = AppInfo.Name;
         Topmost = true;
         ShowInTaskbar = false;
         ShowActivated = false;
@@ -248,11 +249,11 @@ public sealed class OverlayWindow : Window
             _columnCells.Add(cell);
         }
 
-        _toolbar.Children.Add(ToolButton("En vivo", () => Apply(OverlayCommand.Live)));
+        _toolbar.Children.Add(ToolButton(UiText.Current.Live, () => Apply(OverlayCommand.Live)));
         _toolbar.Children.Add(ToolButton("◀", () => Apply(OverlayCommand.Older)));
         _toolbar.Children.Add(ToolButton("▶", () => Apply(OverlayCommand.Newer)));
-        _toolbar.Children.Add(ToolButton("Historial", ToggleHistory));
-        _confirmBar.Children.Add(new TextBlock { Text = "¿Borrar?", Foreground = Gold, FontSize = 12, VerticalAlignment = VerticalAlignment.Center });
+        _toolbar.Children.Add(ToolButton(UiText.Current.OvHistory, ToggleHistory));
+        _confirmBar.Children.Add(new TextBlock { Text = UiText.Current.OvDeleteAsk, Foreground = Gold, FontSize = 12, VerticalAlignment = VerticalAlignment.Center });
         _confirmBar.Children.Add(_confirmYes);
         _confirmBar.Children.Add(_confirmNo);
         _toolbar.Children.Add(_delete);
@@ -260,9 +261,9 @@ public sealed class OverlayWindow : Window
         _delete.Click += (_, _) => RequestDelete();
         _confirmYes.Click += (_, _) => ConfirmDelete();
         _confirmNo.Click += (_, _) => CancelDelete();
-        _toolbar.Children.Add(ToolButton("Mis skills", () => Apply(OverlayCommand.Skills)));
-        if (_bossPanel is not null) _toolbar.Children.Add(ToolButton("Respawns", () => Apply(OverlayCommand.Timers)));
-        _toolbar.Children.Add(ToolButton("Reiniciar", () => Apply(OverlayCommand.Reset)));
+        _toolbar.Children.Add(ToolButton(UiText.Current.OvMySkills, () => Apply(OverlayCommand.Skills)));
+        if (_bossPanel is not null) _toolbar.Children.Add(ToolButton(UiText.Current.OvRespawns, () => Apply(OverlayCommand.Timers)));
+        _toolbar.Children.Add(ToolButton(UiText.Current.OvReset, () => Apply(OverlayCommand.Reset)));
         _toolbar.Children.Add(_view);
         _view.Click += (_, _) => Apply(OverlayCommand.Heal);
         _toolbar.Children.Add(_mode);
@@ -271,7 +272,7 @@ public sealed class OverlayWindow : Window
         _copy.Click += (_, _) => Apply(OverlayCommand.Copy);
         _skills.DetailButton.Click += (_, _) => OpenBreakdown(_session.Detail(CurrentSnapshot())?.ActorId);
         _skills.CopyButton.Click += (_, _) => _ = Copy(DetailLine(), _skills.CopyButton, SkillPanel.CopyLabel);
-        _toolbar.Children.Add(ToolButton("Fijar", () => Apply(OverlayCommand.Lock)));
+        _toolbar.Children.Add(ToolButton(UiText.Current.OvLock, () => Apply(OverlayCommand.Lock)));
         _grip.PointerPressed += OnGripPressed;
         _grip.PointerMoved += OnGripMoved;
         _grip.PointerReleased += (_, e) => EndResize(e.Pointer);
@@ -341,9 +342,9 @@ public sealed class OverlayWindow : Window
         _filterBosses.Background = _session.Filter.BossesOnly ? FilterOn : null;
         _filterKills.Background = _session.Filter.KillsOnly ? FilterOn : null;
 
-        _mode.Content = _settings.TargetMode == TargetMode.All ? "Todo" : "Jefes";
+        _mode.Content = _settings.TargetMode == TargetMode.All ? UiText.Current.OvAll : UiText.Current.FilterBosses;
 
-        _view.Content = _viewMode == ViewMode.Healing ? "Curación" : "Daño";
+        _view.Content = _viewMode == ViewMode.Healing ? UiText.Current.OvHealing : UiText.Current.RowDamage;
         var columns = MeterView.Columns(_viewMode);
         for (var i = 0; i < _columnCells.Count; i++) _columnCells[i].Text = columns[i];
 
@@ -516,7 +517,7 @@ public sealed class OverlayWindow : Window
     {
         _historyDirty = false;
         var items = MeterView.History(_session.Filtered(200));
-        _historyCount.Text = $"{_session.Filtered().Count} de {_session.History.List().Count}";
+        _historyCount.Text = string.Format(System.Globalization.CultureInfo.InvariantCulture, UiText.Current.ShownOf, _session.Filtered().Count, _session.History.List().Count);
         _history.ItemsSource = items;
         _history.SelectedItem = items.FirstOrDefault(i => i.Path == _session.SelectedFight);
     }

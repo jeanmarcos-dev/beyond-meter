@@ -1,5 +1,6 @@
 using System.Globalization;
 using AionMeter.Core.Game;
+using AionMeter.Core.Text;
 using AionMeter.Core.Timers;
 
 namespace AionMeter.Overlay;
@@ -18,6 +19,8 @@ public sealed class BossBoard(BossTimers timers, GameData data, IBossAlert alert
 {
     private const int MaxInterval = 48 * 60;
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
+
+    private static UiText T => UiText.Current;
 
     private DateTimeOffset _lastPoll = DateTimeOffset.MinValue;
 
@@ -56,7 +59,7 @@ public sealed class BossBoard(BossTimers timers, GameData data, IBossAlert alert
             .Where(t => t.Watch && !t.AliveNow && t.NextSpawn is { } at && at > now)
             .OrderBy(t => t.NextSpawn)
             .FirstOrDefault();
-        return next is null ? null : $"Próximo: {NameOf(next)} {Countdown(next.NextSpawn!.Value - now)}";
+        return next is null ? null : string.Format(CultureInfo.InvariantCulture, T.OvNextBoss, NameOf(next), Countdown(next.NextSpawn!.Value - now));
     }
 
     public void Poll(int leadMinutes)
@@ -65,7 +68,7 @@ public sealed class BossBoard(BossTimers timers, GameData data, IBossAlert alert
         if (now - _lastPoll < PollInterval) return;
         _lastPoll = now;
         foreach (var due in timers.TakeDueAlerts(now, leadMinutes))
-            alert.Notify($"Reaparece {NameOf(due)}", $"{ZoneOf(due)} · {due.NextSpawn!.Value.ToLocalTime():HH:mm}");
+            alert.Notify(string.Format(CultureInfo.InvariantCulture, T.OvRespawnAlert, NameOf(due)), $"{ZoneOf(due)} · {due.NextSpawn!.Value.ToLocalTime():HH:mm}");
     }
 
     public void ToggleWatch(int npcCode)
@@ -108,21 +111,21 @@ public sealed class BossBoard(BossTimers timers, GameData data, IBossAlert alert
         var state = State(t, now);
         var (status, detail) = state switch
         {
-            BossState.Alive => ("Vivo", t.AliveSince is { } since ? $"desde {When(since, now)}" : ""),
-            BossState.Countdown => (Countdown(t.NextSpawn!.Value - now), $"a las {When(t.NextSpawn.Value, now)}"),
-            BossState.Overdue => ("Debería estar vivo", $"desde {When(t.NextSpawn!.Value, now)}"),
-            _ => ("Intervalo desconocido", ""),
+            BossState.Alive => (T.OvBossAlive, t.AliveSince is { } since ? string.Format(CultureInfo.InvariantCulture, T.TimerSince, When(since, now)) : ""),
+            BossState.Countdown => (Countdown(t.NextSpawn!.Value - now), string.Format(CultureInfo.InvariantCulture, T.TimerAt, When(t.NextSpawn.Value, now))),
+            BossState.Overdue => (T.OvShouldBeUp, string.Format(CultureInfo.InvariantCulture, T.TimerSince, When(t.NextSpawn!.Value, now))),
+            _ => (T.OvUnknownInterval, ""),
         };
-        var interval = t.RespawnMinutes > 0 ? (t.RespawnLearned ? "≈ " : "") + $"{t.RespawnMinutes} min" : "? min";
+        var interval = t.RespawnMinutes > 0 ? (t.RespawnLearned ? "≈ " : "") + string.Format(CultureInfo.InvariantCulture, T.OvMinutes, t.RespawnMinutes) : string.Format(CultureInfo.InvariantCulture, T.OvMinutes, "?");
         return new BossRowView(t.NpcCode, NameOf(t), ZoneOf(t), state, status, detail, t.Watch, t.RespawnMinutes, interval);
     }
 
-    private string NameOf(BossTimer t) => t.NpcCode > 0 ? data.NpcName(t.NpcCode) : $"Jefe #{-t.NpcCode % 100}";
+    private string NameOf(BossTimer t) => t.NpcCode > 0 ? data.NpcName(t.NpcCode) : string.Format(CultureInfo.InvariantCulture, T.UnknownSlotBoss, -t.NpcCode % 100);
 
     private string ZoneOf(BossTimer t)
     {
         var zone = timers.MapName(t.MapId, "en") ?? (t.MapId != 0 ? data.MapName(t.MapId) : t.Zone) ?? "";
-        return zone == "Open world" ? "Mundo abierto" : zone;
+        return zone == "Open world" ? T.OpenWorld : zone;
     }
 
     private static string Countdown(TimeSpan left) =>

@@ -44,7 +44,7 @@ public sealed class BossBoardTests : IDisposable
         Assert.Contains(Now.AddMinutes(12).AddSeconds(34).ToString("HH:mm"), linx.Detail);
         var gartua = rows.Single(r => r.NpcCode == BossWorld.Gartua);
         Assert.Equal(BossState.Alive, gartua.State);
-        Assert.Equal("Vivo", gartua.Status);
+        Assert.Equal("Alive", gartua.Status);
         Assert.Contains(Now.AddHours(-1).ToString("HH:mm"), gartua.Detail);
     }
 
@@ -56,7 +56,7 @@ public sealed class BossBoardTests : IDisposable
         var linx = board.Rows().Single(r => r.NpcCode == BossWorld.Linx);
 
         Assert.Equal(BossState.Overdue, linx.State);
-        Assert.Equal("Debería estar vivo", linx.Status);
+        Assert.Equal("Should be up", linx.Status);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class BossBoardTests : IDisposable
         var linx = board.Rows().Single();
 
         Assert.Equal(BossState.Unknown, linx.State);
-        Assert.Equal("Intervalo desconocido", linx.Status);
+        Assert.Equal("Unknown interval", linx.Status);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class BossBoardTests : IDisposable
             t.SetWatch(BossWorld.Server, BossWorld.Linx, true);
         });
 
-        Assert.Equal("Próximo: Linx 12:34", board.Summary());
+        Assert.Equal("Next: Linx 12:34", board.Summary());
     }
 
     [Fact]

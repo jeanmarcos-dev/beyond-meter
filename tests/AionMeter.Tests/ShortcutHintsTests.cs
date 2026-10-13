@@ -8,7 +8,7 @@ public class ShortcutHintsTests
         [aionmeter-lock]
         binding='<Super><Shift>F9'
         command='/home/me/.local/bin/aionmeter-overlay lock'
-        name='AION meter: fijar/mover'
+        name='AION meter: lock/mover'
 
         [aionmeter-toggle]
         binding='<Super><Shift>F11'
@@ -65,14 +65,14 @@ public class ShortcutHintsTests
     {
         var map = ShortcutHints.Parse(Dump);
 
-        Assert.Equal("Super+Shift+F9 fijar · Super+Shift+F11 ocultar", ShortcutHints.Footer(map, locked: false));
-        Assert.Equal("Super+Shift+F9 soltar · Super+Shift+F11 ocultar", ShortcutHints.Footer(map, locked: true));
+        Assert.Equal("Super+Shift+F9 lock · Super+Shift+F11 hide", ShortcutHints.Footer(map, locked: false));
+        Assert.Equal("Super+Shift+F9 unlock · Super+Shift+F11 hide", ShortcutHints.Footer(map, locked: true));
     }
 
     [Fact]
     public void Footer_is_null_without_lock_or_toggle_shortcuts()
     {
         Assert.Null(ShortcutHints.Footer(new Dictionary<OverlayCommand, string>(), locked: false));
-        Assert.Equal("Super+Shift+F11 ocultar", ShortcutHints.Footer(new Dictionary<OverlayCommand, string> { [OverlayCommand.Toggle] = "Super+Shift+F11" }, locked: true));
+        Assert.Equal("Super+Shift+F11 hide", ShortcutHints.Footer(new Dictionary<OverlayCommand, string> { [OverlayCommand.Toggle] = "Super+Shift+F11" }, locked: true));
     }
 }

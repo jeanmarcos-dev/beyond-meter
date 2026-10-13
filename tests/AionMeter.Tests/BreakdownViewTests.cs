@@ -146,7 +146,7 @@ public sealed class BreakdownViewTests
 
         var rotation = BreakdownView.Rotation(Detail(skills: [Skill(7, "Bola de fuego")], casts: casts));
 
-        Assert.Equal("Bola de fuego · 12.3K · crítico · 0:01", rotation[0].Tooltip);
+        Assert.Equal("Bola de fuego · 12.3K · critical · 0:01", rotation[0].Tooltip);
         Assert.Equal("Skill 8 · 900 · 0:02", rotation[1].Tooltip);
     }
 

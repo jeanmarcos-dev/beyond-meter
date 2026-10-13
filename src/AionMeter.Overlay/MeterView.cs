@@ -1,4 +1,5 @@
 using System.Globalization;
+using AionMeter.Core.Text;
 using AionMeter.Core;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
@@ -20,6 +21,8 @@ public sealed record HistoryItemView(string Path, string When, string Title, str
 public static class MeterView
 {
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
+
+    private static UiText T => UiText.Current;
 
     public static string Compact(double value)
     {
@@ -43,10 +46,10 @@ public static class MeterView
 
     public static string Percent(double fraction) => (fraction * 100).ToString("0", Invariant) + "%";
 
-    public static string Level(int level) => level > 0 ? $"Nv {level}" : "";
+    public static string Level(int level) => level > 0 ? string.Format(Invariant, T.OvLevel, level) : "";
 
     public static IReadOnlyList<string> Columns(ViewMode mode) =>
-        mode == ViewMode.Healing ? ["Jugador", "HPS", "Curación", "%", ""] : ["Jugador", "DPS", "Daño", "%", "Crit"];
+        mode == ViewMode.Healing ? [T.OvPlayer, "HPS", T.OvHealing, "%", ""] : [T.OvPlayer, "DPS", T.RowDamage, "%", T.RowCrit];
 
     public static IReadOnlyList<RowView> Rows(EncounterSnapshot? snapshot, int max, ViewMode mode = ViewMode.Damage)
     {
@@ -63,7 +66,7 @@ public static class MeterView
             .Select((c, i) => new RowView(
                 c.ActorId,
                 i + 1,
-                c.IsUnknownSummons ? "Invocaciones" : c.Name,
+                c.IsUnknownSummons ? T.OvSummons : c.Name,
                 c.Class,
                 c.IsSelf,
                 (double)c.Damage / top,
@@ -86,7 +89,7 @@ public static class MeterView
             .Select((c, i) => new RowView(
                 c.ActorId,
                 i + 1,
-                c.IsUnknownSummons ? "Invocaciones" : c.Name,
+                c.IsUnknownSummons ? T.OvSummons : c.Name,
                 c.Class,
                 c.IsSelf,
                 (double)c.Healing / top,
@@ -109,9 +112,9 @@ public static class MeterView
     public static DetailView Detail(CombatantDetail detail, int maxSkills)
     {
         var q = detail.Quality;
-        var quality = $"Golpes {Hits(q.Hits, q.DotTicks)} · Crit {Rate(q.CritRate)} · Espalda {Rate(q.BackRate)} · Perfecto {Rate(q.PerfectRate)}";
-        var max = q.MaxHitSkill is { } skill ? $"Máx {Compact(q.MaxHit)} ({skill})" : $"Máx {Compact(q.MaxHit)}";
-        var extremes = $"{max} · Recibido {Compact(detail.DamageTaken)} ({detail.HitsTaken} golpes)";
+        var quality = string.Format(Invariant, T.OvQuality, Hits(q.Hits, q.DotTicks), Rate(q.CritRate), Rate(q.BackRate), Rate(q.PerfectRate));
+        var max = q.MaxHitSkill is { } skill ? string.Format(Invariant, T.OvMaxHitSkill, Compact(q.MaxHit), skill) : string.Format(Invariant, T.OvMaxHit, Compact(q.MaxHit));
+        var extremes = string.Format(Invariant, T.OvTakenSummary, max, Compact(detail.DamageTaken), detail.HitsTaken);
         var skills = detail.Skills
             .Take(maxSkills)
             .Select(s => new SkillView(
@@ -131,19 +134,19 @@ public static class MeterView
     public static HeaderView Header(EncounterSnapshot? snapshot, CaptureStatus status, int historyIndex, int historyCount, ViewMode mode = ViewMode.Damage, bool replay = false, bool recording = false)
     {
         var live = historyIndex < 0;
-        var source = live ? (replay ? ReplayText(status) : StatusText(status)) : $"Historial {historyIndex + 1}/{historyCount}";
+        var source = live ? (replay ? ReplayText(status) : StatusText(status)) : string.Format(Invariant, T.OvHistoryPosition, historyIndex + 1, historyCount);
         if (snapshot is null)
-            return new HeaderView(live ? "Esperando combate" : "Pelea no disponible", "0:00", "", source, live, recording);
+            return new HeaderView(live ? T.WaitingTitle : T.OvFightUnavailable, "0:00", "", source, live, recording);
 
         var title = snapshot.Boss?.Name ?? snapshot.Title;
         if (snapshot.Boss is { } boss && snapshot.IsActive) title += " · " + Percent(boss.HpFraction);
         if (!live) title = snapshot.StartedAt.ToLocalTime().ToString("dd/MM HH:mm ", Invariant) + title;
-        var totals = mode == ViewMode.Healing ? HealingTotals(snapshot) : $"Total {Compact(snapshot.TotalDamage)} · Grupo {Compact(snapshot.PartyDps)}/s";
+        var totals = mode == ViewMode.Healing ? HealingTotals(snapshot) : string.Format(Invariant, T.OvDamageTotals, Compact(snapshot.TotalDamage), Compact(snapshot.PartyDps));
         return new HeaderView(title, Duration(snapshot.CombatMs), totals, source, live, recording);
     }
 
     private static string HealingTotals(EncounterSnapshot snapshot) =>
-        $"Curación {Compact(snapshot.Combatants.Sum(c => c.Healing))} · Grupo {Compact(snapshot.Combatants.Sum(c => c.Hps))}/s";
+        string.Format(Invariant, T.OvHealingTotals, Compact(snapshot.Combatants.Sum(c => c.Healing)), Compact(snapshot.Combatants.Sum(c => c.Hps)));
 
     public static IReadOnlyList<HistoryItemView> History(IEnumerable<HistoryEntry> entries) =>
         entries.Select(e =>
@@ -156,8 +159,8 @@ public static class MeterView
                     ResultSymbol(e.Reason),
                     e.Zone ?? "",
                     Duration(e.CombatMs),
-                    e.Players == 1 ? "1 jugador" : $"{e.Players} jugadores",
-                    inFight ? Compact(e.SelfDps) + "/s" : "Grupo " + Compact(e.PartyDps) + "/s",
+                    T.Players(e.Players),
+                    inFight ? Compact(e.SelfDps) + "/s" : string.Format(Invariant, T.OvPartyRate, Compact(e.PartyDps)),
                     inFight ? "#" + e.SelfPlace.ToString(Invariant) : "",
                     e.IsBoss);
             })
@@ -171,17 +174,17 @@ public static class MeterView
     };
 
     public static string ReplayText(CaptureStatus status) =>
-        status.State == CaptureState.Stopped ? "Repetición terminada" : "Repetición";
+        status.State == CaptureState.Stopped ? T.OvReplayDone : T.OvReplay;
 
     public const string GameClosedMessage = "AION 2 is not running";
 
     public static string StatusText(CaptureStatus status) => status.State switch
     {
-        CaptureState.Capturing => "En vivo",
-        CaptureState.WaitingForGame when status.Message.StartsWith(GameClosedMessage, StringComparison.Ordinal) => "Juego cerrado",
-        CaptureState.WaitingForGame => "Esperando tráfico",
-        CaptureState.Starting => "Iniciando",
-        CaptureState.Error => "Error: " + status.Message,
-        _ => "Sin captura",
+        CaptureState.Capturing => T.Live,
+        CaptureState.WaitingForGame when status.Message.StartsWith(GameClosedMessage, StringComparison.Ordinal) => T.OvGameClosed,
+        CaptureState.WaitingForGame => T.OvWaitingTraffic,
+        CaptureState.Starting => T.OvStarting,
+        CaptureState.Error => string.Format(Invariant, T.OvError, status.Message),
+        _ => T.OvNoCapture,
     };
 }

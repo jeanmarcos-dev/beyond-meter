@@ -1,3 +1,4 @@
+using AionMeter.Core.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -10,7 +11,7 @@ public sealed class SkillPanel : StackPanel
     private const string Columns = "*,46,58,38,58,40,40";
     private const int MaxSkills = 15;
 
-    public const string CopyLabel = "Copiar";
+    public static string CopyLabel => UiText.Current.OvCopy;
 
     private static readonly IBrush Muted = new SolidColorBrush(Color.FromRgb(0xA8, 0xB3, 0xC7));
 
@@ -19,7 +20,7 @@ public sealed class SkillPanel : StackPanel
     private readonly TextBlock _extremes = new() { Foreground = Muted, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly List<(Grid Line, TextBlock[] Cells)> _lines = [];
 
-    public const string DetailLabel = "Ver detalle";
+    public static string DetailLabel => UiText.Current.OvDetails;
 
     public Button DetailButton { get; } = new() { Content = DetailLabel, FontSize = 11, Padding = new Thickness(8, 1), Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
 
@@ -46,7 +47,7 @@ public sealed class SkillPanel : StackPanel
         Children.Add(heading);
         Children.Add(_quality);
         Children.Add(_extremes);
-        Children.Add(Line(["Skill", "Golpes", "Daño", "%", "Máx", "Crit", "Esp."], Muted, 11, out _));
+        Children.Add(Line([UiText.Current.OvSkill, UiText.Current.OvHits, UiText.Current.RowDamage, "%", UiText.Current.OvMax, UiText.Current.RowCrit, UiText.Current.OvBack], Muted, 11, out _));
         for (var i = 0; i < MaxSkills; i++)
         {
             var line = Line(new string[7], Brushes.White, 12, out var cells);
@@ -60,7 +61,7 @@ public sealed class SkillPanel : StackPanel
     {
         var rgb = ClassColors.Rgb(detail.Class);
         _title.Foreground = new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
-        _title.Text = "Skills de " + detail.Title;
+        _title.Text = string.Format(System.Globalization.CultureInfo.InvariantCulture, UiText.Current.OvSkillsOf, detail.Title);
         ClassIcon.Source = ClassIcons.For(detail.Class);
         ClassIcon.IsVisible = ClassIcon.Source is not null;
         LevelText.Text = detail.Level;

@@ -1,3 +1,4 @@
+using AionMeter.Core.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -9,7 +10,7 @@ public sealed class BossPanel : StackPanel
     private static readonly IBrush Muted = new SolidColorBrush(Color.FromRgb(0xA8, 0xB3, 0xC7));
 
     private readonly StackPanel _rows = new();
-    private readonly TextBlock _empty = new() { Text = "Sin jefes para este servidor todavía. Abre el mapa del juego para llenar la lista.", Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(6, 4) };
+    private readonly TextBlock _empty = new() { Text = UiText.Current.OvNoBosses, Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(6, 4) };
     private readonly List<BossRowControl> _controls = [];
     private bool _actions = true;
 

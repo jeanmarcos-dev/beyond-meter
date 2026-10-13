@@ -1,4 +1,5 @@
 using AionMeter.Core.Combat;
+using AionMeter.Core.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -42,7 +43,7 @@ public sealed class BreakdownWindow : Window
         ActorId = actorId;
         _lastTickMs = _clock();
 
-        Title = "AION 2 DPS · Desglose";
+        Title = $"{AppInfo.Name} · {UiText.Current.OvBreakdown}";
         Width = width;
         Height = height;
         MinWidth = 640;
@@ -128,7 +129,7 @@ public sealed class BreakdownWindow : Window
     private Control RotationPage()
     {
         _stripScroll.Content = _strip;
-        var hint = new TextBlock { Text = "Cada círculo es un lanzamiento; el tamaño sigue al daño y el punto dorado marca un crítico. Pasa el cursor para ver la skill.", Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 8) };
+        var hint = new TextBlock { Text = UiText.Current.OvRotationHint, Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 8) };
         return new StackPanel { Children = { hint, _stripScroll } };
     }
 
@@ -138,16 +139,16 @@ public sealed class BreakdownWindow : Window
         Spacing = 14,
         Children =
         {
-            Block("Daño recibido", _takenTotal),
-            Block("Daño recibido por segundo", _takenPerSecond),
-            Block("Golpes recibidos", _takenHits),
+            Block(UiText.Current.OvDamageTaken, _takenTotal),
+            Block(UiText.Current.OvDamageTakenPerSecond, _takenPerSecond),
+            Block(UiText.Current.OvHitsTaken, _takenHits),
         },
     };
 
     private void Render()
     {
         var snapshot = _source.Snapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-        _title.Text = (snapshot?.Boss?.Name ?? snapshot?.Title ?? "Pelea no disponible") + " · " + MeterView.Duration(snapshot?.CombatMs ?? 0) + (_source.IsLive ? " · en vivo" : " · guardada");
+        _title.Text = (snapshot?.Boss?.Name ?? snapshot?.Title ?? UiText.Current.OvFightUnavailable) + " · " + MeterView.Duration(snapshot?.CombatMs ?? 0) + " · " + (_source.IsLive ? UiText.Current.OvLiveFight : UiText.Current.OvSavedFight);
         var rows = MeterView.Rows(snapshot, int.MaxValue);
         _syncing = true;
         _players.ItemsSource = rows;
@@ -167,7 +168,7 @@ public sealed class BreakdownWindow : Window
     private void FillSkills(CombatantDetail? detail)
     {
         _skillRows.Children.Clear();
-        _skillRows.Children.Add(SkillLine(["Skill", "Golpes", "Ticks", "Daño", "DPS", "Prom.", "Máx", "%", "Crit", "Esp.", "Front.", "Perf.", "Fuerte", "Multi"], Muted, FontWeight.Normal));
+        _skillRows.Children.Add(SkillLine([UiText.Current.OvSkill, UiText.Current.OvHits, UiText.Current.OvTicks, UiText.Current.RowDamage, "DPS", UiText.Current.OvAverage, UiText.Current.OvMax, "%", UiText.Current.RowCrit, UiText.Current.OvBack, UiText.Current.OvFront, UiText.Current.OvPerfect, UiText.Current.OvHeavy, UiText.Current.OvMulti], Muted, FontWeight.Normal));
         if (detail is null) return;
         foreach (var row in BreakdownView.Skills(detail))
             _skillRows.Children.Add(SkillLine([row.Name, row.Hits, row.Ticks, row.Damage, row.Dps, row.Average, row.Max, row.Share, row.Crit, row.Back, row.Front, row.Perfect, row.Heavy, row.Multi], Brushes.White, FontWeight.Normal));

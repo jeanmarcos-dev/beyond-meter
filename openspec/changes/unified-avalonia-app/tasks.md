@@ -16,7 +16,7 @@
 
 ## 3. Idiomas en el overlay
 
-- [ ] 3.1 Pasar cada texto fijo del overlay a propiedades de `UiText` en inglés, español y ruso, y extender el test de cobertura al ruso; verificar que no queda ningún literal visible en `src/AionMeter.Overlay` (test que lo busque) y que pasan los tests Headless
+- [x] 3.1 Pasar cada texto fijo del overlay a propiedades de `UiText` en inglés, español y ruso, y extender el test de cobertura al ruso; verificar que no queda ningún literal visible en `src/AionMeter.Overlay` (test que lo busque) y que pasan los tests Headless
 - [ ] 3.2 Aplicar el idioma en caliente en todas las ventanas del overlay y cambiar el chip de idioma por el menú de tres idiomas; test Headless que cambie a ruso y compruebe textos del overlay, el desglose y el panel de timers; verificar que pasa
 
 ## 4. Configuración, Ajustes y bandeja

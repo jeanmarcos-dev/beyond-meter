@@ -40,7 +40,7 @@ public sealed class BreakdownWindowTests : IDisposable
         Assert.NotNull(window.Breakdown);
         Assert.True(window.Breakdown!.IsVisible);
         Assert.Equal(Mate, window.Breakdown.ActorId);
-        Assert.Equal("Ver detalle", detail.Content);
+        Assert.Equal("Details", detail.Content);
     }
 
     [AvaloniaFact]
@@ -98,7 +98,7 @@ public sealed class BreakdownWindowTests : IDisposable
         Assert.False(breakdown.Topmost);
         Assert.Equal(SystemDecorations.Full, breakdown.SystemDecorations);
         Assert.True(breakdown.CanResize);
-        Assert.Equal(["Skills", "Línea de tiempo", "Rotación", "Defensa"], breakdown.GetLogicalDescendants().OfType<TabItem>().Select(t => t.Header));
+        Assert.Equal(["Skills", "Timeline", "Rotation", "Defense"], breakdown.GetLogicalDescendants().OfType<TabItem>().Select(t => t.Header));
     }
 
     [AvaloniaFact]

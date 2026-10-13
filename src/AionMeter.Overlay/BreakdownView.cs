@@ -1,6 +1,7 @@
 using System.Globalization;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
+using AionMeter.Core.Text;
 using Avalonia;
 
 namespace AionMeter.Overlay;
@@ -31,7 +32,7 @@ public sealed record RotationItem(int Index, int OffsetMs, int SkillCode, string
     {
         get
         {
-            var crit = IsCrit ? " · crítico" : "";
+            var crit = IsCrit ? " · " + UiText.Current.OvCritical : "";
             return $"{Name} · {MeterView.Compact(Damage)}{crit} · {MeterView.Duration(OffsetMs)}";
         }
     }
@@ -46,7 +47,7 @@ public static class BreakdownView
     public const double CastGap = 4;
     public const int SmoothingSeconds = 3;
 
-    public static readonly IReadOnlyList<string> Tabs = ["Skills", "Línea de tiempo", "Rotación", "Defensa"];
+    public static IReadOnlyList<string> Tabs => [UiText.Current.OvSkills, UiText.Current.OvTimeline, UiText.Current.TabRotation, UiText.Current.TabDefense];
 
     public static IReadOnlyList<SkillTableRow> Skills(CombatantDetail detail) =>
         detail.Skills
@@ -96,7 +97,7 @@ public static class BreakdownView
         foreach (var cast in casts)
         {
             var size = top <= 0 ? MinCastSize : MinCastSize + (MaxCastSize - MinCastSize) * Math.Sqrt(Math.Max(0, cast.Damage) / (double)top);
-            var name = names.TryGetValue(cast.SkillCode, out var known) ? known : "Skill " + cast.SkillCode.ToString(CultureInfo.InvariantCulture);
+            var name = names.TryGetValue(cast.SkillCode, out var known) ? known : string.Format(CultureInfo.InvariantCulture, UiText.Current.OvSkillCode, cast.SkillCode);
             items.Add(new RotationItem(items.Count, cast.OffsetMs, cast.SkillCode, name, cast.Damage, (cast.Flags & HitFlags.Critical) != 0, size, x));
             x += size + CastGap;
         }

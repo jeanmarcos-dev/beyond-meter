@@ -46,13 +46,13 @@ public sealed class OverlayWindowTests : IDisposable
 
         window.Apply(OverlayCommand.Heal);
         Assert.Equal(["1. Aurelia"], VisibleRows(window));
-        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Curación" && t.IsEffectivelyVisible);
+        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Healing" && t.IsEffectivelyVisible);
 
-        Click(window, ButtonOf(window, "Curación"));
+        Click(window, ButtonOf(window, "Healing"));
         Assert.Equal(["1. Ilvane", "2. Aurelia"], VisibleRows(window));
-        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Daño" && t.IsEffectivelyVisible);
+        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Damage" && t.IsEffectivelyVisible);
 
-        Click(window, ButtonOf(window, "Daño"));
+        Click(window, ButtonOf(window, "Damage"));
         Assert.Equal(["1. Aurelia"], VisibleRows(window));
     }
 
@@ -70,7 +70,7 @@ public sealed class OverlayWindowTests : IDisposable
 
         Assert.Equal(["1. Aurelia"], VisibleRows(window));
         window.Apply(OverlayCommand.Live);
-        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Curación" && t.IsEffectivelyVisible);
+        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Healing" && t.IsEffectivelyVisible);
     }
 
     private static void HealingFight(CombatTracker tracker)
@@ -92,7 +92,7 @@ public sealed class OverlayWindowTests : IDisposable
         history.Save(Fight("Berk", minute: 10));
         history.Save(Fight("Spider", minute: 12));
         var window = Open(history, out _);
-        var button = ButtonOf(window, "Historial");
+        var button = ButtonOf(window, "History");
 
         Click(window, button);
         Click(window, button);
@@ -140,7 +140,7 @@ public sealed class OverlayWindowTests : IDisposable
         var unknown = rows.Single(r => r.ActorId == 101);
 
         Assert.Same(ClassIcons.For(GameClass.Elementalist), self.ClassIcon.Source);
-        Assert.Equal("Nv 45", self.LevelText.Text);
+        Assert.Equal("Lv 45", self.LevelText.Text);
         Assert.True(self.LevelText.IsVisible);
         Assert.Null(unknown.ClassIcon.Source);
         Assert.False(unknown.LevelText.IsVisible);
@@ -161,7 +161,7 @@ public sealed class OverlayWindowTests : IDisposable
         Press(window, row);
 
         Assert.Same(ClassIcons.For(GameClass.Elementalist), skills.ClassIcon.Source);
-        Assert.Equal("Nv 45", skills.LevelText.Text);
+        Assert.Equal("Lv 45", skills.LevelText.Text);
     }
 
     [AvaloniaFact]
@@ -188,14 +188,14 @@ public sealed class OverlayWindowTests : IDisposable
         history.Save(Fight("Berk", minute: 10));
         var window = Open(history, out _);
         window.Apply(OverlayCommand.Older);
-        var copy = ButtonOf(window, "Copiar DPS");
+        var copy = ButtonOf(window, "Copy DPS");
 
         Click(window, copy);
         await Task.Delay(50);
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal("Berk 0:30 KILL | 1.Ilvane 100/s 100% | party 100/s", await window.Clipboard!.GetTextAsync());
-        Assert.Equal("Copiado ✓", copy.Content);
+        Assert.Equal("Copied ✓", copy.Content);
     }
 
     [AvaloniaFact]
@@ -222,7 +222,7 @@ public sealed class OverlayWindowTests : IDisposable
         await Settle();
 
         Assert.StartsWith("NPC 2300243 0:01 | Ilvane #1 of 1: ", await window.Clipboard!.GetTextAsync());
-        Assert.Equal("Copiado ✓", copy.Content);
+        Assert.Equal("Copied ✓", copy.Content);
     }
 
     [AvaloniaFact]
@@ -243,17 +243,17 @@ public sealed class OverlayWindowTests : IDisposable
     {
         var (window, meter, tracker, _) = OpenTuned();
         LiveFight(tracker);
-        var mode = ButtonOf(window, "Jefes");
+        var mode = ButtonOf(window, "Bosses");
 
         Click(window, mode);
 
-        Assert.Equal("Todo", mode.Content);
+        Assert.Equal("All", mode.Content);
         Assert.Equal(TargetMode.All, meter.TargetMode);
         Assert.Equal(EncounterEndReason.Manual, tracker.Segments()[0].Reason);
         Assert.Equal(TargetMode.All, OverlaySettings.Load(SettingsPath).TargetMode);
 
         window.Apply(OverlayCommand.Mode);
-        Assert.Equal("Jefes", mode.Content);
+        Assert.Equal("Bosses", mode.Content);
         Assert.Equal(TargetMode.BossOnly, meter.TargetMode);
     }
 
@@ -307,11 +307,11 @@ public sealed class OverlayWindowTests : IDisposable
 
         window.Shortcuts = new Dictionary<OverlayCommand, string> { [OverlayCommand.Lock] = "Super+Shift+F9", [OverlayCommand.Toggle] = "Super+Shift+F11" };
         Assert.True(hint.IsVisible);
-        Assert.Equal("Super+Shift+F9 fijar · Super+Shift+F11 ocultar", hint.Text);
+        Assert.Equal("Super+Shift+F9 lock · Super+Shift+F11 hide", hint.Text);
 
         window.Apply(OverlayCommand.Lock);
         Assert.True(hint.IsVisible);
-        Assert.Equal("Super+Shift+F9 soltar · Super+Shift+F11 ocultar", hint.Text);
+        Assert.Equal("Super+Shift+F9 unlock · Super+Shift+F11 hide", hint.Text);
     }
 
     [AvaloniaFact]
@@ -353,7 +353,7 @@ public sealed class OverlayWindowTests : IDisposable
         var texts = panel.GetLogicalDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
         Assert.Contains("Linx", texts);
         Assert.Contains("12:34", texts);
-        Assert.Contains("Vivo", texts);
+        Assert.Contains("Alive", texts);
         window.Apply(OverlayCommand.Timers);
         Assert.False(panel.IsVisible);
     }
@@ -401,12 +401,12 @@ public sealed class OverlayWindowTests : IDisposable
     {
         var (window, _) = OpenWithBoard(Now.AddMinutes(12).AddSeconds(34));
         window.Apply(OverlayCommand.Lock);
-        Assert.DoesNotContain(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text!.StartsWith("Próximo"));
+        Assert.DoesNotContain(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text!.StartsWith("Next"));
 
         _board!.ToggleWatch(BossWorld.Linx);
         window.Apply(OverlayCommand.Reset);
 
-        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text == "Próximo: Linx 12:34");
+        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text == "Next: Linx 12:34");
     }
 
     [AvaloniaFact]
@@ -555,22 +555,22 @@ public sealed class OverlayWindowTests : IDisposable
         rig.History.Save(Fight("B", minute: 2, EncounterEndReason.Wipe, boss: true));
         rig.History.Save(Fight("C", minute: 3));
         rig.History.Save(Fight("D", minute: 4));
-        Click(rig.Window, ButtonOf(rig.Window, "Historial"));
+        Click(rig.Window, ButtonOf(rig.Window, "History"));
         var list = rig.Window.GetLogicalDescendants().OfType<ListBox>().Single();
         var count = rig.Window.GetLogicalDescendants().OfType<TextBlock>().Single(t => t.Name == "HistoryCount");
         Assert.Equal(4, list.ItemCount);
-        Assert.Equal("4 de 4", count.Text);
+        Assert.Equal("4 of 4", count.Text);
 
-        Click(rig.Window, ButtonOf(rig.Window, "Solo jefes"));
+        Click(rig.Window, ButtonOf(rig.Window, "Bosses only"));
         Assert.Equal(2, list.ItemCount);
-        Assert.Equal("2 de 4", count.Text);
+        Assert.Equal("2 of 4", count.Text);
 
-        Click(rig.Window, ButtonOf(rig.Window, "Solo kills"));
+        Click(rig.Window, ButtonOf(rig.Window, "Kills only"));
         Assert.Equal(1, list.ItemCount);
-        Assert.Equal("1 de 4", count.Text);
+        Assert.Equal("1 of 4", count.Text);
 
         rig.Window.Apply(OverlayCommand.Older);
-        Assert.Equal("Historial 1/1", rig.Window.GetLogicalDescendants().OfType<TextBlock>().First(t => t.Text is { } text && text.StartsWith("Historial ")).Text);
+        Assert.Equal("History 1/1", rig.Window.GetLogicalDescendants().OfType<TextBlock>().First(t => t.Text is { } text && text.StartsWith("History ")).Text);
     }
 
     [AvaloniaFact]
@@ -580,23 +580,23 @@ public sealed class OverlayWindowTests : IDisposable
         var older = rig.History.Save(Fight("A", minute: 1));
         var newer = rig.History.Save(Fight("B", minute: 2));
         rig.Window.Apply(OverlayCommand.Older);
-        var delete = ButtonOf(rig.Window, "Borrar");
+        var delete = ButtonOf(rig.Window, "Delete");
         Assert.True(delete.IsEffectivelyVisible);
-        Assert.False(ButtonOf(rig.Window, "Sí").IsEffectivelyVisible);
+        Assert.False(ButtonOf(rig.Window, "Yes").IsEffectivelyVisible);
 
         Click(rig.Window, delete);
         Assert.False(delete.IsVisible);
-        Assert.True(ButtonOf(rig.Window, "Sí").IsEffectivelyVisible);
+        Assert.True(ButtonOf(rig.Window, "Yes").IsEffectivelyVisible);
         Assert.True(ButtonOf(rig.Window, "No").IsEffectivelyVisible);
         Assert.True(File.Exists(newer));
 
-        Click(rig.Window, ButtonOf(rig.Window, "Sí"));
+        Click(rig.Window, ButtonOf(rig.Window, "Yes"));
 
         Assert.False(File.Exists(newer));
         Assert.True(File.Exists(older));
         Assert.Single(rig.History.List());
         Assert.True(delete.IsEffectivelyVisible);
-        Assert.False(ButtonOf(rig.Window, "Sí").IsEffectivelyVisible);
+        Assert.False(ButtonOf(rig.Window, "Yes").IsEffectivelyVisible);
     }
 
     [AvaloniaFact]
@@ -606,12 +606,12 @@ public sealed class OverlayWindowTests : IDisposable
         var path = rig.History.Save(Fight("A", minute: 1));
         rig.Window.Apply(OverlayCommand.Older);
 
-        Click(rig.Window, ButtonOf(rig.Window, "Borrar"));
+        Click(rig.Window, ButtonOf(rig.Window, "Delete"));
         Click(rig.Window, ButtonOf(rig.Window, "No"));
 
         Assert.True(File.Exists(path));
-        Assert.True(ButtonOf(rig.Window, "Borrar").IsEffectivelyVisible);
-        Assert.False(ButtonOf(rig.Window, "Sí").IsEffectivelyVisible);
+        Assert.True(ButtonOf(rig.Window, "Delete").IsEffectivelyVisible);
+        Assert.False(ButtonOf(rig.Window, "Yes").IsEffectivelyVisible);
     }
 
     [AvaloniaFact]
@@ -620,16 +620,16 @@ public sealed class OverlayWindowTests : IDisposable
         var rig = OpenAuto(new OverlaySettings());
         var path = rig.History.Save(Fight("A", minute: 1));
         rig.Window.Apply(OverlayCommand.Older);
-        Click(rig.Window, ButtonOf(rig.Window, "Borrar"));
+        Click(rig.Window, ButtonOf(rig.Window, "Delete"));
 
         rig.Clock.Advance(4);
         rig.Window.Refresh();
-        Assert.True(ButtonOf(rig.Window, "Sí").IsEffectivelyVisible);
+        Assert.True(ButtonOf(rig.Window, "Yes").IsEffectivelyVisible);
 
         rig.Clock.Advance(1);
         rig.Window.Refresh();
-        Assert.False(ButtonOf(rig.Window, "Sí").IsEffectivelyVisible);
-        Assert.True(ButtonOf(rig.Window, "Borrar").IsEffectivelyVisible);
+        Assert.False(ButtonOf(rig.Window, "Yes").IsEffectivelyVisible);
+        Assert.True(ButtonOf(rig.Window, "Delete").IsEffectivelyVisible);
         Assert.True(File.Exists(path));
     }
 
@@ -639,13 +639,13 @@ public sealed class OverlayWindowTests : IDisposable
         var rig = OpenAuto(new OverlaySettings());
         rig.History.Save(Fight("A", minute: 1));
 
-        Assert.False(ButtonOf(rig.Window, "Borrar").IsVisible);
+        Assert.False(ButtonOf(rig.Window, "Delete").IsVisible);
 
         rig.Window.Apply(OverlayCommand.Older);
-        Assert.True(ButtonOf(rig.Window, "Borrar").IsVisible);
+        Assert.True(ButtonOf(rig.Window, "Delete").IsVisible);
 
         rig.Window.Apply(OverlayCommand.Live);
-        Assert.False(ButtonOf(rig.Window, "Borrar").IsVisible);
+        Assert.False(ButtonOf(rig.Window, "Delete").IsVisible);
     }
 
     private sealed class FakeClock
@@ -793,7 +793,7 @@ public sealed class OverlayWindowTests : IDisposable
         window.Refresh();
         Dispatcher.UIThread.RunJobs();
 
-        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Repetición terminada");
+        Assert.Contains(window.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Replay finished");
         Assert.Empty(history.List());
         Assert.NotEmpty(VisibleRows(window));
     }

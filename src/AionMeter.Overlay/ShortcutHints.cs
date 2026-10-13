@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.RegularExpressions;
+using AionMeter.Core.Text;
 
 namespace AionMeter.Overlay;
 
@@ -74,8 +76,8 @@ public static partial class ShortcutHints
     public static string? Footer(IReadOnlyDictionary<OverlayCommand, string> shortcuts, bool locked)
     {
         var parts = new List<string>();
-        if (shortcuts.TryGetValue(OverlayCommand.Lock, out var lockKey)) parts.Add($"{lockKey} {(locked ? "soltar" : "fijar")}");
-        if (shortcuts.TryGetValue(OverlayCommand.Toggle, out var toggleKey)) parts.Add($"{toggleKey} ocultar");
+        if (shortcuts.TryGetValue(OverlayCommand.Lock, out var lockKey)) parts.Add(string.Format(CultureInfo.InvariantCulture, locked ? UiText.Current.OvUnlockKey : UiText.Current.OvLockKey, lockKey));
+        if (shortcuts.TryGetValue(OverlayCommand.Toggle, out var toggleKey)) parts.Add(string.Format(CultureInfo.InvariantCulture, UiText.Current.OvHideKey, toggleKey));
         return parts.Count == 0 ? null : string.Join(" · ", parts);
     }
 
