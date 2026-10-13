@@ -66,7 +66,7 @@ function Repair-VersionStrings([string]$Path, [string]$ProductName) {
     if ($read -cne $ProductName) { throw "Version info of $Path still reads '$read'" }
 }
 
-$project = Join-Path $root "src\AionMeter.App\AionMeter.App.csproj"
+$project = Join-Path $root "src\AionMeter.Overlay\AionMeter.Overlay.csproj"
 if (-not $Version) {
     $Version = (Select-Xml -Path (Join-Path $root "Directory.Build.props") -XPath "//Version").Node.InnerText | Select-Object -First 1
 }
@@ -77,7 +77,7 @@ New-Item -ItemType Directory -Force $dist | Out-Null
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 
 # Self-contained, no symbols; .NET's own messages only in English and Russian (%3B is MSBuild's escaped ";").
-$publish = @("-c", "Release", "-r", "win-x64", "--self-contained", "true",
+$publish = @("-c", "Release", "-f", "net10.0-windows10.0.19041.0", "-r", "win-x64", "--self-contained", "true",
     "-p:DebugType=none", "-p:DebugSymbols=false", "-p:SatelliteResourceLanguages=en%3Bru")
 
 # Portable: one exe + data folder.

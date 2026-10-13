@@ -29,6 +29,20 @@ public sealed class IdentityTests
     }
 
     [Fact]
+    public void The_release_publishes_the_overlay_for_windows_as_beyond_meter()
+    {
+        var script = File.ReadAllText(Repository.Path("build-release.ps1"));
+        var project = File.ReadAllText(Repository.Path("src", "AionMeter.Overlay", "AionMeter.Overlay.csproj"));
+        var windows = Regex.Match(project, @"<PropertyGroup Condition=""'\$\(TargetFramework\)' == 'net10.0-windows10.0.19041.0'"">(.*?)</PropertyGroup>", RegexOptions.Singleline).Groups[1].Value;
+
+        Assert.Contains(@"$project = Join-Path $root ""src\AionMeter.Overlay\AionMeter.Overlay.csproj""", script);
+        Assert.Contains(@"""-f"", ""net10.0-windows10.0.19041.0""", script);
+        Assert.Contains("<AssemblyName>BeyondMeter</AssemblyName>", windows);
+        Assert.Contains("<Product>Beyond Meter</Product>", windows);
+        Assert.Contains("<ApplicationManifest>app.manifest</ApplicationManifest>", windows);
+    }
+
+    [Fact]
     public void Installer_keeps_the_original_app_id_so_it_installs_over_it()
     {
         var iss = File.ReadAllText(Repository.Path("installer", "AION2DpsMeter.iss"));
@@ -56,7 +70,7 @@ public sealed class IdentityTests
 
     private static IEnumerable<string> WindowsSources()
     {
-        var appFiles = new[] { Repository.Path("src", "AionMeter.App"), Repository.Path("src", "AionMeter.Core", "Text") }
+        var appFiles = new[] { Repository.Path("src", "AionMeter.Overlay"), Repository.Path("src", "AionMeter.Core", "Text") }
             .SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
             .Where(f => SourceExtensions.Contains(Path.GetExtension(f)))
             .Select(f => Path.GetRelativePath(Repository.Root, f).Replace('\\', '/'))
