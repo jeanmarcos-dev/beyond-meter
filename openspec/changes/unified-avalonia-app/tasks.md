@@ -46,5 +46,5 @@
 ## 7. Reemplazo
 
 - [ ] 7.1 Verificación manual en Windows (a cargo del usuario): instalar el pre-release sobre la 1.x WPF con historial, timers y ajustes; probar cada función de la lista de paridad, la actualización automática desde la 1.x y que los atajos, el click-through, la bandeja y las alertas funcionan con el juego abierto
-- [ ] 7.2 Publicar `v2.0.0` con notas en los tres idiomas, previa confirmación del usuario; verificar que el release tiene los archivos de Windows y Linux y que una 1.x instalada se actualiza sola
+- [x] 7.2 Publicar `v2.0.0` con notas en los tres idiomas, previa confirmación del usuario; verificar que el release tiene los archivos de Windows y Linux y que una 1.x instalada se actualiza sola
 - [ ] 7.3 En un commit aparte, posterior al release, borrar `src/AionMeter.App`, sacarlo de la solución y de los scripts, y documentar en el README cómo traer cambios del upstream sin la App; verificar que la suite, el formato y un tag de prueba pasan
