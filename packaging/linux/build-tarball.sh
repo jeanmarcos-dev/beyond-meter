@@ -14,7 +14,7 @@ stage="$dist/$name"
 rm -rf "$stage"
 mkdir -p "$stage/service"
 
-dotnet publish "$root/src/AionMeter.Overlay/AionMeter.Overlay.csproj" -c Release -r linux-x64 --self-contained true \
+dotnet publish "$root/src/AionMeter.Overlay/AionMeter.Overlay.csproj" -c Release -f net10.0 -r linux-x64 --self-contained true \
     -p:DebugType=none -p:DebugSymbols=false -o "$stage/app"
 if [[ ! -f "$stage/app/data/npcs/en.json" ]]; then
     echo "error: data folder missing from the publish output" >&2
