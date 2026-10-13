@@ -39,8 +39,8 @@
 
 ## 6. Windows
 
-- [ ] 6.1 `WindowsDesktop`: click-through, atajos globales con aviso de atajo ocupado, toasts con sonido y aviso propio de respaldo, rutas en `%AppData%\AionMeter`, canal en `%LocalAppData%\BeyondMeter` y mutex `AionMeter.SingleInstance`; tests que corran en el job de Windows; verificar en CI
-- [ ] 6.2 Instalador: `AppUserModelID` en los accesos directos y `[InstallDelete]` de los archivos de la app WPF que no trae el overlay; verificar con los tests del instalador y una build de CI
+- [x] 6.1 `WindowsDesktop`: click-through, atajos globales con aviso de atajo ocupado, toasts con sonido y aviso propio de respaldo, rutas en `%AppData%\AionMeter`, canal en `%LocalAppData%\BeyondMeter` y mutex `AionMeter.SingleInstance`; tests que corran en el job de Windows; verificar en CI
+- [x] 6.2 Instalador: `AppUserModelID` en los accesos directos y `[InstallDelete]` de los archivos de la app WPF que no trae el overlay; verificar con los tests del instalador y una build de CI
 - [ ] 6.3 Hacer que `build-release.ps1` publique el overlay para `win-x64` y retargetear los tests de identidad e idiomas al overlay; verificar con un tag de prueba con sufijo, previa confirmación del usuario, que el instalador y el zip traen `BeyondMeter.exe` del overlay
 
 ## 7. Reemplazo
