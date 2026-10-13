@@ -28,7 +28,8 @@ puesto con su DPS. La fila de invocaciones sin dueño NO SHALL aparecer.
 
 - **WHEN** se copia una pelea contra un jefe que terminó con su muerte
 - **THEN** la línea empieza con el nombre de la pelea, la duración y `KILL`
-- **AND** sigue con `1.<nombre> <DPS>` para cada jugador en orden de daño
+- **AND** sigue con `| 1.<nombre> <DPS>/s <porcentaje>` para cada jugador en
+  orden de daño y termina con `| party <DPS del grupo>/s`
 
 #### Scenario: Copiar desde el historial
 
@@ -44,8 +45,8 @@ comando `copyself` SHALL copiar esa misma línea para el personaje propio.
 #### Scenario: Copiar a otro jugador
 
 - **WHEN** el panel muestra las skills de un compañero y se pulsa copiar
-- **THEN** la línea contiene `#<puesto> <nombre> <DPS>/s (<porcentaje>)` de ese
-  compañero y el DPS del grupo
+- **THEN** la línea contiene `<nombre> #<puesto> of <total>: <DPS>/s, <daño> dmg
+  (<porcentaje>)` de ese compañero y termina con `| party <DPS del grupo>/s`
 
 #### Scenario: Copiar la línea propia con el overlay fijado
 
