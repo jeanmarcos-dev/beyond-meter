@@ -112,11 +112,9 @@ public static class MeterView
             .ToList();
     }
 
-    public static string? PartyLine(EncounterSnapshot? snapshot) =>
-        snapshot is not null && snapshot.Combatants.Any(c => !c.IsUnknownSummons) ? ChatLine.Party(snapshot) : null;
+    public static string? PartyLine(EncounterSnapshot? snapshot) => ChatMenu.PartyLine(snapshot);
 
-    public static string? PlayerLine(EncounterSnapshot? snapshot, uint actorId) =>
-        snapshot is not null && snapshot.Combatants.Any(c => c.ActorId == actorId) ? ChatLine.Player(snapshot, actorId) : null;
+    public static string? PlayerLine(EncounterSnapshot? snapshot, uint actorId) => ChatMenu.PlayerLine(snapshot, actorId);
 
     public static string Rate(double? fraction) => fraction is { } f ? Percent(f) : "-";
 

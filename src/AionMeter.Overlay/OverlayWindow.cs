@@ -267,6 +267,7 @@ public sealed class OverlayWindow : Window
                 Refresh();
             };
             row.ApplySize(_settings.RowSize);
+            row.ContextFlyout = ChatMenu.Flyout(CurrentSnapshot, () => (row.ActorId, RowName(row.ActorId)), text => _ = CopyText(text));
             _rowControls.Add(row);
             _rows.Children.Add(row);
         }
@@ -702,6 +703,18 @@ public sealed class OverlayWindow : Window
     {
         var snapshot = CurrentSnapshot();
         return _session.Detail(snapshot) is { } detail ? MeterView.PlayerLine(snapshot, detail.ActorId) : null;
+    }
+
+    public string? LastCopied { get; private set; }
+
+    private string? RowName(uint actorId) => CurrentSnapshot()?.Combatants.FirstOrDefault(c => c.ActorId == actorId)?.Name;
+
+    private async Task<bool> CopyText(string text)
+    {
+        if (Clipboard is not { } clipboard) return false;
+        await clipboard.SetTextAsync(text);
+        LastCopied = text;
+        return true;
     }
 
     private async Task Copy(string? text, Button? feedback, string? label)

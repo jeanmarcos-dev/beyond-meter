@@ -41,6 +41,23 @@ public sealed class BreakdownWindow : Window
     private readonly ImageStore? _images;
 
     public const string SkillIconName = "SkillIcon";
+
+    private readonly Button _chat = new() { Name = "ChatButton", FontSize = 12 };
+    private readonly TextBlock _note = new() { Name = "CopyNote", FontSize = 12, Foreground = Muted, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), IsVisible = false };
+
+    public string? LastCopied { get; private set; }
+
+    public Button ChatButton => _chat;
+
+    private async Task Copy(string text)
+    {
+        var copied = Clipboard is { } clipboard;
+        if (copied) await Clipboard!.SetTextAsync(text);
+        LastCopied = copied ? text : null;
+        _note.Text = copied ? UiText.Current.Copied : UiText.Current.CopyFailed;
+        _note.IsVisible = true;
+        DispatcherTimer.RunOnce(() => _note.IsVisible = false, TimeSpan.FromSeconds(2.5));
+    }
     private TextBlock? _rotationHint;
     private long _lastTickMs;
     private bool _syncing;
@@ -88,6 +105,7 @@ public sealed class BreakdownWindow : Window
     {
         var t = UiText.Current;
         Title = $"{AppInfo.Name} · {t.OvBreakdown}";
+        _chat.Content = t.TipChat;
         var names = BreakdownView.Tabs;
         for (var i = 0; i < _tabItems.Count; i++) _tabItems[i].Header = names[i];
         if (_rotationHint is not null) _rotationHint.Text = t.OvRotationHint;
@@ -141,7 +159,10 @@ public sealed class BreakdownWindow : Window
         right.Children.Add(_tabs);
 
         var body = new DockPanel { Margin = new Thickness(12) };
-        var heading = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8), Children = { _portrait, _title } };
+        _chat.Flyout = ChatMenu.Flyout(() => _source.Snapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), () => (ActorId, _source.Detail(ActorId)?.Name), text => _ = Copy(text));
+        _chat.Margin = new Thickness(12, 0, 0, 0);
+        _chat.VerticalAlignment = VerticalAlignment.Center;
+        var heading = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8), Children = { _portrait, _title, _chat, _note } };
         _title.VerticalAlignment = VerticalAlignment.Center;
         DockPanel.SetDock(heading, Dock.Top);
         body.Children.Add(heading);
