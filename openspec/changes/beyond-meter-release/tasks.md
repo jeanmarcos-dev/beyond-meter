@@ -25,7 +25,7 @@
 
 ## 5. Paquete de Linux
 
-- [ ] 5.1 Escribir `packaging/linux/install.sh`: copia a `~/.local/share/aionmeter-overlay` reemplazando la versión previa, enlaza `~/.local/bin/aionmeter-overlay`, aplica `sudo setcap cap_net_raw,cap_net_admin+eip` y avisa si falta libpcap; verificar con `shellcheck` y ejecutándolo dos veces seguidas sobre una carpeta de prueba (`HOME` temporal, sin `setcap`)
+- [x] 5.1 Escribir `packaging/linux/install.sh`: copia a `~/.local/share/aionmeter-overlay` reemplazando la versión previa, enlaza `~/.local/bin/aionmeter-overlay`, aplica `sudo setcap cap_net_raw,cap_net_admin+eip` y avisa si falta libpcap; verificar con `shellcheck` y ejecutándolo dos veces seguidas sobre una carpeta de prueba (`HOME` temporal, sin `setcap`)
 - [x] 5.2 Escribir `packaging/linux/build-tarball.sh`: `dotnet publish` self-contained `linux-x64` del overlay y tarball `beyond-meter-v<versión>-linux-x64.tar.gz` (más la copia con nombre fijo) con el overlay, `data/`, `LICENSE`, `install.sh` y los archivos del servicio; verificar con `shellcheck`, listando el tarball con `tar tzf` y arrancando `aionmeter-overlay --demo` desde una extracción limpia
 - [x] 5.3 Actualizar `docs/linux-overlay.md`: instalación desde el tarball del release como camino principal y compilación desde el código como alternativa; verificar que los comandos documentados coinciden con los de `install.sh`
 
@@ -33,7 +33,7 @@
 
 - [x] 6.1 Crear `release-notes/1.0.0.md` en inglés con el contenido de la primera versión del fork; verificar que `ReleaseNotes.Lines` lo parsea sin perder secciones (test en `UpdateTests`)
 - [x] 6.2 Crear `.github/workflows/release.yml` con los jobs `verify` (tag = `v` + `Version`, tests, `dotnet format --verify-no-changes`), `windows` (Inno Setup 7 en versión fija con checksum, consultando su documentación vigente, y `build-release.ps1`), `linux` (`build-tarball.sh`) y `publish` (`gh release create` con los archivos y las notas de `release-notes/<versión>.md` más la línea "Based on upstream <UpstreamVersion>"); verificar con `actionlint`
-- [ ] 6.3 Probar el workflow en el fork con un tag de prueba `v0.0.1-test` marcado como pre-release (con `Version` temporal `0.0.1`), previa confirmación del usuario y con Actions activado por el usuario; verificar que el release tiene los cinco archivos de Windows, los dos de Linux y las notas con la línea del upstream, y después borrar el release y el tag de prueba
+- [x] 6.3 Probar el workflow en el fork con un tag de prueba `v1.0.0-test`, que publica un pre-release sobre la `Version` `1.0.0`, previa confirmación del usuario y con Actions activado en el fork; verificar que el release tiene los cinco archivos de Windows, los dos de Linux y las notas con la línea del upstream, y después borrar el release y el tag de prueba
 
 ## 7. Documentación del fork
 
