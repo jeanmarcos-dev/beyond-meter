@@ -19,16 +19,17 @@ public sealed class SkillPanel : StackPanel
     private readonly TextBlock _quality = new() { Foreground = Muted, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock _extremes = new() { Foreground = Muted, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly List<(Grid Line, TextBlock[] Cells)> _lines = [];
+    private readonly TextBlock[] _headings;
 
     public static string DetailLabel => UiText.Current.OvDetails;
 
-    public Button DetailButton { get; } = new() { Content = DetailLabel, FontSize = 11, Padding = new Thickness(8, 1), Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
+    public Button DetailButton { get; } = new() { FontSize = 11, Padding = new Thickness(8, 1), Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
 
     public Image ClassIcon { get; } = new() { Width = 18, Height = 18, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center };
 
     public TextBlock LevelText { get; } = new() { Foreground = Muted, FontSize = 12, Margin = new Thickness(6, 0), VerticalAlignment = VerticalAlignment.Center };
 
-    public Button CopyButton { get; } = new() { Content = CopyLabel, FontSize = 11, Padding = new Thickness(8, 1), VerticalAlignment = VerticalAlignment.Center };
+    public Button CopyButton { get; } = new() { FontSize = 11, Padding = new Thickness(8, 1), VerticalAlignment = VerticalAlignment.Center };
 
     public SkillPanel()
     {
@@ -47,7 +48,7 @@ public sealed class SkillPanel : StackPanel
         Children.Add(heading);
         Children.Add(_quality);
         Children.Add(_extremes);
-        Children.Add(Line([UiText.Current.OvSkill, UiText.Current.OvHits, UiText.Current.RowDamage, "%", UiText.Current.OvMax, UiText.Current.RowCrit, UiText.Current.OvBack], Muted, 11, out _));
+        Children.Add(Line(new string[7], Muted, 11, out _headings));
         for (var i = 0; i < MaxSkills; i++)
         {
             var line = Line(new string[7], Brushes.White, 12, out var cells);
@@ -55,6 +56,16 @@ public sealed class SkillPanel : StackPanel
             _lines.Add((line, cells));
             Children.Add(line);
         }
+        ApplyTexts();
+    }
+
+    public void ApplyTexts()
+    {
+        var t = UiText.Current;
+        DetailButton.Content = DetailLabel;
+        CopyButton.Content = CopyLabel;
+        string[] headings = [t.OvSkill, t.OvHits, t.RowDamage, "%", t.OvMax, t.RowCrit, t.OvBack];
+        for (var i = 0; i < headings.Length; i++) _headings[i].Text = headings[i];
     }
 
     public void Show(DetailView detail)

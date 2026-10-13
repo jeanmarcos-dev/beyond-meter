@@ -17,6 +17,7 @@ public sealed class BossRowControl : StackPanel
     private readonly TextBlock _detail = new() { FontSize = 11, Foreground = Muted, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock _interval = new() { FontSize = 11, Foreground = Muted, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0), MinWidth = 52, TextAlignment = TextAlignment.Center };
     private readonly WrapPanel _actions = new() { ItemSpacing = 3, LineSpacing = 3 };
+    private bool _watch;
 
     public BossRowControl(int npcCode)
     {
@@ -35,19 +36,27 @@ public sealed class BossRowControl : StackPanel
         Children.Add(top);
         Children.Add(_detail);
         Children.Add(_actions);
+        ApplyTexts();
     }
 
     public int NpcCode { get; }
 
-    public Button WatchButton { get; } = Small(UiText.Current.OvWatch);
+    public Button WatchButton { get; } = Small("");
 
     public Button LessButton { get; } = Small("−");
 
     public Button MoreButton { get; } = Small("+");
 
-    public Button DeadButton { get; } = Small(UiText.Current.BtnKilled);
+    public Button DeadButton { get; } = Small("");
 
-    public Button RemoveButton { get; } = Small(UiText.Current.OvRemove);
+    public Button RemoveButton { get; } = Small("");
+
+    public void ApplyTexts()
+    {
+        WatchButton.Content = _watch ? UiText.Current.OvWatched : UiText.Current.OvWatch;
+        DeadButton.Content = UiText.Current.BtnKilled;
+        RemoveButton.Content = UiText.Current.OvRemove;
+    }
 
     public void Show(BossRowView view)
     {
@@ -61,7 +70,8 @@ public sealed class BossRowControl : StackPanel
         };
         _detail.Text = string.IsNullOrEmpty(view.Detail) ? view.Zone : $"{view.Zone} · {view.Detail}";
         _interval.Text = view.Interval;
-        WatchButton.Content = view.Watch ? UiText.Current.OvWatched : UiText.Current.OvWatch;
+        _watch = view.Watch;
+        ApplyTexts();
     }
 
     public void ShowActions(bool visible) => _actions.IsVisible = visible;

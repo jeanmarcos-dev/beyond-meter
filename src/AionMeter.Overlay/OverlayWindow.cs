@@ -61,13 +61,15 @@ public sealed class OverlayWindow : Window
     private ViewMode _viewMode = ViewMode.Damage;
     private UserSettings _settings;
     private readonly Button _close = new() { Content = "✕", FontSize = 12, Padding = new Thickness(8, 2), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top };
-    private readonly Button _copy = new() { Content = CopyLabel, FontSize = 12, Padding = new Thickness(8, 2) };
-    private readonly Button _filterBosses = new() { Content = UiText.Current.OvBossesOnly, FontSize = 12, Padding = new Thickness(8, 2) };
-    private readonly Button _filterKills = new() { Content = UiText.Current.OvKillsOnly, FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly Button _copy = new() { FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly Button _language = new() { Name = "LanguageButton", FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly List<Action> _texts = [];
+    private readonly Button _filterBosses = new() { FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly Button _filterKills = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly TextBlock _historyCount = new() { Name = "HistoryCount", Foreground = Muted, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0) };
-    private readonly Button _delete = new() { Content = UiText.Current.OvDelete, FontSize = 12, Padding = new Thickness(8, 2), IsVisible = false };
-    private readonly Button _confirmYes = new() { Content = UiText.Current.OvYes, FontSize = 12, Padding = new Thickness(8, 2) };
-    private readonly Button _confirmNo = new() { Content = UiText.Current.OvNo, FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly Button _delete = new() { FontSize = 12, Padding = new Thickness(8, 2), IsVisible = false };
+    private readonly Button _confirmYes = new() { FontSize = 12, Padding = new Thickness(8, 2) };
+    private readonly Button _confirmNo = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly StackPanel _confirmBar = new() { Orientation = Orientation.Horizontal, Spacing = 4, IsVisible = false };
     private readonly DeleteConfirmation _confirmation;
     private bool _historyDirty = true;
@@ -113,6 +115,7 @@ public sealed class OverlayWindow : Window
 
         _frame.Child = BuildLayout();
         Content = _frame;
+        ApplyTexts();
 
         _session.History.Changed += () => Dispatcher.UIThread.Post(() => _historyDirty = true);
         _history.SelectionChanged += (_, _) =>
@@ -127,6 +130,30 @@ public sealed class OverlayWindow : Window
     }
 
     public event Action? QuitRequested;
+
+    public event Action? LanguageChanged;
+
+    public void ChangeLanguage(string language)
+    {
+        _settings.Language = UiText.Normalize(language);
+        UiText.Use(_settings.Language);
+        _tune(_settings);
+        SaveSettings();
+        ApplyTexts();
+        Breakdown?.ApplyTexts();
+        LanguageChanged?.Invoke();
+    }
+
+    private void ApplyTexts()
+    {
+        foreach (var apply in _texts) apply();
+        _skills.ApplyTexts();
+        _bossPanel?.ApplyTexts();
+        ShowShortcutHint();
+        Refresh();
+    }
+
+    private void Text(Action apply) => _texts.Add(apply);
 
     public BreakdownWindow? Breakdown { get; private set; }
 
@@ -261,11 +288,13 @@ public sealed class OverlayWindow : Window
             _columnCells.Add(cell);
         }
 
-        _toolbar.Children.Add(ToolButton(UiText.Current.Live, () => Apply(OverlayCommand.Live)));
-        _toolbar.Children.Add(ToolButton("◀", () => Apply(OverlayCommand.Older)));
-        _toolbar.Children.Add(ToolButton("▶", () => Apply(OverlayCommand.Newer)));
-        _toolbar.Children.Add(ToolButton(UiText.Current.OvHistory, ToggleHistory));
-        _confirmBar.Children.Add(new TextBlock { Text = UiText.Current.OvDeleteAsk, Foreground = Gold, FontSize = 12, VerticalAlignment = VerticalAlignment.Center });
+        _toolbar.Children.Add(ToolButton(t => t.Live, () => Apply(OverlayCommand.Live)));
+        _toolbar.Children.Add(ToolButton(_ => "◀", () => Apply(OverlayCommand.Older)));
+        _toolbar.Children.Add(ToolButton(_ => "▶", () => Apply(OverlayCommand.Newer)));
+        _toolbar.Children.Add(ToolButton(t => t.OvHistory, ToggleHistory));
+        var deleteAsk = new TextBlock { Foreground = Gold, FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+        Text(() => deleteAsk.Text = UiText.Current.OvDeleteAsk);
+        _confirmBar.Children.Add(deleteAsk);
         _confirmBar.Children.Add(_confirmYes);
         _confirmBar.Children.Add(_confirmNo);
         _toolbar.Children.Add(_delete);
@@ -273,9 +302,9 @@ public sealed class OverlayWindow : Window
         _delete.Click += (_, _) => RequestDelete();
         _confirmYes.Click += (_, _) => ConfirmDelete();
         _confirmNo.Click += (_, _) => CancelDelete();
-        _toolbar.Children.Add(ToolButton(UiText.Current.OvMySkills, () => Apply(OverlayCommand.Skills)));
-        if (_bossPanel is not null) _toolbar.Children.Add(ToolButton(UiText.Current.OvRespawns, () => Apply(OverlayCommand.Timers)));
-        _toolbar.Children.Add(ToolButton(UiText.Current.OvReset, () => Apply(OverlayCommand.Reset)));
+        _toolbar.Children.Add(ToolButton(t => t.OvMySkills, () => Apply(OverlayCommand.Skills)));
+        if (_bossPanel is not null) _toolbar.Children.Add(ToolButton(t => t.OvRespawns, () => Apply(OverlayCommand.Timers)));
+        _toolbar.Children.Add(ToolButton(t => t.OvReset, () => Apply(OverlayCommand.Reset)));
         _toolbar.Children.Add(_view);
         _view.Click += (_, _) => Apply(OverlayCommand.Heal);
         _toolbar.Children.Add(_mode);
@@ -284,7 +313,20 @@ public sealed class OverlayWindow : Window
         _copy.Click += (_, _) => Apply(OverlayCommand.Copy);
         _skills.DetailButton.Click += (_, _) => OpenBreakdown(_session.Detail(CurrentSnapshot())?.ActorId);
         _skills.CopyButton.Click += (_, _) => _ = Copy(DetailLine(), _skills.CopyButton, SkillPanel.CopyLabel);
-        _toolbar.Children.Add(ToolButton(UiText.Current.OvLock, () => Apply(OverlayCommand.Lock)));
+        _toolbar.Children.Add(ToolButton(t => t.OvLock, () => Apply(OverlayCommand.Lock)));
+        _toolbar.Children.Add(_language);
+        _language.Flyout = LanguageMenu();
+        Text(() => _copy.Content = CopyLabel);
+        Text(() => _filterBosses.Content = UiText.Current.OvBossesOnly);
+        Text(() => _filterKills.Content = UiText.Current.OvKillsOnly);
+        Text(() => _delete.Content = UiText.Current.OvDelete);
+        Text(() => _confirmYes.Content = UiText.Current.OvYes);
+        Text(() => _confirmNo.Content = UiText.Current.OvNo);
+        Text(() =>
+        {
+            _language.Content = UiText.Current.Code.ToUpperInvariant();
+            ToolTip.SetTip(_language, UiText.Current.LanguageMenu);
+        });
         _grip.PointerPressed += OnGripPressed;
         _grip.PointerMoved += OnGripMoved;
         _grip.PointerReleased += (_, e) => EndResize(e.Pointer);
@@ -550,9 +592,22 @@ public sealed class OverlayWindow : Window
         return line;
     }
 
-    private static Button ToolButton(string text, Action onClick)
+    private MenuFlyout LanguageMenu()
     {
-        var button = new Button { Content = text, FontSize = 12, Padding = new Thickness(8, 2) };
+        var menu = new MenuFlyout();
+        foreach (var code in UiText.Languages)
+        {
+            var item = new MenuItem { Header = UiText.For(code).LanguageName, Tag = code };
+            item.Click += (_, _) => ChangeLanguage(code);
+            menu.Items.Add(item);
+        }
+        return menu;
+    }
+
+    private Button ToolButton(Func<UiText, string> text, Action onClick)
+    {
+        var button = new Button { FontSize = 12, Padding = new Thickness(8, 2) };
+        Text(() => button.Content = text(UiText.Current));
         button.Click += (_, _) => onClick();
         return button;
     }

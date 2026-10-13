@@ -10,7 +10,7 @@ public sealed class BossPanel : StackPanel
     private static readonly IBrush Muted = new SolidColorBrush(Color.FromRgb(0xA8, 0xB3, 0xC7));
 
     private readonly StackPanel _rows = new();
-    private readonly TextBlock _empty = new() { Text = UiText.Current.OvNoBosses, Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(6, 4) };
+    private readonly TextBlock _empty = new() { Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(6, 4) };
     private readonly List<BossRowControl> _controls = [];
     private bool _actions = true;
 
@@ -20,6 +20,13 @@ public sealed class BossPanel : StackPanel
         Changed = changed;
         Children.Add(_rows);
         Children.Add(_empty);
+        ApplyTexts();
+    }
+
+    public void ApplyTexts()
+    {
+        _empty.Text = UiText.Current.OvNoBosses;
+        foreach (var control in _controls) control.ApplyTexts();
     }
 
     public BossBoard Board { get; }

@@ -33,6 +33,11 @@ public sealed class BreakdownWindow : Window
     private readonly TextBlock _takenTotal = Stat("TakenTotal");
     private readonly TextBlock _takenPerSecond = Stat("TakenPerSecond");
     private readonly TextBlock _takenHits = Stat("TakenHits");
+    private readonly TextBlock _takenTotalLabel = Label();
+    private readonly TextBlock _takenPerSecondLabel = Label();
+    private readonly TextBlock _takenHitsLabel = Label();
+    private readonly List<TabItem> _tabItems = [];
+    private TextBlock? _rotationHint;
     private long _lastTickMs;
     private bool _syncing;
 
@@ -43,13 +48,13 @@ public sealed class BreakdownWindow : Window
         ActorId = actorId;
         _lastTickMs = _clock();
 
-        Title = $"{AppInfo.Name} · {UiText.Current.OvBreakdown}";
         Width = width;
         Height = height;
         MinWidth = 640;
         MinHeight = 400;
         Background = new SolidColorBrush(BreakdownPalette.Background);
         Content = BuildLayout();
+        ApplyTexts();
 
         _players.ItemTemplate = new FuncDataTemplate<RowView?>((row, _) => row is null ? new Panel() : PlayerLine(row), supportsRecycling: false);
         _players.SelectionChanged += (_, _) =>
@@ -72,6 +77,19 @@ public sealed class BreakdownWindow : Window
     }
 
     public uint ActorId { get; private set; }
+
+    public void ApplyTexts()
+    {
+        var t = UiText.Current;
+        Title = $"{AppInfo.Name} · {t.OvBreakdown}";
+        var names = BreakdownView.Tabs;
+        for (var i = 0; i < _tabItems.Count; i++) _tabItems[i].Header = names[i];
+        if (_rotationHint is not null) _rotationHint.Text = t.OvRotationHint;
+        _takenTotalLabel.Text = t.OvDamageTaken;
+        _takenPerSecondLabel.Text = t.OvDamageTakenPerSecond;
+        _takenHitsLabel.Text = t.OvHitsTaken;
+        Render();
+    }
 
     public int RefreshCount { get; private set; }
 
@@ -101,13 +119,14 @@ public sealed class BreakdownWindow : Window
     private Control BuildLayout()
     {
         var names = BreakdownView.Tabs;
-        _tabs.ItemsSource = new[]
-        {
+        _tabItems.AddRange(
+        [
             new TabItem { Header = names[0], Content = SkillsPage() },
             new TabItem { Header = names[1], Content = _chart },
             new TabItem { Header = names[2], Content = RotationPage() },
             new TabItem { Header = names[3], Content = DefensePage() },
-        };
+        ]);
+        _tabs.ItemsSource = _tabItems;
 
         var right = new DockPanel { Margin = new Thickness(12, 0, 0, 0) };
         DockPanel.SetDock(_playerName, Dock.Top);
@@ -129,7 +148,8 @@ public sealed class BreakdownWindow : Window
     private Control RotationPage()
     {
         _stripScroll.Content = _strip;
-        var hint = new TextBlock { Text = UiText.Current.OvRotationHint, Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 8) };
+        var hint = new TextBlock { Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 8) };
+        _rotationHint = hint;
         return new StackPanel { Children = { hint, _stripScroll } };
     }
 
@@ -139,9 +159,9 @@ public sealed class BreakdownWindow : Window
         Spacing = 14,
         Children =
         {
-            Block(UiText.Current.OvDamageTaken, _takenTotal),
-            Block(UiText.Current.OvDamageTakenPerSecond, _takenPerSecond),
-            Block(UiText.Current.OvHitsTaken, _takenHits),
+            Block(_takenTotalLabel, _takenTotal),
+            Block(_takenPerSecondLabel, _takenPerSecond),
+            Block(_takenHitsLabel, _takenHits),
         },
     };
 
@@ -232,8 +252,10 @@ public sealed class BreakdownWindow : Window
 
     private static TextBlock Stat(string name) => new() { Name = name, FontSize = 28, FontWeight = FontWeight.Bold, Foreground = Brushes.White };
 
-    private static Control Block(string label, TextBlock value) => new StackPanel
+    private static Control Block(TextBlock label, TextBlock value) => new StackPanel
     {
-        Children = { new TextBlock { Text = label, Foreground = Muted, FontSize = 12 }, value },
+        Children = { label, value },
     };
+
+    private static TextBlock Label() => new() { Foreground = Muted, FontSize = 12 };
 }
