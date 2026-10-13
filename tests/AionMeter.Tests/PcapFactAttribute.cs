@@ -4,17 +4,7 @@ namespace AionMeter.Tests;
 
 public sealed class PcapFactAttribute : FactAttribute
 {
-    private static readonly Lazy<bool> Available = new(() =>
-    {
-        try
-        {
-            return !string.IsNullOrEmpty(Pcap.Version);
-        }
-        catch (Exception ex) when (ex is DllNotFoundException or TypeInitializationException or EntryPointNotFoundException)
-        {
-            return false;
-        }
-    });
+    private static readonly Lazy<bool> Available = new(() => Pcap.LibpcapVersion > new Version(0, 0));
 
     public PcapFactAttribute()
     {
