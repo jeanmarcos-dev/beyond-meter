@@ -481,6 +481,8 @@ public sealed partial class UiText
     public string OvHotkeysDesktop { get; init; } = "On Linux the shortcuts belong to the desktop: bind a key to “aionmeter-overlay toggle” (or lock, reset, timers) in its keyboard settings.";
     public string OvSettingsTip { get; init; } = "Settings";
     public string OvVersion { get; init; } = "Version {0}";
+    public string OvReplayTitle { get; init; } = "Replay an AION 2 capture";
+    public string OvCaptureFiles { get; init; } = "Packet captures";
 
     private static readonly UiText Ru = new()
     {
@@ -895,6 +897,8 @@ public sealed partial class UiText
         OvHotkeysDesktop = "В Linux сочетания клавиш задаёт рабочий стол: назначьте клавишу на «aionmeter-overlay toggle» (или lock, reset, timers) в настройках клавиатуры.",
         OvSettingsTip = "Настройки",
         OvVersion = "Версия {0}",
+        OvReplayTitle = "Воспроизвести запись AION 2",
+        OvCaptureFiles = "Захваты пакетов",
     };
 
     private static string RuPlural(int n, string one, string few, string many)

@@ -418,5 +418,7 @@ public sealed partial class UiText
         OvHotkeysDesktop = "En Linux los atajos son del escritorio: asigna una tecla a “aionmeter-overlay toggle” (o lock, reset, timers) en su configuración de teclado.",
         OvSettingsTip = "Ajustes",
         OvVersion = "Versión {0}",
+        OvReplayTitle = "Reproducir una grabación de AION 2",
+        OvCaptureFiles = "Capturas de paquetes",
     };
 }

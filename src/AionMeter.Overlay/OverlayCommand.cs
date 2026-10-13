@@ -19,6 +19,8 @@ public enum OverlayCommand
     Reload,
     Record,
     Settings,
+    History,
+    Demo,
     Quit,
 }
 

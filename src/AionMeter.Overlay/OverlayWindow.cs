@@ -1,3 +1,4 @@
+using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Settings;
 using AionMeter.Core.Text;
@@ -8,6 +9,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 
 namespace AionMeter.Overlay;
@@ -122,7 +124,36 @@ public sealed class OverlayWindow : Window
 
     public event Action? LanguageChanged;
 
+    public static readonly TimeSpan DemoLength = TimeSpan.FromSeconds(45);
+
     public Func<SettingsContext>? SettingsSource { get; set; }
+
+    public Func<string, IEventSource>? ReplaySource { get; set; }
+
+    public bool Replay(string path)
+    {
+        if (ReplaySource is not { } create || ReplayFile.Problem(path) is not null) return false;
+        _session.ReplayFile(create(path));
+        Reveal();
+        return true;
+    }
+
+    public async Task PickReplay()
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = UiText.Current.OvReplayTitle,
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType(UiText.Current.OvCaptureFiles) { Patterns = ReplayFile.Patterns }],
+        });
+        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path) Replay(path);
+    }
+
+    private void Reveal()
+    {
+        _policy.Show();
+        SetVisible(true);
+    }
 
     public SettingsWindow? SettingsDialog { get; private set; }
 
@@ -270,6 +301,15 @@ public sealed class OverlayWindow : Window
             case OverlayCommand.Settings:
                 OpenSettings();
                 return;
+            case OverlayCommand.History:
+                Reveal();
+                _historyPanel.IsVisible = true;
+                ReloadHistory();
+                break;
+            case OverlayCommand.Demo:
+                _session.StartDemo(DemoLength);
+                Reveal();
+                break;
             case OverlayCommand.Record:
                 _session.ToggleRecording();
                 break;

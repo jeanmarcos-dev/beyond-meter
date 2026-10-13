@@ -5,6 +5,8 @@ namespace AionMeter.Overlay;
 
 public static class ReplayFile
 {
+    public static readonly IReadOnlyList<string> Patterns = ["*.pcap", "*.pcapng"];
+
     public static string? Problem(string path)
     {
         if (!File.Exists(path)) return "No existe la grabación: " + path;

@@ -79,7 +79,8 @@ public sealed class OverlayApp : Application
             desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(next), window.Apply);
             window.Shortcuts = desktopPlatform.ShortcutHints();
         });
-        if (OperatingSystem.IsWindows()) TrayIcon.SetIcons(Current!, [TrayMenu.Create(window, desktopPlatform.Alert)]);
+        window.ReplaySource = path => new PcapReplaySource(data, path, realtime: false);
+        TrayIcon.SetIcons(Current!, [TrayMenu.Create(window, desktopPlatform.Alert)]);
         window.QuitRequested += () => desktop.Shutdown();
         var channel = CommandChannel.Listen(options.SocketPath, command => Dispatcher.UIThread.Post(() => window.Apply(command)));
         desktop.Exit += (_, _) =>

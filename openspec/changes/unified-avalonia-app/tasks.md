@@ -23,7 +23,7 @@
 
 - [x] 4.1 Usar el modelo unificado en el overlay: en Linux, `settings.json` en `XDG_CONFIG_HOME/aionmeter` con importación única desde `overlay.json` (idioma español); en Windows, `%AppData%\AionMeter\settings.json`; tests de migración de los dos casos y de que el archivo viejo queda intacto; verificar que pasan
 - [x] 4.2 Ventana de Ajustes en Avalonia con las ocho secciones, Guardar y Cancelar, y opciones por sistema; tests Headless de guardar, cancelar y aplicación en caliente (modo de medición, idioma, opacidad); verificar que pasan
-- [ ] 4.3 Bandeja con `TrayIcon` y el menú completo (incluido el submenú de idioma), funcionando aunque no haya área de notificación; tests de las acciones del menú con `FakeDesktop`; verificar que pasan y que el overlay arranca sin bandeja en una sesión sin StatusNotifier
+- [x] 4.3 Bandeja con `TrayIcon` y el menú completo (incluido el submenú de idioma), funcionando aunque no haya área de notificación; tests de las acciones del menú con `FakeDesktop`; verificar que pasan y que el overlay arranca sin bandeja en una sesión sin StatusNotifier
 - [ ] 4.4 Actualizar `docs/linux-overlay.md` con Ajustes, bandeja, idiomas y el nuevo `settings.json`; verificar que las claves documentadas coinciden con el modelo
 
 ## 5. Paridad de funciones

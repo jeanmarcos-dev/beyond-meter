@@ -1,5 +1,7 @@
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
+using AionMeter.Core.Demo;
+using AionMeter.Core.Events;
 using AionMeter.Core.Storage;
 using AionMeter.Core.Timers;
 
@@ -18,6 +20,10 @@ public sealed class MeterSession : IDisposable
     private long _lastNamesSaveMs;
     private (string Path, FightRecord? Record)? _loaded;
     private HistoryFilter _filter = HistoryFilter.None;
+    private DemoFightSource? _demo;
+    private bool _demoFight;
+    private IEventSource? _fileReplay;
+    private volatile bool _replayingFile;
 
     public MeterSession(CombatTracker tracker, HistoryStore history, IEventSource? capture, NameCache? names, HistoryPolicy policy, BossTimers? timers = null, string? capturesDirectory = null, bool replay = false)
     {
@@ -33,8 +39,8 @@ public sealed class MeterSession : IDisposable
         if (_names?.Load() is { } cached) Tracker.ImportCache(cached);
         _savedNamesVersion = Tracker.CacheVersion;
         if (_timers is null) return;
-        Tracker.BossNoticed += _timers.OnNotice;
-        Tracker.FieldBossListed += _timers.OnList;
+        Tracker.BossNoticed += OnBossNoticed;
+        Tracker.FieldBossListed += OnBossListed;
         Tracker.SelfIdentified += OnSelfIdentified;
         _timers.SetCurrentServer(Tracker.SelfServerId);
     }
@@ -55,6 +61,8 @@ public sealed class MeterSession : IDisposable
     public bool IsLive => SelectedFight is null;
     public bool IsReplay { get; }
     public bool IsRecording => _capture is IRecordable { IsRecording: true };
+    public bool DemoRunning => _demo?.IsRunning == true;
+    public bool ReplayingFile => _replayingFile;
     public bool DetailSelf { get; private set; }
     public uint? DetailActor { get; private set; }
     public bool? GameRunning => _capture is null || IsReplay ? true : Status.State switch
@@ -73,6 +81,35 @@ public sealed class MeterSession : IDisposable
         _capture.EventDecoded += Tracker.Process;
         if (IsReplay) _capture.StatusChanged += OnReplayStatus;
         _capture.Start();
+    }
+
+    public void StartDemo(TimeSpan duration)
+    {
+        _demo?.Dispose();
+        ShowLive();
+        _demoFight = true;
+        _demo = new DemoFightSource(Tracker.Process);
+        _demo.Start(duration);
+    }
+
+    public void ReplayFile(IEventSource replay)
+    {
+        _fileReplay?.Dispose();
+        Tracker.Reset();
+        ShowLive();
+        _replayingFile = true;
+        if (_capture is not null) _capture.EventDecoded -= Tracker.Process;
+        replay.EventDecoded += Tracker.Process;
+        replay.StatusChanged += status =>
+        {
+            if (status.State != CaptureState.Stopped || !_replayingFile) return;
+            Tracker.Tick(Tracker.LastEventMs + ReplayCloseMs);
+            _savedNamesVersion = Tracker.CacheVersion;
+            _replayingFile = false;
+            if (_capture is not null) _capture.EventDecoded += Tracker.Process;
+        };
+        _fileReplay = replay;
+        replay.Start();
     }
 
     public void ReplaceCapture(IEventSource capture)
@@ -101,9 +138,9 @@ public sealed class MeterSession : IDisposable
 
     public void Tick(long nowMs)
     {
-        if (IsReplay) return;
+        if (IsReplay || _replayingFile) return;
         Tracker.Tick(nowMs);
-        if (_names is null || nowMs - _lastNamesSaveMs < NamesSaveIntervalMs) return;
+        if (DemoRunning || _names is null || nowMs - _lastNamesSaveMs < NamesSaveIntervalMs) return;
         _lastNamesSaveMs = nowMs;
         SaveNames();
     }
@@ -184,11 +221,13 @@ public sealed class MeterSession : IDisposable
     public void Dispose()
     {
         StopCapture();
+        _demo?.Dispose();
+        _fileReplay?.Dispose();
         Tracker.EncounterFinished -= OnEncounterFinished;
         if (_timers is not null)
         {
-            Tracker.BossNoticed -= _timers.OnNotice;
-            Tracker.FieldBossListed -= _timers.OnList;
+            Tracker.BossNoticed -= OnBossNoticed;
+            Tracker.FieldBossListed -= OnBossListed;
             Tracker.SelfIdentified -= OnSelfIdentified;
         }
         SaveNames();
@@ -207,7 +246,22 @@ public sealed class MeterSession : IDisposable
         if (status.State == CaptureState.Stopped) Tracker.Tick(Tracker.LastEventMs + ReplayCloseMs);
     }
 
-    private void OnSelfIdentified(string name) => _timers?.SetCurrentServer(Tracker.SelfServerId);
+    private void OnSelfIdentified(string name)
+    {
+        if (!Simulated) _timers?.SetCurrentServer(Tracker.SelfServerId);
+    }
+
+    private bool Simulated => _replayingFile || DemoRunning;
+
+    private void OnBossNoticed(BossNotice notice)
+    {
+        if (!Simulated) _timers?.OnNotice(notice);
+    }
+
+    private void OnBossListed(FieldBossListEvent list)
+    {
+        if (!Simulated) _timers?.OnList(list);
+    }
 
     private FightRecord? LoadedRecord()
     {
@@ -237,7 +291,12 @@ public sealed class MeterSession : IDisposable
 
     private void OnEncounterFinished(FightRecord record)
     {
-        if (IsReplay || !Policy.ShouldSave(record.Summary)) return;
+        if (_demoFight)
+        {
+            if (!DemoRunning) _demoFight = false;
+            return;
+        }
+        if (IsReplay || _replayingFile || !Policy.ShouldSave(record.Summary)) return;
         try
         {
             var path = History.Save(record);
