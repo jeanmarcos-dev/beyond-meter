@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
+using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -59,20 +60,44 @@ public sealed class BreakdownWindow : Window
     public const string SkillIconName = "SkillIcon";
 
     private readonly Button _chat = new() { Name = "ChatButton", FontSize = 12 };
+    private readonly Button _image = new() { Name = "CopyImage", Content = "🖼", FontSize = 12, Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock _note = new() { Name = "CopyNote", FontSize = 12, Foreground = Muted, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), IsVisible = false };
 
     public string? LastCopied { get; private set; }
 
     public Button ChatButton => _chat;
 
+    public PixelSize? LastImage { get; private set; }
+
+    public async Task CopyImage()
+    {
+        if (Content is not Control root || Clipboard is not { } clipboard)
+        {
+            ShowNote(false);
+            return;
+        }
+        var scaling = RenderScaling;
+        var size = new PixelSize(Math.Max(1, (int)(root.Bounds.Width * scaling)), Math.Max(1, (int)(root.Bounds.Height * scaling)));
+        using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(size, new Vector(96 * scaling, 96 * scaling));
+        bitmap.Render(root);
+        await clipboard.SetBitmapAsync(bitmap);
+        LastImage = size;
+        ShowNote(true);
+    }
+
+    private void ShowNote(bool copied)
+    {
+        _note.Text = copied ? UiText.Current.Copied : UiText.Current.CopyFailed;
+        _note.IsVisible = true;
+        DispatcherTimer.RunOnce(() => _note.IsVisible = false, TimeSpan.FromSeconds(2.5));
+    }
+
     private async Task Copy(string text)
     {
         var copied = Clipboard is { } clipboard;
         if (copied) await Clipboard!.SetTextAsync(text);
         LastCopied = copied ? text : null;
-        _note.Text = copied ? UiText.Current.Copied : UiText.Current.CopyFailed;
-        _note.IsVisible = true;
-        DispatcherTimer.RunOnce(() => _note.IsVisible = false, TimeSpan.FromSeconds(2.5));
+        ShowNote(copied);
     }
     private TextBlock? _rotationHint;
     private long _lastTickMs;
@@ -135,6 +160,7 @@ public sealed class BreakdownWindow : Window
         var t = UiText.Current;
         Title = $"{AppInfo.Name} · {t.OvBreakdown}";
         _chat.Content = t.TipChat;
+        ToolTip.SetTip(_image, t.TipCopyImage);
         var names = BreakdownView.Tabs;
         for (var i = 0; i < _tabItems.Count; i++) _tabItems[i].Header = names[i];
         if (_rotationHint is not null) _rotationHint.Text = t.OvRotationHint;
@@ -195,7 +221,8 @@ public sealed class BreakdownWindow : Window
         _chat.Flyout = ChatMenu.Flyout(() => _source.Snapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), () => (ActorId, _source.Detail(ActorId)?.Name), text => _ = Copy(text));
         _chat.Margin = new Thickness(12, 0, 0, 0);
         _chat.VerticalAlignment = VerticalAlignment.Center;
-        var titleLine = new StackPanel { Orientation = Orientation.Horizontal, Children = { _title, _chat, _note } };
+        _image.Click += async (_, _) => await CopyImage();
+        var titleLine = new StackPanel { Orientation = Orientation.Horizontal, Children = { _title, _chat, _image, _note } };
         var heading = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8), Children = { _portrait, new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { titleLine, _fightMeta } } } };
         _title.VerticalAlignment = VerticalAlignment.Center;
         DockPanel.SetDock(heading, Dock.Top);
@@ -254,6 +281,7 @@ public sealed class BreakdownWindow : Window
         FillDefense(detail);
         if (detail is null) return;
         if (_tabs.SelectedIndex == TimelineTab) FillTimeline(detail, rows);
+        _strip.Icon = _images is null ? null : _images.SkillIcon;
         if (_tabs.SelectedIndex == RotationTab) _strip.Show(BreakdownView.Rotation(detail));
     }
 

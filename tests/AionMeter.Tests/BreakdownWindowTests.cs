@@ -124,6 +124,29 @@ public sealed class BreakdownWindowTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void Each_fight_keeps_its_own_breakdown_window()
+    {
+        var history = new HistoryStore(Path.Combine(_dir, "fights"));
+        history.Save(SavedFight("Berk", minute: 10, taken: 777_000));
+        history.Save(SavedFight("Spider", minute: 12, taken: 5_000));
+        var (window, _) = Open(history);
+
+        window.Apply(OverlayCommand.Older);
+        window.Apply(OverlayCommand.Breakdown);
+        var spider = window.Breakdown!;
+        window.Apply(OverlayCommand.Older);
+        window.Apply(OverlayCommand.Breakdown);
+        var berk = window.Breakdown!;
+
+        Assert.NotSame(spider, berk);
+        Assert.True(spider.IsVisible && berk.IsVisible);
+
+        window.Apply(OverlayCommand.Newer);
+        window.Apply(OverlayCommand.Breakdown);
+        Assert.Same(spider, window.Breakdown);
+    }
+
+    [AvaloniaFact]
     public void A_saved_fight_shows_its_own_figures_and_ignores_later_navigation_in_the_overlay()
     {
         var history = new HistoryStore(Path.Combine(_dir, "fights"));
@@ -250,6 +273,22 @@ public sealed class BreakdownWindowTests : IDisposable
         Assert.Contains(UiText.Current.You, breakdown.GetLogicalDescendants().OfType<TextBlock>().Single(t => t.Name == "PlayerMeta").Text);
     }
 
+    [AvaloniaFact]
+    public async Task The_breakdown_copies_itself_as_an_image()
+    {
+        var (window, tracker) = Open();
+        PartyFight(tracker);
+        window.Apply(OverlayCommand.Breakdown);
+        var breakdown = window.Breakdown!;
+        breakdown.UpdateLayout();
+
+        await breakdown.CopyImage();
+
+        Assert.NotNull(breakdown.LastImage);
+        Assert.True(breakdown.LastImage!.Value.Width > 100);
+        Assert.Contains(breakdown.GetLogicalDescendants().OfType<TextBlock>(), t => t.Name == "CopyNote" && t.Text == UiText.Current.Copied);
+    }
+
     private static void Click(Button button)
     {
         button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
@@ -304,6 +343,31 @@ public sealed class BreakdownWindowTests : IDisposable
         Assert.InRange(strip.DrawnCount, 1, 60);
         Assert.Equal(20_000 * 40 - 4, strip.Width, 1);
         Assert.StartsWith("16:40.0  Skill 1\n1,000", strip.TooltipAt(400_010));
+    }
+
+    [AvaloniaFact]
+    public void The_rotation_asks_for_icons_only_for_the_casts_it_draws()
+    {
+        var casts = Enumerable.Range(0, 5_000).Select(i => new CastRecord(i * 100, i % 3 + 1, 1_000, HitFlags.None)).ToArray();
+        var strip = new RotationStrip();
+        var asked = 0;
+        strip.Icon = _ => { asked++; return null; };
+        strip.Show(BreakdownView.Rotation(TankDetail(Me, "Ilvane", taken: 0, casts: casts)));
+        strip.SetViewport(0, 900);
+        strip.Measure(Size.Infinity);
+        strip.Arrange(new Rect(strip.DesiredSize));
+
+        new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(900, (int)RotationStrip.StripHeight)).Render(strip);
+
+        Assert.Equal(strip.DrawnCount, asked);
+        Assert.InRange(asked, 1, 60);
+    }
+
+    [Fact]
+    public void Each_skill_keeps_its_own_color()
+    {
+        Assert.Equal(BreakdownPalette.Skill(11020000), BreakdownPalette.Skill(11020000));
+        Assert.NotEqual(BreakdownPalette.Skill(11020000), BreakdownPalette.Skill(11020001));
     }
 
     [AvaloniaFact]

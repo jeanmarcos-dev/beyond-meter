@@ -80,6 +80,7 @@ public sealed class OverlayWindow : Window
     private readonly List<Action> _texts = [];
     private ImageStore? _images;
     private SkillOrder _skillOrder = SkillOrder.Default;
+    private readonly Dictionary<Guid, BreakdownWindow> _breakdowns = [];
     private UpdateCoordinator? _updates;
     private readonly Button _updateBanner = new() { Name = "UpdateBanner", FontSize = 12, Padding = new Thickness(8, 3), HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 0, 0, 6), IsVisible = false };
     private readonly Button _filterBosses = new() { FontSize = 12, Padding = new Thickness(8, 2) };
@@ -281,7 +282,7 @@ public sealed class OverlayWindow : Window
         {
             UiText.Use(settings.Language);
             ApplyTexts();
-            Breakdown?.ApplyTexts();
+            foreach (var open in _breakdowns.Values) open.ApplyTexts();
             LanguageChanged?.Invoke();
         }
         ApplyLock();
@@ -746,8 +747,16 @@ public sealed class OverlayWindow : Window
 
     private void OpenBreakdown(uint? actorId)
     {
-        if (actorId is not { } actor || _session.Breakdown(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) is not { } source) return;
-        Breakdown?.Close();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (actorId is not { } actor || _session.Breakdown(now) is not { } source) return;
+        var fight = source.Snapshot(now)?.Id ?? Guid.Empty;
+        if (_breakdowns.TryGetValue(fight, out var open))
+        {
+            open.Select(actor);
+            open.Activate();
+            Breakdown = open;
+            return;
+        }
         var breakdown = new BreakdownWindow(source, actor, _settings.BreakdownWidth, _settings.BreakdownHeight, _clock, _images, _session.Tracker.Data.ServerName, _skillOrder);
         breakdown.OrderChanged += order => _skillOrder = order;
         if (Screens.ScreenFromWindow(this) is { } screen)
@@ -755,13 +764,15 @@ public sealed class OverlayWindow : Window
             breakdown.WindowStartupLocation = WindowStartupLocation.Manual;
             breakdown.Position = BreakdownView.Placement(screen.WorkingArea, breakdown.Width, breakdown.Height, screen.Scaling);
         }
-        breakdown.Closed += (_, _) => OnBreakdownClosed(breakdown);
+        breakdown.Closed += (_, _) => OnBreakdownClosed(fight, breakdown);
+        _breakdowns[fight] = breakdown;
         Breakdown = breakdown;
         breakdown.Show();
     }
 
-    private void OnBreakdownClosed(BreakdownWindow breakdown)
+    private void OnBreakdownClosed(Guid fight, BreakdownWindow breakdown)
     {
+        _breakdowns.Remove(fight);
         _settings.BreakdownWidth = breakdown.Width;
         _settings.BreakdownHeight = breakdown.Height;
         if (ReferenceEquals(Breakdown, breakdown)) Breakdown = null;

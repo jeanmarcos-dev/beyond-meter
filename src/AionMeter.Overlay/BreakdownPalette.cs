@@ -9,6 +9,8 @@ public static class BreakdownPalette
     public static readonly Color Gold = Color.FromRgb(0xF5, 0xC5, 0x42);
     public static readonly Color Muted = Color.FromRgb(0xA8, 0xB3, 0xC7);
 
+    public static Color Skill(int code) => new HslColor(1, (uint)(code * 2654435761u) % 360, 0.55, 0.45).ToRgb();
+
     public static Color Class(GameClass gameClass)
     {
         var rgb = ClassColors.Rgb(gameClass);
