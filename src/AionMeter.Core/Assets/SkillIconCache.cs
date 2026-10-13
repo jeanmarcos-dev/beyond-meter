@@ -8,8 +8,15 @@ public sealed class SkillIconCache : IDisposable
 
     private static readonly Dictionary<int, string> ClassCodes = new()
     {
-        [11] = "GL", [12] = "TE", [13] = "AS", [14] = "RA", [15] = "SO",
-        [16] = "EL", [17] = "CL", [18] = "CH", [19] = "GT",
+        [11] = "GL",
+        [12] = "TE",
+        [13] = "AS",
+        [14] = "RA",
+        [15] = "SO",
+        [16] = "EL",
+        [17] = "CL",
+        [18] = "CH",
+        [19] = "GT",
     };
 
     private readonly Dictionary<int, string> _overrides = new();
