@@ -88,9 +88,12 @@
   `net10.0-windows10.0.19041.0` (Windows). El target de Windows habilita las
   notificaciones de WinRT y un `AssemblyName` `BeyondMeter`. Linux conserva
   `aionmeter-overlay`, que usan su systemd y su documentación. El código de
-  Windows va en archivos que solo compilan en ese target. Se descarta compilar
-  un único `net10.0` con P/Invoke para todo, porque las notificaciones de
-  Windows sin WinRT obligarían a duplicar la bandeja.
+  Windows que usa WinRT (el toast) va en archivos que solo compilan en ese
+  target. El P/Invoke de Win32 (`Win32Native`) y `WindowsDesktop` compilan en
+  los dos targets detrás de la interfaz `IWin32`, para testear su lógica en
+  Linux con un `IWin32` falso. Se descarta compilar un único `net10.0` con
+  P/Invoke para todo, porque las notificaciones de Windows sin WinRT obligarían
+  a duplicar la bandeja.
 
 - **Click-through en Windows con estilos Win32.** Sobre el handle de
   `TryGetPlatformHandle()` se activan `WS_EX_LAYERED | WS_EX_TRANSPARENT`, igual
@@ -107,9 +110,11 @@
   sin extensión), el overlay sigue con sus comandos. Se descarta seguir con
   `NotifyIcon` de WinForms, porque arrastra WinForms al overlay.
 
-- **Notificaciones:** en Windows, toasts de WinRT con el AppUserModelID que el
-  instalador fija en el acceso directo (`AppUserModelID` en `[Icons]` de Inno),
-  con sonido de alarma. En Linux, lo de hoy (`notify-send` y
+- **Notificaciones:** en Windows, toasts de WinRT con el AppUserModelID
+  `JeanmarcosDev.BeyondMeter`, con el sonido `Notification.Reminder`. Antes del
+  primer toast, el overlay registra ese ID en
+  `HKCU\Software\Classes\AppUserModelId` (nombre e ícono), así que funciona
+  también sin acceso directo. El instalador igual lo fija en `[Icons]`. En Linux, lo de hoy (`notify-send` y
   `canberra-gtk-play`). Si el toast falla (por ejemplo, en el zip portátil sin
   acceso directo), se muestra una ventana propia de aviso, chica y sin foco, en
   la esquina.
@@ -158,6 +163,31 @@
   sobre `%AppData%\AionMeter`] → La instancia única del overlay no ve a la de
   WPF, así que en Windows el overlay también toma el mutex
   `AionMeter.SingleInstance` de la app WPF.
+
+## Resultado del spike en Windows
+
+Probado a mano por el usuario en Windows con la build del CI (artifact
+`beyond-meter-overlay-win-x64`, `--demo`). Funcionó todo:
+
+- **Click-through:** `WS_EX_LAYERED | WS_EX_TRANSPARENT` más
+  `SetLayeredWindowAttributes` con alfa 255 sobre la ventana de Avalonia. El
+  overlay se sigue viendo y los clics pasan a la ventana de atrás. Al
+  desactivarlo se restaura el estilo original y vuelve a recibir el mouse.
+- **Atajos:** `RegisterHotKey` con `MOD_NOREPEAT` y `WM_HOTKEY` recibido con
+  `Win32Properties.AddWndProcHookCallback` funcionan con otra ventana en
+  foco. No hace falta la ventana Win32 oculta del plan B.
+- **Bandeja:** `TrayIcon` con `NativeMenu` muestra el menú, y el clic
+  izquierdo muestra u oculta el overlay.
+- **Toast:** aparece con nombre y sonido sin acceso directo, gracias al
+  registro del AppUserModelID en HKCU. La ventana propia de aviso queda solo
+  como respaldo si el toast lanza una excepción.
+- **Instancia única:** el socket Unix en `%LocalAppData%\BeyondMeter` sirve
+  en Windows. Abrir el exe de nuevo muestra el overlay existente.
+- **Assets:** los URI `avares://` usan el nombre del ensamblado en tiempo de
+  ejecución, porque en Windows el ensamblado se llama `BeyondMeter`.
+
+Cambios de enfoque: el código Win32 compila en los dos targets (ver
+Decisiones) y el toast no depende del acceso directo del instalador.
 
 ## Migration Plan
 
