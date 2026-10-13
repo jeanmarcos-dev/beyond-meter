@@ -31,3 +31,18 @@ jobs:
         run: dotnet build src/AionMeter.Overlay/AionMeter.Overlay.csproj -c Release
       - name: Test
         run: dotnet test tests/AionMeter.Tests/AionMeter.Tests.csproj -c Release
+
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Publish the overlay for Windows
+        run: dotnet publish src/AionMeter.Overlay/AionMeter.Overlay.csproj -c Release -f net10.0-windows10.0.19041.0 -r win-x64 --self-contained true -p:DebugType=none -p:DebugSymbols=false -o publish/BeyondMeter
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beyond-meter-overlay-win-x64
+          path: publish/BeyondMeter
+          retention-days: 14
