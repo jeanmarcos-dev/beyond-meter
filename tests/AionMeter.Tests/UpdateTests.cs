@@ -159,6 +159,77 @@ public class UpdateTests
         Assert.Equal(lines, ReleaseNotes.Lines(markdown, "ru"));
     }
 
+    private const string MarkedNotes = """
+        **Download:** [Setup](https://e/setup.exe)
+
+        <!-- lang: en -->
+        ## What's new in 1.1.0
+
+        - Spanish interface.
+
+        <!-- lang: es -->
+        ## Novedades de la 1.1.0
+
+        - Interfaz en español.
+
+        ### Instalar
+
+        - Ejecuta el instalador.
+
+        <!-- lang: ru -->
+        ## Что нового в 1.1.0
+
+        - Испанский интерфейс.
+        """;
+
+    [Theory]
+    [InlineData("es", "Novedades de la 1.1.0")]
+    [InlineData("en", "What's new in 1.1.0")]
+    [InlineData("ru", "Что нового в 1.1.0")]
+    public void Marked_notes_show_the_sections_of_the_interface_language(string language, string heading)
+    {
+        var lines = ReleaseNotes.Lines(MarkedNotes, language);
+
+        Assert.Equal((heading, true), lines[0]);
+        Assert.Equal(language == "es" ? 2 : 1, lines.Count(l => l.Heading));
+        Assert.DoesNotContain(lines, l => l.Text.Contains("<!--") || l.Text.Contains("lang:"));
+    }
+
+    [Fact]
+    public void Spanish_section_keeps_its_subsections()
+    {
+        var lines = ReleaseNotes.Lines(MarkedNotes, "es");
+
+        Assert.Equal([("Novedades de la 1.1.0", true), ("• Interfaz en español.", false), ("", false), ("Instalar", true), ("• Ejecuta el instalador.", false)], lines);
+    }
+
+    [Fact]
+    public void Unmarked_notes_without_spanish_are_shown_whole_in_spanish()
+    {
+        var whole = ReleaseNotes.Lines(Notes, "es");
+
+        Assert.Contains(whole, l => l.Text == "Что нового в 0.2.2");
+        Assert.Contains(whole, l => l.Text == "What's new in 0.2.2");
+    }
+
+    [Fact]
+    public void Readme_example_of_marked_notes_shows_one_language()
+    {
+        var readme = File.ReadAllText(Repository.Path("README.md"));
+        var example = System.Text.RegularExpressions.Regex.Match(readme, "```markdown\n(.*?)```", System.Text.RegularExpressions.RegexOptions.Singleline).Groups[1].Value;
+
+        Assert.Equal(("Novedades de la 1.1.0", true), Assert.Single(ReleaseNotes.Lines(example, "es"), l => l.Heading));
+        Assert.Equal(("What's new in 1.1.0", true), Assert.Single(ReleaseNotes.Lines(example, "en"), l => l.Heading));
+    }
+
+    [Fact]
+    public void Markers_never_show_up_as_text()
+    {
+        var lines = ReleaseNotes.Lines("<!-- lang: es -->\n## Novedades\n\n- Algo.", "es");
+
+        Assert.Equal([("Novedades", true), ("• Algo.", false)], lines);
+    }
+
     [Fact]
     public void Updates_come_from_the_fork_releases()
     {
