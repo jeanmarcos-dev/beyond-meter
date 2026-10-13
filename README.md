@@ -2,16 +2,22 @@
   <img src="docs/images/icon-256.png" width="88" alt="">
 </p>
 
-<h1 align="center">AION2 DPS Meter</h1>
+<h1 align="center">Beyond Meter</h1>
 
 <p align="center">
   A free, open-source live DPS meter for <b>AION 2 Global (EU / NA)</b>.<br>
-  Party DPS, boss HP, a full skill breakdown and field boss respawn timers — right on top of the game.
+  Party DPS, boss HP, a full skill breakdown and field boss respawn timers — right on top of the game.<br>
+  Windows app and native Linux overlay.
 </p>
 
 <p align="center">
-  <a href="https://github.com/cyberbadger6969/aion2-dps-meter/releases/latest"><img alt="Download the latest release" src="https://img.shields.io/github/v/release/cyberbadger6969/aion2-dps-meter?label=download&color=c9a45c&style=for-the-badge"></a>
+  A fork of <a href="https://github.com/cyberbadger6969/aion2-dps-meter">AION2 DPS Meter</a> by cyberbadger6969, free software under the GPL-3.0 licence.
+</p>
+
+<p align="center">
+  <a href="https://github.com/jeanmarcos-dev/beyond-meter/releases/latest"><img alt="Download the latest release" src="https://img.shields.io/github/v/release/jeanmarcos-dev/beyond-meter?label=download&color=c9a45c&style=for-the-badge"></a>
   <img alt="Windows 10 / 11, 64-bit" src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-2b3a67?style=for-the-badge">
+  <img alt="Linux x64" src="https://img.shields.io/badge/Linux-x64-2b3a67?style=for-the-badge">
   <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-3dd68c?style=for-the-badge"></a>
 </p>
 
@@ -25,14 +31,20 @@
 
 ## Download
 
-**[⬇ Download the installer](https://github.com/cyberbadger6969/aion2-dps-meter/releases/latest/download/AION2DpsMeter-Setup.exe)** · [portable zip](https://github.com/cyberbadger6969/aion2-dps-meter/releases/latest/download/AION2DpsMeter-win-x64.zip) · [all files of the latest release](https://github.com/cyberbadger6969/aion2-dps-meter/releases/latest)
+**[⬇ Download the Windows installer](https://github.com/jeanmarcos-dev/beyond-meter/releases/latest/download/BeyondMeter-Setup.exe)** · [portable zip](https://github.com/jeanmarcos-dev/beyond-meter/releases/latest/download/BeyondMeter-win-x64.zip) · [Linux tarball](https://github.com/jeanmarcos-dev/beyond-meter/releases/latest/download/beyond-meter-linux-x64.tar.gz) · [all files of the latest release](https://github.com/jeanmarcos-dev/beyond-meter/releases/latest)
 
 These links always give the newest version:
 
-- **`AION2DpsMeter-Setup-v<version>.exe`** — the installer (recommended). Installs for your Windows user without
+- **`BeyondMeter-Setup-v<version>.exe`** — the Windows installer (recommended). Installs for your Windows user without
   administrator rights, adds Start menu and desktop shortcuts, uninstalls from *Settings → Apps*.
-- **`AION2DpsMeter-v<version>-win-x64.zip`** — the same program without installation: unzip anywhere, run
-  `AION2DpsMeter.exe`.
+- **`BeyondMeter-v<version>-win-x64.zip`** — the same program without installation: unzip anywhere, run
+  `BeyondMeter.exe`.
+- **`beyond-meter-v<version>-linux-x64.tar.gz`** — the Linux overlay for AION 2 under Steam/Proton: unpack it and run
+  `install.sh`, see [docs/linux-overlay.md](docs/linux-overlay.md).
+
+**Replaces AION2 DPS Meter.** The Windows installer installs over the original meter: it keeps its settings, fight
+history and boss timers, removes its shortcuts and program file, and from then on updates come from this project. If
+you install the original again later, it replaces Beyond Meter the same way.
 
 Neither needs .NET installed: it is built in. You also need [Npcap](https://npcap.com/#download), the free capture
 driver — see [Installation](#installation).
@@ -84,18 +96,18 @@ driver — see [Installation](#installation).
    options: they also capture traffic relayed by ExitLag and other ping boosters. The meter's installer checks for
    Npcap and opens the download page if it is missing. (Npcap's licence does not allow bundling it with other
    programs, so it is a separate step.)
-2. **Run `AION2DpsMeter-Setup-v<version>.exe`.** If Windows says *"Windows protected your PC"*, click *More info* →
+2. **Run `BeyondMeter-Setup-v<version>.exe`.** If Windows says *"Windows protected your PC"*, click *More info* →
    *Run anyway*: the program is not code-signed yet. The installer speaks English and Russian, asks for a folder
-   (default `%LocalAppData%\Programs\AION2 DPS Meter`) and puts shortcuts on the desktop and in the Start menu.
+   (default `%LocalAppData%\Programs\Beyond Meter`, or the folder of the AION2 DPS Meter it replaces) and puts shortcuts on the desktop and in the Start menu.
 3. **Start the meter before entering a dungeon** — the game sends player names on loading screens, so players who were
    already around show as `#12345` until the next loading screen. Then just play: the overlay comes up when the fight
    starts.
 
 **Portable zip:** install Npcap, unzip the archive into any folder (not inside the zip itself), run
-`AION2DpsMeter.exe`. Update by unzipping a newer version over it.
+`BeyondMeter.exe`. Update by unzipping a newer version over it.
 
-**Updating:** the meter offers new versions by itself (from 0.2.0); running a newer installer by hand works too — it
-closes the running meter by itself. **Uninstalling:** *Settings → Apps → AION2 DPS Meter*; it asks whether to delete your settings and history too.
+**Updating:** the meter offers new versions by itself; running a newer installer by hand works too — it
+closes the running meter by itself. **Uninstalling:** *Settings → Apps → Beyond Meter*; it asks whether to delete your settings and history too.
 
 Settings, fight history and timers live in `%AppData%\AionMeter` and survive updates. `INSTALL.txt` in the download has
 the same instructions in English and Russian.
@@ -156,7 +168,7 @@ the server of the character you play (known from the login packet and the name c
 
 ### Updates
 
-The meter checks GitHub for a new version shortly after start and every 2 hours (*Settings → Updates*, or *Check for
+The meter checks this project's GitHub releases (never the original meter's) for a new version shortly after start and every 2 hours (*Settings → Updates*, or *Check for
 updates* in the tray menu).
 
 An installed copy **updates itself**: it downloads the new installer in the background, checks its size and SHA-256
@@ -168,7 +180,7 @@ ready; click either to install it at once. If the installer fails, the old versi
 notification and an *Update to …* tray item, and the update window offers *Update*, *Later* and *Skip this version*
 (the update window shows what's new in the interface language).
 
-A portable copy (zip) cannot replace itself: it announces new versions and opens the download page. The only thing sent is the request to `api.github.com` itself (user agent `AION2DpsMeter/<version>`).
+A portable copy (zip) cannot replace itself: it announces new versions and opens the download page. The only thing sent is the request to `api.github.com` itself (user agent `BeyondMeter/<version>`).
 
 ### Who counts as a player
 
@@ -241,21 +253,22 @@ dotnet test tests/AionMeter.Tests
 ```
 
 ```bash
-src/AionMeter.App/bin/Release/net10.0-windows/AION2DpsMeter.exe
+src/AionMeter.App/bin/Release/net10.0-windows/BeyondMeter.exe
 ```
 
 **Linux:** the native overlay (`src/AionMeter.Overlay`) builds and runs on Linux; see
 [docs/linux-overlay.md](docs/linux-overlay.md) for install, commands, preferences and the autostart service.
 
-**Releases:** bump `<Version>` in `src/AionMeter.App/AionMeter.App.csproj`, then run `.\build-release.ps1`. It writes to
-`dist\` the installer (needs [Inno Setup 7](https://jrsoftware.org/isdl.php); script `installer/AION2DpsMeter.iss`),
-the portable zip, the source zip, and copies of the installer and zip under fixed names (`AION2DpsMeter-Setup.exe`,
-`AION2DpsMeter-win-x64.zip`) so that `releases/latest/download/<name>` always gives the newest version. Publish them
-together as a GitHub release tagged `v<version>` (not a pre-release: the update check reads `/releases/latest` and needs
-the `*Setup*.exe` asset).
+**Releases:** bump `<Version>` in `Directory.Build.props` (and `<UpstreamVersion>` after merging a new upstream
+release), write `release-notes/<version>.md`, then push a tag `v<version>`. The `release` workflow checks that the tag
+matches the version, runs the tests, builds the Windows installer and zips with `build-release.ps1` (Inno Setup 7) and
+the Linux tarball with `packaging/linux/build-tarball.sh`, and publishes them as a GitHub release whose notes end with
+the upstream version it is based on. A tag with a suffix (`v<version>-test`) publishes a pre-release, which the update
+check ignores. The installer and zip also come under fixed names (`BeyondMeter-Setup.exe`, `BeyondMeter-win-x64.zip`,
+`beyond-meter-linux-x64.tar.gz`) so that `releases/latest/download/<name>` always gives the newest version.
 
-```powershell
-gh release create v<version> dist\AION2DpsMeter-Setup-v<version>.exe dist\AION2DpsMeter-Setup.exe dist\AION2DpsMeter-v<version>-win-x64.zip dist\AION2DpsMeter-win-x64.zip dist\AION2DpsMeter-v<version>-source.zip --title "AION2 DPS Meter <version>" --notes-file notes.md
+```bash
+git tag v<version> && git push origin v<version>
 ```
 
 **Screenshots and video:** `tools/make-site-kit.ps1` renders the pictures in this README, English and Russian
@@ -288,7 +301,7 @@ aionmeter-cli dump captures/x.pcap 0438      # raw damage packets
 aionmeter-cli update-check --pretend 0.0.1   # what the update check sees on GitHub
 ```
 
-### Development switches of AION2DpsMeter.exe
+### Development switches of BeyondMeter.exe
 
 | | |
 |---|---|
@@ -300,7 +313,8 @@ aionmeter-cli update-check --pretend 0.0.1   # what the update check sees on Git
 
 ## License and credits
 
-GPL-3.0 — see [LICENSE](LICENSE). Game data tables come from the GPL-3.0 projects
+GPL-3.0 — see [LICENSE](LICENSE). Beyond Meter is a fork of [AION2 DPS Meter](https://github.com/cyberbadger6969/aion2-dps-meter) by cyberbadger6969,
+who wrote the Windows app, the capture and the combat engine it builds on. Game data tables come from the GPL-3.0 projects
 [A2Tools-DPS-Meter](https://github.com/taengu/A2Tools-DPS-Meter) (taengu) and
 [AIon2-Dps-Meter](https://github.com/Kuroukihime/AIon2-Dps-Meter) (Kuroukihime), see [data/NOTICE.md](data/NOTICE.md).
 Skill icons come from the official AION 2 CDN, boss portraits from [MetaBot.GG](https://metabot.gg). AION 2 and its game

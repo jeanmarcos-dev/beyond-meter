@@ -9,6 +9,22 @@ character; other players' levels are not decoded yet.
 
 ## Install
 
+Requirements: an x64 distribution with libpcap (the package is usually called `libpcap`). .NET is not needed.
+
+```bash
+curl -LO https://github.com/jeanmarcos-dev/beyond-meter/releases/latest/download/beyond-meter-linux-x64.tar.gz
+tar xzf beyond-meter-linux-x64.tar.gz
+./beyond-meter-v*-linux-x64/install.sh
+```
+
+`install.sh` copies the overlay to `~/.local/share/aionmeter-overlay`, links `~/.local/bin/aionmeter-overlay` and runs
+`sudo setcap cap_net_raw,cap_net_admin+eip` on it so that it captures without root. It warns when libpcap is missing
+or `~/.local/bin` is not in `PATH`. To update, run the `install.sh` of a newer release: it replaces the program,
+grants the capture permission again and leaves your preferences, fights and recordings alone. Restart a running
+overlay afterwards with `aionmeter-overlay quit && aionmeter-overlay show`.
+
+### Build from source
+
 Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/download) and libpcap.
 
 ```bash
@@ -17,7 +33,8 @@ sudo setcap cap_net_raw,cap_net_admin+eip ~/.local/share/aionmeter-overlay/aionm
 ln -sfn ~/.local/share/aionmeter-overlay/aionmeter-overlay ~/.local/bin/aionmeter-overlay
 ```
 
-`setcap` lets the overlay capture without root and has to be repeated after every publish.
+`setcap` has to be repeated after every publish. `packaging/linux/build-tarball.sh [output folder]` builds the same
+tarball as a release (default output: `dist/`).
 
 ## Commands
 
@@ -108,8 +125,8 @@ shows again, without taking focus, when a fight starts. An unlocked overlay neve
 `toggle` wins over the automatic show until you show it by hand or the game closes and opens again; this state is
 not saved. Fights are captured and saved while the overlay is hidden.
 
-`packaging/linux/install-service.sh` copies `packaging/linux/aionmeter-overlay.service` to
-`~/.config/systemd/user` and enables it, so the overlay starts hidden with the graphical session and restarts after a
+`service/install-service.sh` in the release folder (`packaging/linux/install-service.sh` in the source) copies
+`aionmeter-overlay.service` to `~/.config/systemd/user` and enables it, so the overlay starts hidden with the graphical session and restarts after a
 crash. `quit` and the `✕` button end the process with code 0 and are not restarted. Check it with
 `systemctl --user is-enabled aionmeter-overlay`.
 
