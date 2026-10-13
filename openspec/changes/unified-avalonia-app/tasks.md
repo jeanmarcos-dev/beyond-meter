@@ -11,7 +11,7 @@
 ## 2. Capa de plataforma
 
 - [x] 2.1 Definir `IDesktopPlatform` (rutas, click-through, atajos, notificación, abrir URL o carpeta, ruta del canal) y un `FakeDesktop` de tests; mover `X11Window`, `BossAlert`, `ShortcutHints` y las rutas XDG a `LinuxDesktop` sin cambiar comportamiento; verificar que la suite del overlay sigue en verde
-- [ ] 2.2 Hacer que el overlay compile para `net10.0` y `net10.0-windows10.0.19041.0`, con `AssemblyName` `BeyondMeter` en Windows; agregar al CI un job de `dotnet test` en `windows-latest`; verificar con `actionlint` y una corrida de CI en una rama, previa confirmación del usuario
+- [x] 2.2 Hacer que el overlay compile para `net10.0` y `net10.0-windows10.0.19041.0`, con `AssemblyName` `BeyondMeter` en Windows; agregar al CI un job de `dotnet test` en `windows-latest`; verificar con `actionlint` y una corrida de CI en una rama, previa confirmación del usuario
 - [ ] 2.3 Spike en Windows: click-through con `WS_EX_TRANSPARENT`, `WM_HOTKEY` con `AddWndProcHookCallback`, `TrayIcon` con menú y un toast de WinRT; verificar con una build de CI que el usuario prueba a mano, y registrar en `design.md` el resultado y cualquier cambio de enfoque
 
 ## 3. Idiomas en el overlay
