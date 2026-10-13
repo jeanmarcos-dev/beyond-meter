@@ -157,4 +157,7 @@ public partial class SettingsWindow : Window
     private void OpenAppData_Click(object sender, RoutedEventArgs e) => Open(AppSettings.AppDataDir);
 
     private void OpenLogs_Click(object sender, RoutedEventArgs e) => Open(Log.Directory);
+
+    private void Upstream_Click(object sender, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo(AppInfo.UpstreamUrl) { UseShellExecute = true });
 }

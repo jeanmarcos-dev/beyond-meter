@@ -1,7 +1,7 @@
-﻿; AION2 DPS Meter — Windows installer (Inno Setup 7, https://jrsoftware.org).
+﻿; Beyond Meter — Windows installer (Inno Setup 7, https://jrsoftware.org).
 ; Built by build-release.ps1:
 ;   ISCC /DAppVer=<x.y.z> /DPayloadDir=<self-contained publish folder> /O<output folder> AION2DpsMeter.iss
-; Installs for the current user only (no administrator prompt) into %LocalAppData%\Programs\AION2 DPS Meter.
+; Installs for the current user only (no administrator prompt) into %LocalAppData%\Programs\Beyond Meter, or over the original meter it replaces.
 ; Settings, fight history and boss timers stay in %AppData%\AionMeter; uninstall asks before deleting them.
 
 #ifndef AppVer
@@ -10,8 +10,11 @@
 #ifndef PayloadDir
   #error Pass /DPayloadDir=<folder with the published program>
 #endif
-#define AppName "AION2 DPS Meter"
-#define AppExe "AION2DpsMeter.exe"
+#define AppName "Beyond Meter"
+#define AppExe "BeyondMeter.exe"
+#define OldAppName "AION2 DPS Meter"
+#define OldAppExe "AION2DpsMeter.exe"
+#define RepoUrl "https://github.com/jeanmarcos-dev/beyond-meter"
 
 [Setup]
 ; Identifies the program for upgrades and uninstall: never change it.
@@ -20,9 +23,9 @@ AppName={#AppName}
 AppVersion={#AppVer}
 AppVerName={#AppName} {#AppVer}
 AppPublisher={#AppName}
-AppPublisherURL=https://github.com/cyberbadger6969/aion2-dps-meter
-AppSupportURL=https://github.com/cyberbadger6969/aion2-dps-meter/issues
-AppUpdatesURL=https://github.com/cyberbadger6969/aion2-dps-meter/releases
+AppPublisherURL={#RepoUrl}
+AppSupportURL={#RepoUrl}/issues
+AppUpdatesURL={#RepoUrl}/releases
 VersionInfoDescription={#AppName} Setup
 DefaultDirName={autopf}\{#AppName}
 DisableProgramGroupPage=yes
@@ -30,7 +33,7 @@ DisableReadyPage=yes
 PrivilegesRequired=lowest
 SetupArchitecture=x64
 MinVersion=10.0
-OutputBaseFilename=AION2DpsMeter-Setup-v{#AppVer}
+OutputBaseFilename=BeyondMeter-Setup-v{#AppVer}
 SetupIconFile=..\src\AionMeter.App\Assets\app.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
@@ -59,7 +62,7 @@ en.NpcapRecheck=Check again
 en.NpcapFound=✔  Npcap found, you are all set.
 en.NpcapMissing=✖  Npcap not found yet.
 en.NpcapContinue=Npcap is still not installed. Install the meter anyway?%n%nThe meter will remind you about Npcap when it starts.
-en.CloseRunning=AION2 DPS Meter is running. Close it and continue?
+en.CloseRunning={#AppName} is running. Close it and continue?
 en.RemoveUserData=Also delete your settings, fight history and boss timers?%n%n%1
 ru.NpcapTitle=Нужен Npcap
 ru.NpcapSubtitle=Бесплатный драйвер захвата трафика: через него метр видит игру.
@@ -69,8 +72,13 @@ ru.NpcapRecheck=Проверить снова
 ru.NpcapFound=✔  Npcap найден, всё готово.
 ru.NpcapMissing=✖  Npcap пока не найден.
 ru.NpcapContinue=Npcap всё ещё не установлен. Установить метр без него?%n%nМетр напомнит про Npcap при запуске.
-ru.CloseRunning=AION2 DPS Meter запущен. Закрыть его и продолжить?
+ru.CloseRunning={#AppName} запущен. Закрыть его и продолжить?
 ru.RemoveUserData=Удалить также настройки, историю боёв и таймеры боссов?%n%n%1
+
+[InstallDelete]
+Type: files; Name: "{app}\{#OldAppExe}"
+Type: files; Name: "{autoprograms}\{#OldAppName}.lnk"
+Type: files; Name: "{autodesktop}\{#OldAppName}.lnk"
 
 [Files]
 Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -89,6 +97,7 @@ var
   NpcapPage: TWizardPage;
   NpcapStatus: TNewStaticText;
   FilesInstalled: Boolean;
+  DesktopWanted: Boolean;
 
 // Same test as the meter itself (LiveCapture.IsNpcapInstalled). Setup is 64-bit, so {sys} is the real System32.
 function NpcapInstalled: Boolean;
@@ -179,8 +188,7 @@ end;
 // deleted is not put back. (The key is AppId's uninstall entry.)
 function DesktopShortcutWanted: Boolean;
 begin
-  Result := not RegValueExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{AE1B2590-0A93-4500-9CB1-0F543771957A}_is1', 'UninstallString')
-            or FileExists(ExpandConstant('{autodesktop}\{#AppName}.lnk'));
+  Result := DesktopWanted;
 end;
 
 function RelaunchAfterUpdate: Boolean;
@@ -211,7 +219,7 @@ end;
 
 // Uninstall: the meter keeps its files open, so close the copy that runs from this folder (a portable copy
 // elsewhere is left alone). Returns False when the user prefers to keep it running.
-function CloseRunningMeter(Ask: Boolean): Boolean;
+function CloseRunningMeter(Ask: Boolean; Exe: String): Boolean;
 var
   Locator, Wmi, Procs, Proc: Variant;
   I, Pid, ExitCode: Integer;
@@ -224,7 +232,7 @@ begin
   try
     Locator := CreateOleObject('WbemScripting.SWbemLocator');
     Wmi := Locator.ConnectServer('.', 'root\CIMV2');
-    Procs := Wmi.ExecQuery('SELECT ProcessId, ExecutablePath FROM Win32_Process WHERE Name = ''{#AppExe}''');
+    Procs := Wmi.ExecQuery('SELECT ProcessId, ExecutablePath FROM Win32_Process WHERE Name = ''' + Exe + '''');
     for I := 0 to Procs.Count - 1 do
     begin
       Proc := Procs.ItemIndex(I);
@@ -253,7 +261,16 @@ end;
 
 function InitializeUninstall(): Boolean;
 begin
-  Result := CloseRunningMeter(not UninstallSilent);
+  Result := CloseRunningMeter(not UninstallSilent, '{#AppExe}');
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  DesktopWanted := not RegValueExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{AE1B2590-0A93-4500-9CB1-0F543771957A}_is1', 'UninstallString')
+                   or FileExists(ExpandConstant('{autodesktop}\{#AppName}.lnk'))
+                   or FileExists(ExpandConstant('{autodesktop}\{#OldAppName}.lnk'));
+  CloseRunningMeter(False, '{#OldAppExe}');
+  Result := '';
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

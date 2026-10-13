@@ -240,7 +240,11 @@
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Style="{StaticResource Hint}" Margin="4,0,4,16" Text="{Binding Disclaimer, Source={x:Static s:UiText.Current}}" />
+                    <TextBlock Style="{StaticResource Hint}" Margin="4,0,4,8" Text="{Binding Disclaimer, Source={x:Static s:UiText.Current}}" />
+                    <TextBlock Style="{StaticResource Hint}" Margin="4,0,4,16">
+                        <Run Text="{Binding Credit, Source={x:Static s:UiText.Current}, Mode=OneWay}" />
+                        <Hyperlink Click="Upstream_Click"><Run Text="{x:Static s:AppInfo.UpstreamUrl}" /></Hyperlink>
+                    </TextBlock>
                 </StackPanel>
             </ScrollViewer>
 

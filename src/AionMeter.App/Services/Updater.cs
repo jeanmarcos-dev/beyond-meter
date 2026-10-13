@@ -37,7 +37,7 @@ public sealed class Updater : IDisposable
     {
         _settings = settings;
         Current = UpdateFeed.Normalize(typeof(Updater).Assembly.GetName().Version ?? new Version(0, 0, 0));
-        _feed = new UpdateFeed($"AION2DpsMeter/{Current.ToString(3)}");
+        _feed = new UpdateFeed($"BeyondMeter/{Current.ToString(3)}");
     }
 
     /// <summary>This copy's version (major.minor.patch).</summary>
@@ -192,7 +192,7 @@ public sealed class Updater : IDisposable
         }
     }
 
-    private static string DownloadFolder => Path.Combine(Path.GetTempPath(), "AION2DpsMeter-update");
+    private static string DownloadFolder => Path.Combine(Path.GetTempPath(), "BeyondMeter-update");
 
     /// <summary>Installers of earlier updates are no longer needed (the one running right now is locked and stays).</summary>
     public static void CleanDownloads()
