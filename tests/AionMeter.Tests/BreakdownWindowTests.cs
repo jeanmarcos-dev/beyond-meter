@@ -72,7 +72,7 @@ public sealed class BreakdownWindowTests : IDisposable
         Assert.NotEmpty(names);
         Assert.All(names, t =>
         {
-            var column = ((Grid)t.Parent!).ColumnDefinitions[0].ActualWidth;
+            var column = ((Grid)t.Parent!).ColumnDefinitions[Grid.GetColumn(t)].ActualWidth;
             Assert.True(column >= 150, $"'{t.Text}' column is {column} wide");
         });
     }

@@ -20,7 +20,7 @@ public sealed record BossBarView(double Fraction, string Text, string Percent);
 
 public sealed record LimitView(string Text, bool Urgent, string Tip);
 
-public sealed record HistoryItemView(string Path, string When, string Title, string Result, string Zone, string Duration, string Players, string Dps, string Place, bool IsBoss);
+public sealed record HistoryItemView(string Path, string When, string Title, string Result, string Zone, string Duration, string Players, string Dps, string Place, bool IsBoss, int BossCode = 0, int TargetCode = 0);
 
 public static class MeterView
 {
@@ -173,7 +173,9 @@ public static class MeterView
                     T.Players(e.Players),
                     inFight ? Compact(e.SelfDps) + "/s" : string.Format(Invariant, T.OvPartyRate, Compact(e.PartyDps)),
                     inFight ? "#" + e.SelfPlace.ToString(Invariant) : "",
-                    e.IsBoss);
+                    e.IsBoss,
+                    e.BossCode,
+                    e.TargetCode);
             })
             .ToList();
 

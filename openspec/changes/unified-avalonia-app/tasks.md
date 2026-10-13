@@ -30,7 +30,7 @@
 
 - [x] 5.1 Columnas GS/CP con su opción y tamaño de fila (50–100 %, también con Ctrl + rueda); tests Headless; verificar que pasan
 - [x] 5.2 Barra de HP del jefe, "contado desde" y límites de tiempo del jefe y la instancia en la línea superior, como en la app WPF; tests Headless con snapshots que los traigan; verificar que pasan
-- [ ] 5.3 Íconos de skills en el desglose y retratos de jefes, con su opción de descarga; tests Headless con imágenes en caché; verificar que pasan
+- [x] 5.3 Íconos de skills en el desglose y retratos de jefes, con su opción de descarga; tests Headless con imágenes en caché; verificar que pasan
 - [ ] 5.4 Copiar la línea de un jugador y la tabla para Discord desde el overlay y el desglose; tests del contenido del portapapeles; verificar que pasan
 - [ ] 5.5 Aviso de Npcap al arrancar en Windows cuando falta, con enlace a npcap.com; test con `FakeDesktop`; verificar que pasa
 - [ ] 5.6 Logs en la carpeta de datos con rotación como en la app WPF; tests; verificar que pasan

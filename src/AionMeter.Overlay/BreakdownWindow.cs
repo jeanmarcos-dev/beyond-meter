@@ -37,13 +37,19 @@ public sealed class BreakdownWindow : Window
     private readonly TextBlock _takenPerSecondLabel = Label();
     private readonly TextBlock _takenHitsLabel = Label();
     private readonly List<TabItem> _tabItems = [];
+    private readonly Image _portrait = new() { Name = "FightPortrait", Width = 42, Height = 42, Margin = new Thickness(0, 0, 10, 0), IsVisible = false };
+    private readonly ImageStore? _images;
+
+    public const string SkillIconName = "SkillIcon";
     private TextBlock? _rotationHint;
     private long _lastTickMs;
     private bool _syncing;
 
-    public BreakdownWindow(BreakdownSource source, uint actorId, double width, double height, Func<long>? clock = null)
+    public BreakdownWindow(BreakdownSource source, uint actorId, double width, double height, Func<long>? clock = null, ImageStore? images = null)
     {
         _source = source;
+        _images = images;
+        if (images is not null) images.Changed += Render;
         _clock = clock ?? (() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         ActorId = actorId;
         _lastTickMs = _clock();
@@ -112,6 +118,7 @@ public sealed class BreakdownWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        if (_images is not null) _images.Changed -= Render;
         _timer?.Stop();
         base.OnClosed(e);
     }
@@ -134,9 +141,10 @@ public sealed class BreakdownWindow : Window
         right.Children.Add(_tabs);
 
         var body = new DockPanel { Margin = new Thickness(12) };
-        DockPanel.SetDock(_title, Dock.Top);
-        _title.Margin = new Thickness(0, 0, 0, 8);
-        body.Children.Add(_title);
+        var heading = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8), Children = { _portrait, _title } };
+        _title.VerticalAlignment = VerticalAlignment.Center;
+        DockPanel.SetDock(heading, Dock.Top);
+        body.Children.Add(heading);
         DockPanel.SetDock(_players, Dock.Left);
         body.Children.Add(_players);
         body.Children.Add(right);
@@ -168,6 +176,8 @@ public sealed class BreakdownWindow : Window
     private void Render()
     {
         var snapshot = _source.Snapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        _portrait.Source = snapshot is null ? null : _images?.Portrait(snapshot.Boss?.NpcCode ?? 0, snapshot.TargetCode);
+        _portrait.IsVisible = _portrait.Source is not null;
         _title.Text = (snapshot?.Boss?.Name ?? snapshot?.Title ?? UiText.Current.OvFightUnavailable) + " · " + MeterView.Duration(snapshot?.CombatMs ?? 0) + " · " + (_source.IsLive ? UiText.Current.OvLiveFight : UiText.Current.OvSavedFight);
         var rows = MeterView.Rows(snapshot, int.MaxValue);
         _syncing = true;
@@ -191,7 +201,7 @@ public sealed class BreakdownWindow : Window
         _skillRows.Children.Add(SkillLine([UiText.Current.OvSkill, UiText.Current.OvHits, UiText.Current.OvTicks, UiText.Current.RowDamage, "DPS", UiText.Current.OvAverage, UiText.Current.OvMax, "%", UiText.Current.RowCrit, UiText.Current.OvBack, UiText.Current.OvFront, UiText.Current.OvPerfect, UiText.Current.OvHeavy, UiText.Current.OvMulti], Muted, FontWeight.Normal));
         if (detail is null) return;
         foreach (var row in BreakdownView.Skills(detail))
-            _skillRows.Children.Add(SkillLine([row.Name, row.Hits, row.Ticks, row.Damage, row.Dps, row.Average, row.Max, row.Share, row.Crit, row.Back, row.Front, row.Perfect, row.Heavy, row.Multi], Brushes.White, FontWeight.Normal));
+            _skillRows.Children.Add(SkillLine([row.Name, row.Hits, row.Ticks, row.Damage, row.Dps, row.Average, row.Max, row.Share, row.Crit, row.Back, row.Front, row.Perfect, row.Heavy, row.Multi], Brushes.White, FontWeight.Normal, _images?.SkillIcon(row.SkillCode)));
     }
 
     private void FillDefense(CombatantDetail? detail)
@@ -211,9 +221,10 @@ public sealed class BreakdownWindow : Window
         _chart.Show(BreakdownView.Timeline(detail, party));
     }
 
-    private static Control SkillLine(string[] texts, IBrush foreground, FontWeight weight)
+    private static Control SkillLine(string[] texts, IBrush foreground, FontWeight weight, IImage? icon = null)
     {
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("200,56,50,64,64,64,64,48,48,48,48,48,52,52"), Margin = new Thickness(0, 1) };
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("22,200,56,50,64,64,64,64,48,48,48,48,48,52,52"), Margin = new Thickness(0, 1) };
+        if (icon is not null) grid.Children.Add(new Image { Name = SkillIconName, Source = icon, Width = 18, Height = 18, VerticalAlignment = VerticalAlignment.Center });
         for (var i = 0; i < texts.Length; i++)
         {
             var cell = new TextBlock
@@ -225,7 +236,7 @@ public sealed class BreakdownWindow : Window
                 HorizontalAlignment = i == 0 ? HorizontalAlignment.Left : HorizontalAlignment.Right,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
-            Grid.SetColumn(cell, i);
+            Grid.SetColumn(cell, i + 1);
             grid.Children.Add(cell);
         }
         return grid;

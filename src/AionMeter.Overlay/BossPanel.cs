@@ -31,6 +31,8 @@ public sealed class BossPanel : StackPanel
 
     public BossBoard Board { get; }
 
+    public ImageStore? Images { get; set; }
+
     public Action Changed { get; }
 
     public IReadOnlyList<BossRowControl> Rows => _controls;
@@ -49,7 +51,11 @@ public sealed class BossPanel : StackPanel
                 _rows.Children.Add(row);
             }
         }
-        for (var i = 0; i < views.Count; i++) _controls[i].Show(views[i]);
+        for (var i = 0; i < views.Count; i++)
+        {
+            _controls[i].Show(views[i]);
+            _controls[i].ShowPortrait(Images?.Portrait(views[i].NpcCode, 0));
+        }
         _empty.IsVisible = views.Count == 0;
         ShowActions(_actions);
     }

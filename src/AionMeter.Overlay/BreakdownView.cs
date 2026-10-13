@@ -20,7 +20,8 @@ public sealed record SkillTableRow(
     string Front,
     string Perfect,
     string Heavy,
-    string Multi);
+    string Multi,
+    int SkillCode = 0);
 
 public sealed record TimelineSeries(uint ActorId, string Name, GameClass Class, bool IsSelected, IReadOnlyList<double> Values);
 
@@ -65,7 +66,8 @@ public static class BreakdownView
                 MeterView.Rate(s.FrontRate),
                 MeterView.Rate(s.PerfectRate),
                 MeterView.Rate(s.HeavyRate),
-                MeterView.Rate(s.MultiRate)))
+                MeterView.Rate(s.MultiRate),
+                s.SkillCode))
             .ToList();
 
     public static TimelineView Timeline(CombatantDetail selected, IReadOnlyList<CombatantDetail> party)

@@ -77,6 +77,7 @@ public sealed class OverlayWindow : Window
     private readonly Button _copy = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly Button _language = new() { Name = "LanguageButton", FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly List<Action> _texts = [];
+    private ImageStore? _images;
     private readonly Button _filterBosses = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly Button _filterKills = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly TextBlock _historyCount = new() { Name = "HistoryCount", Foreground = Muted, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0) };
@@ -146,6 +147,26 @@ public sealed class OverlayWindow : Window
 
     public Func<SettingsContext>? SettingsSource { get; set; }
 
+    public ImageStore? Images
+    {
+        get => _images;
+        set
+        {
+            if (_images is not null) _images.Changed -= OnImagesChanged;
+            _images = value;
+            if (_bossPanel is not null) _bossPanel.Images = value;
+            if (value is null) return;
+            value.Enabled = _settings.DownloadIcons;
+            value.Changed += OnImagesChanged;
+        }
+    }
+
+    private void OnImagesChanged()
+    {
+        _historyDirty = true;
+        Refresh();
+    }
+
     public Func<string, IEventSource>? ReplaySource { get; set; }
 
     public bool Replay(string path)
@@ -194,6 +215,7 @@ public sealed class OverlayWindow : Window
         settings.BreakdownWidth = previous.BreakdownWidth;
         settings.BreakdownHeight = previous.BreakdownHeight;
         _settings = settings;
+        if (_images is not null) _images.Enabled = settings.DownloadIcons;
         EnsureRows(settings.MaxRows);
         _tune(settings);
         SaveSettings();
@@ -649,7 +671,7 @@ public sealed class OverlayWindow : Window
     {
         if (actorId is not { } actor || _session.Breakdown(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) is not { } source) return;
         Breakdown?.Close();
-        var breakdown = new BreakdownWindow(source, actor, _settings.BreakdownWidth, _settings.BreakdownHeight, _clock);
+        var breakdown = new BreakdownWindow(source, actor, _settings.BreakdownWidth, _settings.BreakdownHeight, _clock, _images);
         if (Screens.ScreenFromWindow(this) is { } screen)
         {
             breakdown.WindowStartupLocation = WindowStartupLocation.Manual;
@@ -732,9 +754,25 @@ public sealed class OverlayWindow : Window
         _history.SelectedItem = items.FirstOrDefault(i => i.Path == _session.SelectedFight);
     }
 
-    private static Control HistoryLine(HistoryItemView item)
+    private Control HistoryLine(HistoryItemView item)
     {
         var line = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto") };
+        if (_images?.Portrait(item.BossCode, item.TargetCode) is { } portrait)
+        {
+            var picture = new Image { Source = portrait, Width = 28, Height = 28, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetRowSpan(picture, 2);
+            var framed = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Children = { picture } };
+            Grid.SetColumn(line, 1);
+            framed.Children.Add(line);
+            FinishHistoryLine(line, item);
+            return framed;
+        }
+        FinishHistoryLine(line, item);
+        return line;
+    }
+
+    private static void FinishHistoryLine(Grid line, HistoryItemView item)
+    {
         var resultBrush = item.Result switch { "✔" => Win, "✖" => Loss, _ => Muted };
         Place(line, new TextBlock { Text = item.When, Foreground = Muted, FontSize = 12, Margin = new Thickness(0, 0, 8, 0) }, 0, 0);
         Place(line, new TextBlock { Text = item.Result, Foreground = resultBrush, FontSize = 12, Margin = new Thickness(0, 0, 6, 0) }, 0, 1);
@@ -744,7 +782,6 @@ public sealed class OverlayWindow : Window
         Place(line, new TextBlock { Text = detail, Foreground = Muted, FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis }, 1, 1);
         Grid.SetColumnSpan(line.Children[^1], 2);
         Place(line, new TextBlock { Text = (item.Dps + " " + item.Place).TrimEnd(), Foreground = Brushes.White, FontSize = 11, Margin = new Thickness(8, 0, 0, 0) }, 1, 3);
-        return line;
     }
 
     private MenuFlyout LanguageMenu()

@@ -23,8 +23,10 @@ public sealed class BossRowControl : StackPanel
     {
         NpcCode = npcCode;
         Margin = new Thickness(0, 3);
-        var top = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        Grid.SetColumn(_status, 1);
+        var top = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
+        Grid.SetColumn(_name, 1);
+        Grid.SetColumn(_status, 2);
+        top.Children.Add(Portrait);
         top.Children.Add(_name);
         top.Children.Add(_status);
         _actions.Children.Add(WatchButton);
@@ -40,6 +42,14 @@ public sealed class BossRowControl : StackPanel
     }
 
     public int NpcCode { get; }
+
+    public Image Portrait { get; } = new() { Width = 28, Height = 28, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center, IsVisible = false };
+
+    public void ShowPortrait(IImage? image)
+    {
+        Portrait.Source = image;
+        Portrait.IsVisible = image is not null;
+    }
 
     public Button WatchButton { get; } = Small("");
 

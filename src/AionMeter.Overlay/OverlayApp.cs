@@ -79,6 +79,8 @@ public sealed class OverlayApp : Application
             desktopPlatform.RegisterHotkeys(window, HotkeyBindings.From(next), window.Apply);
             window.Shortcuts = desktopPlatform.ShortcutHints();
         });
+        var images = ImageStore.For(dataDirectory, dataHome, settings.DownloadIcons);
+        window.Images = images;
         window.ReplaySource = path => new PcapReplaySource(data, path, realtime: false);
         TrayIcon.SetIcons(Current!, [TrayMenu.Create(window, desktopPlatform.Alert)]);
         window.QuitRequested += () => desktop.Shutdown();
@@ -88,6 +90,7 @@ public sealed class OverlayApp : Application
             channel.Dispose();
             demo?.Dispose();
             session.Dispose();
+            images.Dispose();
             desktopPlatform.Dispose();
         };
 
