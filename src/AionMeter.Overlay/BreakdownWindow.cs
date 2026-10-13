@@ -1,0 +1,238 @@
+using AionMeter.Core.Combat;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Threading;
+
+namespace AionMeter.Overlay;
+
+public sealed class BreakdownWindow : Window
+{
+    private const long RefreshIntervalMs = 1_000;
+    private const int TimelineTab = 1;
+    private const int RotationTab = 2;
+
+    private static readonly IBrush Gold = new SolidColorBrush(BreakdownPalette.Gold);
+    private static readonly IBrush Muted = new SolidColorBrush(BreakdownPalette.Muted);
+
+    private readonly BreakdownSource _source;
+    private readonly Func<long> _clock;
+    private readonly DispatcherTimer? _timer;
+    private readonly TextBlock _title = new() { Foreground = Gold, FontSize = 15, FontWeight = FontWeight.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly TextBlock _playerName = new() { Name = "PlayerName", FontSize = 14, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 6) };
+    private readonly ListBox _players = new() { Name = "Players", Width = 190, Background = Brushes.Transparent };
+    private readonly TabControl _tabs = new();
+    private readonly StackPanel _skillRows = new() { Name = "SkillRows" };
+    private readonly TimelineChart _chart = new() { MinHeight = 240 };
+    private readonly RotationStrip _strip = new();
+    private readonly ScrollViewer _stripScroll = new() { HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
+    private readonly TextBlock _takenTotal = Stat("TakenTotal");
+    private readonly TextBlock _takenPerSecond = Stat("TakenPerSecond");
+    private readonly TextBlock _takenHits = Stat("TakenHits");
+    private long _lastTickMs;
+    private bool _syncing;
+
+    public BreakdownWindow(BreakdownSource source, uint actorId, double width, double height, Func<long>? clock = null)
+    {
+        _source = source;
+        _clock = clock ?? (() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        ActorId = actorId;
+        _lastTickMs = _clock();
+
+        Title = "AION 2 DPS · Desglose";
+        Width = width;
+        Height = height;
+        MinWidth = 640;
+        MinHeight = 400;
+        Background = new SolidColorBrush(BreakdownPalette.Background);
+        Content = BuildLayout();
+
+        _players.ItemTemplate = new FuncDataTemplate<RowView?>((row, _) => row is null ? new Panel() : PlayerLine(row), supportsRecycling: false);
+        _players.SelectionChanged += (_, _) =>
+        {
+            if (!_syncing && _players.SelectedItem is RowView row && row.ActorId != ActorId) Select(row.ActorId);
+        };
+        _tabs.SelectionChanged += (_, e) =>
+        {
+            if (e.Source == _tabs) Render();
+        };
+        _stripScroll.ScrollChanged += (_, _) =>
+        {
+            _strip.SetViewport(_stripScroll.Offset.X, _stripScroll.Viewport.Width);
+        };
+
+        Render();
+        if (!source.IsLive) return;
+        _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(RefreshIntervalMs), DispatcherPriority.Background, (_, _) => Tick());
+        _timer.Start();
+    }
+
+    public uint ActorId { get; private set; }
+
+    public int RefreshCount { get; private set; }
+
+    public void Select(uint actorId)
+    {
+        ActorId = actorId;
+        Render();
+    }
+
+    public void SelectTab(int index) => _tabs.SelectedIndex = index;
+
+    public void Tick()
+    {
+        var now = _clock();
+        if (!_source.IsLive || now - _lastTickMs < RefreshIntervalMs) return;
+        _lastTickMs = now;
+        RefreshCount++;
+        Render();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _timer?.Stop();
+        base.OnClosed(e);
+    }
+
+    private Control BuildLayout()
+    {
+        var names = BreakdownView.Tabs;
+        _tabs.ItemsSource = new[]
+        {
+            new TabItem { Header = names[0], Content = SkillsPage() },
+            new TabItem { Header = names[1], Content = _chart },
+            new TabItem { Header = names[2], Content = RotationPage() },
+            new TabItem { Header = names[3], Content = DefensePage() },
+        };
+
+        var right = new DockPanel { Margin = new Thickness(12, 0, 0, 0) };
+        DockPanel.SetDock(_playerName, Dock.Top);
+        right.Children.Add(_playerName);
+        right.Children.Add(_tabs);
+
+        var body = new DockPanel { Margin = new Thickness(12) };
+        DockPanel.SetDock(_title, Dock.Top);
+        _title.Margin = new Thickness(0, 0, 0, 8);
+        body.Children.Add(_title);
+        DockPanel.SetDock(_players, Dock.Left);
+        body.Children.Add(_players);
+        body.Children.Add(right);
+        return body;
+    }
+
+    private Control SkillsPage() => new ScrollViewer { Content = _skillRows, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(0, 6, 0, 0) };
+
+    private Control RotationPage()
+    {
+        _stripScroll.Content = _strip;
+        var hint = new TextBlock { Text = "Cada círculo es un lanzamiento; el tamaño sigue al daño y el punto dorado marca un crítico. Pasa el cursor para ver la skill.", Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 8) };
+        return new StackPanel { Children = { hint, _stripScroll } };
+    }
+
+    private Control DefensePage() => new StackPanel
+    {
+        Margin = new Thickness(0, 12, 0, 0),
+        Spacing = 14,
+        Children =
+        {
+            Block("Daño recibido", _takenTotal),
+            Block("Daño recibido por segundo", _takenPerSecond),
+            Block("Golpes recibidos", _takenHits),
+        },
+    };
+
+    private void Render()
+    {
+        var snapshot = _source.Snapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        _title.Text = (snapshot?.Boss?.Name ?? snapshot?.Title ?? "Pelea no disponible") + " · " + MeterView.Duration(snapshot?.CombatMs ?? 0) + (_source.IsLive ? " · en vivo" : " · guardada");
+        var rows = MeterView.Rows(snapshot, int.MaxValue);
+        _syncing = true;
+        _players.ItemsSource = rows;
+        _players.SelectedItem = rows.FirstOrDefault(r => r.ActorId == ActorId);
+        _syncing = false;
+
+        var detail = _source.Detail(ActorId);
+        _playerName.Text = detail?.Name ?? "";
+        _playerName.Foreground = new SolidColorBrush(BreakdownPalette.Class(detail?.Class ?? default));
+        FillSkills(detail);
+        FillDefense(detail);
+        if (detail is null) return;
+        if (_tabs.SelectedIndex == TimelineTab) FillTimeline(detail, rows);
+        if (_tabs.SelectedIndex == RotationTab) _strip.Show(BreakdownView.Rotation(detail));
+    }
+
+    private void FillSkills(CombatantDetail? detail)
+    {
+        _skillRows.Children.Clear();
+        _skillRows.Children.Add(SkillLine(["Skill", "Golpes", "Ticks", "Daño", "DPS", "Prom.", "Máx", "%", "Crit", "Esp.", "Front.", "Perf.", "Fuerte", "Multi"], Muted, FontWeight.Normal));
+        if (detail is null) return;
+        foreach (var row in BreakdownView.Skills(detail))
+            _skillRows.Children.Add(SkillLine([row.Name, row.Hits, row.Ticks, row.Damage, row.Dps, row.Average, row.Max, row.Share, row.Crit, row.Back, row.Front, row.Perfect, row.Heavy, row.Multi], Brushes.White, FontWeight.Normal));
+    }
+
+    private void FillDefense(CombatantDetail? detail)
+    {
+        var defense = detail is null ? null : BreakdownView.Defense(detail);
+        _takenTotal.Text = defense?.Taken ?? "-";
+        _takenPerSecond.Text = defense?.PerSecond ?? "-";
+        _takenHits.Text = defense?.Hits ?? "-";
+    }
+
+    private void FillTimeline(CombatantDetail detail, IReadOnlyList<RowView> rows)
+    {
+        var party = rows
+            .Select(r => r.ActorId == detail.ActorId ? detail : _source.Detail(r.ActorId))
+            .OfType<CombatantDetail>()
+            .ToList();
+        _chart.Show(BreakdownView.Timeline(detail, party));
+    }
+
+    private static Control SkillLine(string[] texts, IBrush foreground, FontWeight weight)
+    {
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("200,56,50,64,64,64,64,48,48,48,48,48,52,52"), Margin = new Thickness(0, 1) };
+        for (var i = 0; i < texts.Length; i++)
+        {
+            var cell = new TextBlock
+            {
+                Text = texts[i],
+                Foreground = foreground,
+                FontSize = 12,
+                FontWeight = weight,
+                HorizontalAlignment = i == 0 ? HorizontalAlignment.Left : HorizontalAlignment.Right,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            };
+            Grid.SetColumn(cell, i);
+            grid.Children.Add(cell);
+        }
+        return grid;
+    }
+
+    private static Control PlayerLine(RowView row)
+    {
+        var text = new TextBlock
+        {
+            Text = $"{row.Place}. {row.Name}",
+            Foreground = new SolidColorBrush(BreakdownPalette.Class(row.Class)),
+            FontWeight = row.IsSelf ? FontWeight.Bold : FontWeight.Normal,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+        return new Border
+        {
+            BorderBrush = row.IsSelf ? Brushes.White : null,
+            BorderThickness = new Thickness(row.IsSelf ? 1 : 0),
+            CornerRadius = new CornerRadius(3),
+            Padding = new Thickness(4, 2),
+            Child = text,
+        };
+    }
+
+    private static TextBlock Stat(string name) => new() { Name = name, FontSize = 28, FontWeight = FontWeight.Bold, Foreground = Brushes.White };
+
+    private static Control Block(string label, TextBlock value) => new StackPanel
+    {
+        Children = { new TextBlock { Text = label, Foreground = Muted, FontSize = 12 }, value },
+    };
+}

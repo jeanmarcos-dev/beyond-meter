@@ -37,6 +37,7 @@ int Usage()
         aionmeter-cli devices                       list Npcap adapters
         aionmeter-cli conns                         show the AION 2 process and its TCP connections
         aionmeter-cli live [seconds] [--record]     capture live, print what was decoded
+        aionmeter-cli live 0 --watch                live DPS table every 2 s until Ctrl+C
         aionmeter-cli replay <file.pcap>            run a capture through the meter, print fights
         aionmeter-cli dump <file.pcap> [opcode]     print decoded packets (opcode as hex, e.g. 0438)
         aionmeter-cli replay <file.pcap> --boss --brief   player counts per fight only
@@ -97,6 +98,7 @@ int Live(string[] a)
 {
     var seconds = a.Length > 0 && int.TryParse(a[0], out var s) ? s : 20;
     var record = a.Contains("--record");
+    var watch = a.Contains("--watch");
     var stats = new EventStats(data);
     var tracker = new CombatTracker(data, new MeterOptions { TargetMode = TargetMode.All });
     using var capture = new LiveCapture(data, new LiveCaptureOptions
@@ -111,13 +113,27 @@ int Live(string[] a)
             tracker.Process(e);
         }
     };
+    var stopping = false;
+    Console.CancelKeyPress += (_, e) =>
+    {
+        e.Cancel = true;
+        stopping = true;
+    };
     capture.Start();
-    var until = DateTime.UtcNow.AddSeconds(seconds);
-    while (DateTime.UtcNow < until)
+    var until = seconds > 0 ? DateTime.UtcNow.AddSeconds(seconds) : DateTime.MaxValue;
+    while (!stopping && DateTime.UtcNow < until)
     {
         Thread.Sleep(2_000);
         var p = capture.Pipeline;
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {capture.Status.Message} · segments {p.Segments} · game flows {p.GameFlows} · game bytes {p.GameBytes} · events {stats.Total}");
+        var status = $"[{DateTime.Now:HH:mm:ss}] {capture.Status.Message} · segments {p.Segments} · game flows {p.GameFlows} · game bytes {p.GameBytes} · events {stats.Total}";
+        if (watch)
+        {
+            lock (stats) PrintLiveFight(tracker, status);
+        }
+        else
+        {
+            Console.WriteLine(status);
+        }
     }
     capture.Stop();
     if (capture.RecordingPath is { } rec) Console.WriteLine($"Recorded to {rec}");
@@ -544,9 +560,29 @@ void PrintFights(CombatTracker tracker)
             continue;
         }
         foreach (var c in snap.Combatants)
-            Console.WriteLine($"   {c.Name,-16} {c.Class,-13} {Format.Compact(c.Dps),9}/s {Format.Compact(c.Damage),9} {Format.Percent(c.Share),7}  crit {Format.Percent(c.CritRate)}");
+            Console.WriteLine(CombatantLine(c));
     }
 }
+
+void PrintLiveFight(CombatTracker tracker, string status)
+{
+    var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    tracker.Tick(now);
+    var snap = tracker.Snapshot(null, now);
+    Console.Write("\u001b[H\u001b[2J");
+    Console.WriteLine(status);
+    if (snap is null)
+    {
+        Console.WriteLine("\nNo fight yet.");
+        return;
+    }
+    Console.WriteLine($"\n== {snap.Title} · {Format.ClockPrecise(snap.CombatMs)} · {Format.Compact(snap.TotalDamage)} dmg · {Format.Compact(snap.PartyDps)}/s · {snap.PlayerCount} players");
+    foreach (var c in snap.Combatants.Take(12))
+        Console.WriteLine(CombatantLine(c));
+}
+
+string CombatantLine(CombatantSnapshot c) =>
+    $"   {c.Name,-16} {c.Class,-13} {Format.Compact(c.Dps),9}/s {Format.Compact(c.Damage),9} {Format.Percent(c.Share),7}  crit {Format.Percent(c.CritRate)}";
 
 sealed class EventStats(GameData data)
 {

@@ -16,6 +16,14 @@ public sealed record CaptureStatus(CaptureState State, string Message, long Pack
     public static CaptureStatus Stopped { get; } = new(CaptureState.Stopped, "Capture stopped");
 }
 
+public interface IRecordable
+{
+    bool IsRecording { get; }
+    string? RecordingPath { get; }
+    void StartRecording(string directory);
+    void StopRecording();
+}
+
 /// <summary>Anything that produces decoded game events: live Npcap capture, pcap replay, the demo fight.</summary>
 public interface IEventSource : IDisposable
 {

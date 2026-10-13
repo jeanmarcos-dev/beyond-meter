@@ -529,4 +529,119 @@ public class EngineTests
         Assert.Equal(1, p.GameFlows);
         Assert.Contains(events, e => e is SelfIdentifiedEvent { Name: "Nimara" });
     }
+
+    [Fact]
+    public void Self_level_reaches_the_snapshot_and_the_detail()
+    {
+        var t = Tracker();
+        Setup(t);
+        t.Process(new SelfIdentifiedEvent(0, Me, "Ilvane", 1304, GameClass.Elementalist, 45));
+        t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        t.Process(new DamageEvent(1_200, Mate, Boss, 11010000, 500_000, HitFlags.None));
+
+        var snapshot = t.Snapshot(null, 2_000)!;
+
+        Assert.Equal(45, snapshot.Combatants.Single(c => c.ActorId == Me).Level);
+        Assert.Equal(0, snapshot.Combatants.Single(c => c.ActorId == Mate).Level);
+        Assert.Equal(45, t.Detail(null, Me)!.Level);
+    }
+
+    [Fact]
+    public void Identity_without_level_keeps_the_known_level()
+    {
+        var t = Tracker();
+        Setup(t);
+        t.Process(new SelfIdentifiedEvent(0, Me, "Ilvane", 1304, GameClass.Elementalist, 45));
+        t.Process(new SelfIdentifiedEvent(500, Me, "Ilvane", 1304, GameClass.Elementalist));
+        t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+
+        Assert.Equal(45, t.Snapshot(null, 2_000)!.Combatants.Single(c => c.ActorId == Me).Level);
+    }
+
+    private const uint Cleric = 102;
+
+    private static CombatTracker HealingFight(out List<FightRecord> saved)
+    {
+        var t = Tracker();
+        var records = new List<FightRecord>();
+        t.EncounterFinished += records.Add;
+        saved = records;
+        Setup(t);
+        t.Process(new PlayerSeenEvent(0, Cleric, "Aurelia", 1304, GameClass.Cleric));
+        return t;
+    }
+
+    [Fact]
+    public void Pure_healer_joins_the_fight_with_zero_damage_and_their_healing()
+    {
+        var t = HealingFight(out _);
+        t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        t.Process(new HealEvent(1_500, Cleric, Me, 20000001, 40_000, HitFlags.None));
+        t.Process(new HealEvent(2_000, Cleric, Mate, 20000001, 60_000, HitFlags.Dot));
+
+        var healer = t.Snapshot(null, 3_000)!.Combatants.Single(c => c.ActorId == Cleric);
+
+        Assert.Equal("Aurelia", healer.Name);
+        Assert.Equal(GameClass.Cleric, healer.Class);
+        Assert.Equal(0, healer.Damage);
+        Assert.Equal(100_000, healer.Healing);
+    }
+
+    [Fact]
+    public void Healing_outside_a_fight_does_not_open_one()
+    {
+        var t = HealingFight(out _);
+        t.Process(new HealEvent(1_000, Cleric, Me, 20000001, 40_000, HitFlags.None));
+        Assert.Empty(t.Segments());
+        Assert.Null(t.Snapshot(null, 2_000));
+    }
+
+    [Fact]
+    public void Summon_healing_counts_for_its_owner()
+    {
+        var t = HealingFight(out _);
+        t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        t.Process(new HealEvent(1_500, Pet, Mate, 20000001, 25_000, HitFlags.None));
+        t.Process(new HealEvent(1_600, Me, Mate, 20000001, 5_000, HitFlags.None));
+
+        var snapshot = t.Snapshot(null, 3_000)!;
+
+        Assert.Equal(30_000, snapshot.Combatants.Single(c => c.ActorId == Me).Healing);
+        Assert.DoesNotContain(snapshot.Combatants, c => c.ActorId == Pet);
+    }
+
+    [Fact]
+    public void Healing_an_npc_or_a_pet_is_not_counted()
+    {
+        var t = HealingFight(out _);
+        t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        t.Process(new HealEvent(1_500, Cleric, Add, 20000001, 40_000, HitFlags.None));
+        t.Process(new HealEvent(1_600, Cleric, Pet, 20000001, 40_000, HitFlags.None));
+        t.Process(new HealEvent(1_700, Boss, Add, 20000001, 40_000, HitFlags.None));
+        t.Process(new HealEvent(1_800, Me, Add, 20000001, 40_000, HitFlags.None));
+
+        var snapshot = t.Snapshot(null, 3_000)!;
+
+        Assert.DoesNotContain(snapshot.Combatants, c => c.ActorId == Cleric || c.ActorId == Boss);
+        Assert.Equal(0, snapshot.Combatants.Single(c => c.ActorId == Me).Healing);
+    }
+
+    [Fact]
+    public void Healing_does_not_lengthen_the_fight_or_change_dps()
+    {
+        var t = HealingFight(out var saved);
+        t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        t.Process(new DamageEvent(3_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        t.Process(new HealEvent(9_000, Cleric, Me, 20000001, 80_000, HitFlags.None));
+
+        var snapshot = t.Snapshot(null, 9_000)!;
+        Assert.Equal(2_000, snapshot.CombatMs);
+        Assert.Equal(1_000_000, snapshot.Combatants.Single(c => c.ActorId == Me).Dps);
+        Assert.Equal(40_000, snapshot.Combatants.Single(c => c.ActorId == Cleric).Hps);
+
+        t.Tick(3_600_000);
+        Assert.Single(saved);
+        Assert.Equal(EncounterEndReason.Idle, saved[0].Summary.Reason);
+        Assert.Equal(2_000, saved[0].Summary.CombatMs);
+    }
 }

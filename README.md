@@ -244,6 +244,9 @@ dotnet test tests/AionMeter.Tests
 src/AionMeter.App/bin/Release/net10.0-windows/AION2DpsMeter.exe
 ```
 
+**Linux:** the native overlay (`src/AionMeter.Overlay`) builds and runs on Linux; see
+[docs/linux-overlay.md](docs/linux-overlay.md) for install, commands, preferences and the autostart service.
+
 **Releases:** bump `<Version>` in `src/AionMeter.App/AionMeter.App.csproj`, then run `.\build-release.ps1`. It writes to
 `dist\` the installer (needs [Inno Setup 7](https://jrsoftware.org/isdl.php); script `installer/AION2DpsMeter.iss`),
 the portable zip, the source zip, and copies of the installer and zip under fixed names (`AION2DpsMeter-Setup.exe`,

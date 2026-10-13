@@ -21,7 +21,7 @@ public sealed class LiveCaptureOptions
 /// Windows TCP table, opens only the adapter that carries them (the loopback adapter when a ping accelerator relays
 /// the game locally) and filters to those servers. Nothing is ever sent or injected.
 /// </summary>
-public sealed class LiveCapture : IEventSource
+public sealed class LiveCapture : IEventSource, IRecordable
 {
     private readonly LiveCaptureOptions _options;
     private readonly PacketPipeline _pipeline;
@@ -30,7 +30,8 @@ public sealed class LiveCapture : IEventSource
     private Task? _monitor;
     private LibPcapLiveDevice? _device;
     private string? _filter;
-    private CaptureFileWriterDevice? _writer;
+    private readonly CaptureRecorder _recorder = new();
+    private string? _recordDirectory;
     private long _packets;
     private long _events;
     private CaptureStatus _status = new(CaptureState.Stopped, "Capture stopped");
@@ -38,6 +39,7 @@ public sealed class LiveCapture : IEventSource
     public LiveCapture(GameData data, LiveCaptureOptions options)
     {
         _options = options;
+        _recordDirectory = options.RecordDirectory;
         _pipeline = new PacketPipeline(data, OnEvent) { LockThreshold = 3 };
     }
 
@@ -46,7 +48,8 @@ public sealed class LiveCapture : IEventSource
 
     public CaptureStatus Status => _status;
     public PacketPipeline Pipeline => _pipeline;
-    public string? RecordingPath { get; private set; }
+    public string? RecordingPath => _recorder.Path;
+    public bool IsRecording => _recordDirectory is not null;
 
     /// <summary>Npcap's capture library is on this PC (its own folder, or System32 in WinPcap-compatible mode).</summary>
     public static bool IsNpcapInstalled() =>
@@ -87,6 +90,24 @@ public sealed class LiveCapture : IEventSource
         _cts = new CancellationTokenSource();
         SetStatus(CaptureState.Starting, "Starting capture…");
         _monitor = Task.Run(() => MonitorLoop(_cts.Token));
+    }
+
+    public void StartRecording(string directory)
+    {
+        lock (_gate)
+        {
+            _recordDirectory = directory;
+            if (_device is not null) OpenRecorder(_device);
+        }
+    }
+
+    public void StopRecording()
+    {
+        lock (_gate)
+        {
+            _recordDirectory = null;
+            _recorder.Stop();
+        }
     }
 
     public void Stop()
@@ -167,9 +188,12 @@ public sealed class LiveCapture : IEventSource
         }
 
         var devices = CaptureDeviceList.Instance.OfType<LibPcapLiveDevice>().ToList();
-        LibPcapLiveDevice? device = null;
+        LibPcapLiveDevice? device = OperatingSystem.IsLinux()
+            ? devices.FirstOrDefault(d => d.Name == LinuxProcNet.AnyDevice)
+            : null;
         foreach (var c in connections.OrderByDescending(c => c.RemotePort == PacketPipeline.GamePort))
         {
+            if (device is not null) break;
             device = IPAddress.IsLoopback(c.RemoteIp) || IPAddress.IsLoopback(c.LocalIp)
                 ? devices.FirstOrDefault(IsLoopback)
                 : devices.FirstOrDefault(d => d.Addresses.Any(a => c.LocalIp.Equals(a.Addr?.ipAddress)));
@@ -232,11 +256,8 @@ public sealed class LiveCapture : IEventSource
 
     private void OpenRecorder(LibPcapLiveDevice device)
     {
-        if (_options.RecordDirectory is not { Length: > 0 } dir) return;
-        Directory.CreateDirectory(dir);
-        RecordingPath = Path.Combine(dir, $"aion2_{DateTime.Now:yyyyMMdd_HHmmss}.pcap");
-        _writer = new CaptureFileWriterDevice(RecordingPath);
-        _writer.Open(new DeviceConfiguration { LinkLayerType = device.LinkType });
+        if (_recordDirectory is not { Length: > 0 } dir) return;
+        _recorder.Start(dir, device.LinkType);
     }
 
     private void CloseDevice()
@@ -258,9 +279,7 @@ public sealed class LiveCapture : IEventSource
         _device.Close();
         _device = null;
         _filter = null;
-        _writer?.Close();
-        _writer = null;
-        RecordingPath = null;
+        _recorder.Stop();
     }
 
     private void OnPacketArrival(object sender, PacketCapture e)
@@ -269,7 +288,7 @@ public sealed class LiveCapture : IEventSource
         Interlocked.Increment(ref _packets);
         try
         {
-            _writer?.Write(raw);
+            _recorder.Write(raw);
             if (SegmentReader.TryRead(raw, out var seg))
                 _pipeline.OnSegment(seg.TimeMs, seg.Key, seg.Seq, seg.Syn, seg.FinOrRst, seg.Payload);
         }

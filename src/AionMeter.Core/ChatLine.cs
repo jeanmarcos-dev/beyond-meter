@@ -164,7 +164,7 @@ public static class ChatLine
     private static string PartyDps(EncounterSnapshot s, ChatWords w) => string.Format(w.Party, Format.Compact(s.PartyDps) + "/s");
 
     /// <summary>Players only: the pseudo-row of pets without a known owner is nobody's result.</summary>
-    private static List<CombatantSnapshot> Players(EncounterSnapshot s) => s.Combatants.Where(c => !c.IsUnknownSummons).ToList();
+    private static List<CombatantSnapshot> Players(EncounterSnapshot s) => s.Combatants.Where(c => !c.IsUnknownSummons && c.Damage > 0).ToList();
 
     /// <summary>Whole percents read best in chat ("41%"); a token share is "&lt;1%", not a misleading "0%".</summary>
     private static string Pct(double fraction) => fraction is > 0 and < 0.005 ? "<1%" : Format.Percent(fraction, 0);

@@ -5,6 +5,7 @@ using AionMeter.Core.Combat;
 using AionMeter.Core.Demo;
 using AionMeter.Core.Game;
 using AionMeter.Core.Storage;
+using AionMeter.Core.Timers;
 
 namespace AionMeter.App.Services;
 
@@ -26,7 +27,7 @@ public sealed class MeterService : IDisposable
         settings.ApplyTo(Options);
         Tracker = new CombatTracker(Data, Options);
         History = new HistoryStore(Path.Combine(AppSettings.AppDataDir, "fights"));
-        Timers = new BossTimers(Path.Combine(AppSettings.AppDataDir, "boss-timers.json"), Data, DataDirectory, persistent: !settings.Transient);
+        Timers = new BossTimers(Path.Combine(AppSettings.AppDataDir, "boss-timers.json"), Data, DataDirectory, persistent: !settings.Transient, log: Log.Info);
         Updates = new Updater(settings);
         Tracker.EncounterFinished += OnEncounterFinished;
         // A recording's or the demo's bosses must not move the live respawn timers.

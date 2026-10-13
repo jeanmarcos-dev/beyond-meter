@@ -13,6 +13,7 @@ public static class GameProcessLocator
 
     public static int[] FindGameProcessIds()
     {
+        if (OperatingSystem.IsLinux()) return LinuxProcNet.FindGameProcessIds(LinuxProcNet.ProcRoot);
         var ids = new HashSet<int>();
         foreach (var name in ProcessNames)
         {
@@ -30,6 +31,7 @@ public static class GameProcessLocator
     {
         var result = new List<GameConnection>();
         if (pids.Count == 0) return result;
+        if (OperatingSystem.IsLinux()) return LinuxProcNet.FindConnections(LinuxProcNet.ProcRoot, pids);
 
         var size = 0;
         GetExtendedTcpTable(IntPtr.Zero, ref size, false, AF_INET, TCP_TABLE_OWNER_PID_ALL, 0);

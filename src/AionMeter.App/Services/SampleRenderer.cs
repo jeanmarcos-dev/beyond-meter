@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using AionMeter.App.Windows;
 using AionMeter.Core.Events;
+using AionMeter.Core.Timers;
 
 namespace AionMeter.App.Services;
 

@@ -1,11 +1,10 @@
-using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Events;
 using AionMeter.Core.Game;
 
-namespace AionMeter.App.Services;
+namespace AionMeter.Core.Timers;
 
 /// <summary>One tracked world boss.</summary>
 /// <param name="NpcCode">The boss; a list slot whose boss is not known yet is keyed by <c>-SlotId</c>.</param>
@@ -86,6 +85,7 @@ public sealed class BossTimers
     private const float NearSpawn = 3_000;           // 30 m (positions are in centimetres)
     private const long ClockSlackMs = 5_000;         // the server's clock against ours
 
+    private readonly Action<string> _log;
     private readonly string _path;
     private readonly string _learnedPath;
     private readonly GameData _data;
@@ -113,8 +113,9 @@ public sealed class BossTimers
         public HashSet<int> ListedMaps { get; set; } = new();
     }
 
-    public BossTimers(string path, GameData data, string dataDirectory, bool persistent = true)
+    public BossTimers(string path, GameData data, string dataDirectory, bool persistent = true, Action<string>? log = null)
     {
+        _log = log ?? (_ => { });
         _path = path;
         _learnedPath = Path.Combine(Path.GetDirectoryName(path)!, "field-boss-learned.json");
         _data = data;
@@ -490,12 +491,12 @@ public sealed class BossTimers
 
     // ------------------------------------------------------------------ user actions
 
-    public void MarkKilled(int server, int npcCode)
+    public void MarkKilled(int server, int npcCode, DateTimeOffset? at = null)
     {
         lock (_gate)
         {
             var t = _timers.TryGetValue((server, npcCode), out var old) ? old : New(server, npcCode);
-            _timers[(server, npcCode)] = t with { LastKill = DateTimeOffset.Now, AlertedFor = null, Watch = true };
+            _timers[(server, npcCode)] = t with { LastKill = at ?? DateTimeOffset.Now, AlertedFor = null, Watch = true };
         }
         Save();
     }
@@ -577,7 +578,7 @@ public sealed class BossTimers
         }
         catch (Exception ex) when (ex is IOException or JsonException or InvalidOperationException)
         {
-            Log.Info($"field_boss_maps.json ignored: {ex.Message}");
+            _log($"field_boss_maps.json ignored: {ex.Message}");
         }
     }
 
@@ -595,7 +596,7 @@ public sealed class BossTimers
         }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
         {
-            Log.Info($"boss timers ignored: {ex.Message}");
+            _log($"boss timers ignored: {ex.Message}");
         }
     }
 
@@ -630,7 +631,7 @@ public sealed class BossTimers
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                Log.Info($"boss-timers.json not saved: {ex.Message}");
+                _log($"boss-timers.json not saved: {ex.Message}");
             }
         }
         Changed?.Invoke();

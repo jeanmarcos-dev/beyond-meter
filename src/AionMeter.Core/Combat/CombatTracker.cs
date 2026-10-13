@@ -87,7 +87,7 @@ public sealed class CombatTracker
                     OnHeal(h);
                     break;
                 case SelfIdentifiedEvent s:
-                    _entities.SetSelf(s.ActorId, s.Name, s.ServerId, s.Class);
+                    _entities.SetSelf(s.ActorId, s.Name, s.ServerId, s.Class, s.Level);
                     _entities.SetGear(s.Name, 0, s.CombatPower);
                     LinkSummonsCastBy(s.ActorId, s.Name);
                     selfName = s.Name;
@@ -278,7 +278,13 @@ public sealed class CombatTracker
     {
         if (_current is not { IsActive: true } enc) return;
         var source = _entities.ResolveOwner(h.SourceId);
-        if (enc.Combatants.TryGetValue(source, out var c)) c.Healing += h.Amount;
+        if (!IsLikelyPlayer(h.TargetId) || _entities.IsSummon(h.TargetId) || _entities.IsUnowned(source)) return;
+        if (enc.Combatants.TryGetValue(source, out var c))
+        {
+            c.Healing += h.Amount;
+            return;
+        }
+        if (_entities.IsPlayerLike(source)) GetCombatant(enc, source).Healing += h.Amount;
     }
 
     private void OnNpcHp(NpcHpEvent e)
@@ -577,6 +583,7 @@ public sealed class CombatTracker
         {
             if (!string.IsNullOrEmpty(p.Name)) c.Name = p.Name;
             if (p.Class != GameClass.Unknown) c.Class = p.Class;
+            if (p.Level > 0) c.Level = p.Level;
             c.ServerId = p.ServerId;
             if (p.GearScore > 0) c.GearScore = p.GearScore;
             if (p.CombatPower > 0) c.CombatPower = p.CombatPower;
@@ -757,7 +764,7 @@ public sealed class CombatTracker
                 c.ActorId, c.Name, c.Class, c.IsSelf,
                 t.Damage, t.Damage / seconds, (double)t.Damage / total,
                 t.Hits, t.Hits > 0 ? (double)t.Crits / t.Hits : 0,
-                t.Max, c.DamageTaken, c.ServerId, c.GearScore, c.CombatPower));
+                t.Max, c.DamageTaken, c.ServerId, c.GearScore, c.CombatPower, c.Healing, c.Healing / seconds, c.Level));
         }
         rows.Sort((a, b) => b.Damage.CompareTo(a.Damage));
         // Pets without a known owner are not a player: list them last so they never take a place in the ranking.
@@ -814,7 +821,7 @@ public sealed class CombatTracker
         var casts = c.Casts.Count <= maxCasts ? c.Casts.ToArray() : c.Casts.GetRange(0, maxCasts).ToArray();
         return new CombatantDetail(
             c.ActorId, c.Name, c.Class, c.IsSelf, t.Damage, t.Damage / seconds, (double)t.Damage / Math.Max(1, enc.TotalDamage),
-            enc.CombatMs, c.DamageTaken, c.HitsTaken, quality, skills, c.PerSecond.ToArray(), casts, c.ServerId, c.GearScore, c.CombatPower);
+            enc.CombatMs, c.DamageTaken, c.HitsTaken, quality, skills, c.PerSecond.ToArray(), casts, c.ServerId, c.GearScore, c.CombatPower, c.Level);
     }
 
     private FightRecord BuildRecord(Encounter enc)

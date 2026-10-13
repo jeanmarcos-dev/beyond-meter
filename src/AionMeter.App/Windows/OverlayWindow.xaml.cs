@@ -11,6 +11,7 @@ using AionMeter.Core;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Storage;
+using AionMeter.Core.Timers;
 
 namespace AionMeter.App.Windows;
 

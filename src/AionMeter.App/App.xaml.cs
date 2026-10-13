@@ -6,6 +6,7 @@ using AionMeter.App.Services;
 using AionMeter.App.ViewModels;
 using AionMeter.App.Windows;
 using AionMeter.Core.Capture;
+using AionMeter.Core.Timers;
 
 namespace AionMeter.App;
 

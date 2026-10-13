@@ -71,6 +71,7 @@ public sealed class Combatant
     public required uint ActorId { get; init; }
     public string Name { get; set; } = "";
     public GameClass Class { get; set; }
+    public int Level { get; set; }
     public bool IsSelf { get; set; }
     public int ServerId { get; set; }
     /// <summary>Gear score ("GS") and combat power ("CP") when the party roster or the own record gave them; 0 = not known.</summary>

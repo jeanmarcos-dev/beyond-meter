@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using AionMeter.App.Services;
 using AionMeter.App.ViewModels;
+using AionMeter.Core.Timers;
 
 namespace AionMeter.App.Windows;
 

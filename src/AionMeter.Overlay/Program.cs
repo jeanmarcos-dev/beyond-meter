@@ -1,0 +1,36 @@
+using AionMeter.Overlay;
+using Avalonia;
+
+var parsed = OverlayArguments.Parse(args);
+if (parsed.Error is { } error)
+{
+    Console.Error.WriteLine(error);
+    return 2;
+}
+
+var socket = CommandChannel.DefaultPath();
+if (parsed.ReplayPath is { } replayPath)
+{
+    if (CommandChannel.IsListening(socket))
+    {
+        Console.Error.WriteLine("Ya hay un overlay abierto: ciérralo con 'aionmeter-overlay quit' antes de repetir una grabación.");
+        return 1;
+    }
+    if (ReplayFile.Problem(replayPath) is { } problem)
+    {
+        Console.Error.WriteLine(problem);
+        return 1;
+    }
+}
+else
+{
+    if (CommandChannel.TrySend(socket, parsed.Command)) return 0;
+    if (!OverlayCommands.StartsInstance(parsed.Command))
+    {
+        Console.Error.WriteLine("El overlay no está abierto.");
+        return 1;
+    }
+}
+
+OverlayApp.Options = new OverlayOptions(parsed.Demo, socket, parsed.Hidden, parsed.ReplayPath, parsed.Fast);
+return AppBuilder.Configure<OverlayApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);

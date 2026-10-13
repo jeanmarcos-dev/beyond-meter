@@ -88,6 +88,68 @@ public sealed class HistoryTests : IDisposable
         Assert.Empty(cache.Load()!.Npcs);
     }
 
+    [Fact]
+    public void Healing_survives_a_save_and_a_load()
+    {
+        var store = new HistoryStore(_dir);
+        var record = Fight("Berk", 10, boss: true, selfPlace: 1);
+        var healer = new CombatantSnapshot(9, "Aurelia", GameClass.Cleric, false, 0, 0, 0, 0, 0, 0, 0, Healing: 125_000, Hps: 4_166.5);
+        var withHealer = record with { Summary = record.Summary with { Combatants = [.. record.Summary.Combatants, healer] } };
+
+        var loaded = store.Load(store.Save(withHealer))!;
+
+        var row = loaded.Summary.Combatants.Single(c => c.ActorId == 9);
+        Assert.Equal(125_000, row.Healing);
+        Assert.Equal(4_166.5, row.Hps);
+    }
+
+    [Fact]
+    public void Fight_saved_before_healing_existed_loads_with_zero_healing()
+    {
+        var store = new HistoryStore(_dir);
+        var path = store.Save(Fight("Berk", 10, boss: true, selfPlace: 1));
+        var legacy = System.Text.RegularExpressions.Regex.Replace(File.ReadAllText(path), ",\"Healing\":[^,}]+,\"Hps\":[^,}]+", "");
+        Assert.DoesNotContain("Healing", legacy);
+        File.WriteAllText(path, legacy);
+
+        var loaded = store.Load(path)!;
+
+        Assert.NotEmpty(loaded.Summary.Combatants);
+        Assert.All(loaded.Summary.Combatants, c =>
+        {
+            Assert.Equal(0, c.Healing);
+            Assert.Equal(0, c.Hps);
+        });
+    }
+
+    [Fact]
+    public void Level_survives_a_save_and_a_load()
+    {
+        var store = new HistoryStore(_dir);
+        var record = Fight("Berk", 10, boss: true, selfPlace: 1);
+        var self = record.Summary.Combatants[0] with { Level = 45 };
+        var withLevel = record with { Summary = record.Summary with { Combatants = [self, .. record.Summary.Combatants.Skip(1)] } };
+
+        var loaded = store.Load(store.Save(withLevel))!;
+
+        Assert.Equal(45, loaded.Summary.Combatants[0].Level);
+    }
+
+    [Fact]
+    public void Fight_saved_before_levels_existed_loads_without_level()
+    {
+        var store = new HistoryStore(_dir);
+        var path = store.Save(Fight("Berk", 10, boss: true, selfPlace: 1));
+        var legacy = System.Text.RegularExpressions.Regex.Replace(File.ReadAllText(path), ",\"Level\":[^,}]+", "");
+        Assert.DoesNotContain("\"Level\"", legacy);
+        File.WriteAllText(path, legacy);
+
+        var loaded = store.Load(path)!;
+
+        Assert.NotEmpty(loaded.Summary.Combatants);
+        Assert.All(loaded.Summary.Combatants, c => Assert.Equal(0, c.Level));
+    }
+
     public void Dispose()
     {
         try { Directory.Delete(_dir, recursive: true); } catch (IOException) { }

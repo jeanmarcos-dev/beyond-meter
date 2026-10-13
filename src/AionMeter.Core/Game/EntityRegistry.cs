@@ -8,6 +8,7 @@ public sealed class PlayerInfo
     public string Name { get; set; } = "";
     public int ServerId { get; set; }
     public GameClass Class { get; set; }
+    public int Level { get; set; }
     /// <summary>Restored from the name cache of a previous run rather than announced in this one.</summary>
     public bool FromCache { get; set; }
     /// <summary>Equipment item level ("GS") from the party roster; 0 = not known.</summary>
@@ -81,7 +82,7 @@ public sealed class EntityRegistry
     /// <summary>Bumped whenever a player's identity or a boss's changes, so the cache knows when to save.</summary>
     public int CacheVersion { get; private set; }
 
-    public void SetSelf(uint actorId, string name, int serverId, GameClass cls)
+    public void SetSelf(uint actorId, string name, int serverId, GameClass cls, int level = 0)
     {
         if (SelfId is { } old && old != actorId)
         {
@@ -91,7 +92,8 @@ public sealed class EntityRegistry
             DropCached();
         }
         SelfId = actorId;
-        UpsertPlayer(actorId, name, serverId, cls);
+        var self = UpsertPlayer(actorId, name, serverId, cls);
+        if (level > 0) self.Level = level;
     }
 
     public PlayerInfo UpsertPlayer(uint actorId, string name, int serverId, GameClass cls)

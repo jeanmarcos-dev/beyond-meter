@@ -1,0 +1,14 @@
+schema: spec-driven
+
+context: |
+  Medidor de DPS pasivo para AION 2. Lee el tráfico del cliente con libpcap/Npcap,
+  nunca inyecta ni modifica paquetes.
+  Stack: C# / .NET 10. AionMeter.Core (captura, protocolo, combate, historial) es
+  compartido; AionMeter.App es la app WPF de Windows del upstream
+  (cyberbadger6969/aion2-dps-meter, GPL-3.0); AionMeter.Overlay es el overlay de
+  Linux en Avalonia 11.3 sobre XWayland; AionMeter.Cli es la CLI.
+  Tests: xUnit en tests/AionMeter.Tests, Avalonia.Headless.XUnit para la UI.
+  Verificación: dotnet test tests/AionMeter.Tests/AionMeter.Tests.csproj y
+  dotnet format --verify-no-changes.
+  Código sin comentarios. Textos de la UI del overlay en español.
+  Los artefactos de OpenSpec se escriben en español.

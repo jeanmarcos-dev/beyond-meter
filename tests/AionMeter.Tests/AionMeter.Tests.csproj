@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="11.3.*" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="K4os.Compression.LZ4" Version="1.3.8" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
@@ -21,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AionMeter.Core\AionMeter.Core.csproj" />
+    <ProjectReference Include="..\..\src\AionMeter.Overlay\AionMeter.Overlay.csproj" />
   </ItemGroup>
 
 </Project>

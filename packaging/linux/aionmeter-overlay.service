@@ -1,0 +1,13 @@
+[Unit]
+Description=AION 2 DPS meter overlay
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/aionmeter-overlay show --hidden
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
