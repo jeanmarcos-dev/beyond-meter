@@ -25,6 +25,11 @@ public sealed class OverlayWindow : Window
     private static readonly IBrush Loss = new SolidColorBrush(Color.FromRgb(0xE5, 0x5B, 0x5B));
     private static readonly IBrush FilterOn = new SolidColorBrush(Color.FromArgb(0x70, 0xF5, 0xC5, 0x42));
 
+    private static readonly IBrush BossRed = new SolidColorBrush(Color.FromRgb(0xB8, 0x32, 0x32));
+    private static readonly IBrush BossTrack = new SolidColorBrush(Color.FromArgb(0x60, 0x40, 0x10, 0x10));
+    private static readonly IBrush LimitAmber = new SolidColorBrush(Color.FromRgb(0xF0, 0xC0, 0x60));
+    private static readonly IBrush LimitRed = new SolidColorBrush(Color.FromRgb(0xFF, 0x55, 0x55));
+
     private static readonly IBrush HistoryTint = new SolidColorBrush(Color.FromRgb(0x7D, 0xC4, 0xFF));
 
     private readonly MeterSession _session;
@@ -38,6 +43,12 @@ public sealed class OverlayWindow : Window
     private readonly TextBlock _time = new() { Foreground = Gold, FontSize = 15, FontWeight = FontWeight.Bold, HorizontalAlignment = HorizontalAlignment.Right };
     private readonly TextBlock _recording = new() { Name = "RecordingBadge", Text = "● REC", Foreground = Brushes.Red, FontSize = 12, FontWeight = FontWeight.Bold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
     private readonly TextBlock _totals = new() { Foreground = Muted, FontSize = 12 };
+    private readonly TextBlock _limit = new() { Name = "TimeLimit", FontSize = 13, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
+    private readonly Grid _bossBar = new() { Name = "BossBar", Height = 16, Margin = new Thickness(0, 5, 0, 0), IsVisible = false };
+    private readonly ColumnDefinition _bossFilled = new(1, GridUnitType.Star);
+    private readonly ColumnDefinition _bossEmpty = new(0, GridUnitType.Star);
+    private readonly TextBlock _bossHp = new() { Name = "BossHp", FontSize = 10.5, FontWeight = FontWeight.SemiBold, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly TextBlock _bossPercent = new() { Name = "BossPercent", FontSize = 10.5, FontWeight = FontWeight.SemiBold, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(6, 0) };
     private readonly TextBlock _source = new() { Foreground = Muted, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right };
     private readonly StackPanel _rows = new();
     private readonly List<RowControl> _rowControls = [];
@@ -379,7 +390,7 @@ public sealed class OverlayWindow : Window
     {
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto"), Background = Brushes.Transparent };
         Place(header, _title, 0, 0);
-        Place(header, new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Children = { _recording, _time } }, 0, 1);
+        Place(header, new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Children = { _recording, _limit, _time } }, 0, 1);
         Place(header, _totals, 1, 0);
         Place(header, _source, 1, 1);
         Place(header, _close, 0, 2);
@@ -455,7 +466,13 @@ public sealed class OverlayWindow : Window
         _filterKills.Click += (_, _) => SetFilter(_session.Filter with { KillsOnly = !_session.Filter.KillsOnly });
         _historyPanel.Child = new StackPanel { Children = { filters, _history } };
 
-        var layout = new StackPanel { Children = { header, _nextBoss, columns, _rows, _skills } };
+        var track = new Grid { ColumnDefinitions = { _bossFilled, _bossEmpty } };
+        track.Children.Add(new Border { Background = BossRed, CornerRadius = new CornerRadius(3) });
+        _bossBar.Children.Add(new Border { Background = BossTrack, CornerRadius = new CornerRadius(3) });
+        _bossBar.Children.Add(track);
+        _bossBar.Children.Add(_bossHp);
+        _bossBar.Children.Add(_bossPercent);
+        var layout = new StackPanel { Children = { header, _bossBar, _nextBoss, columns, _rows, _skills } };
         if (_bossPanel is not null) layout.Children.Add(_bossPanel);
         layout.Children.Add(_toolbar);
         layout.Children.Add(_historyPanel);
@@ -477,6 +494,25 @@ public sealed class OverlayWindow : Window
             _shortcuts = value;
             ShowShortcutHint();
         }
+    }
+
+    private void ShowBossBar(BossBarView? bar)
+    {
+        _bossBar.IsVisible = bar is not null;
+        if (bar is null) return;
+        _bossFilled.Width = new GridLength(Math.Max(bar.Fraction, 0.0001), GridUnitType.Star);
+        _bossEmpty.Width = new GridLength(Math.Max(1 - bar.Fraction, 0.0001), GridUnitType.Star);
+        _bossHp.Text = bar.Text;
+        _bossPercent.Text = bar.Percent;
+    }
+
+    private void ShowLimit(LimitView? limit)
+    {
+        _limit.IsVisible = limit is not null;
+        if (limit is null) return;
+        _limit.Text = limit.Text;
+        _limit.Foreground = limit.Urgent ? LimitRed : LimitAmber;
+        ToolTip.SetTip(_limit, limit.Tip);
     }
 
     public void Refresh()
@@ -505,6 +541,8 @@ public sealed class OverlayWindow : Window
         _source.Text = header.Source;
         _source.Foreground = header.IsLive ? Muted : HistoryTint;
         _frame.BorderBrush = header.IsLive ? (_settings.Locked ? null : Gold) : HistoryTint;
+        ShowBossBar(_settings.ShowBossPanel ? MeterView.BossBar(snapshot) : null);
+        ShowLimit(header.IsLive && !_session.IsReplay ? MeterView.Limit(_session.Tracker.NextTimer(now), now) : null);
 
         var browsing = !_session.IsLive;
         var asking = browsing && _confirmation.IsPending(_session.SelectedFight);

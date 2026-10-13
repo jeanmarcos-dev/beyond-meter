@@ -16,6 +16,10 @@ public sealed record SkillView(string Name, string Hits, string Damage, string S
 
 public sealed record DetailView(string Title, GameClass Class, string Quality, string Extremes, IReadOnlyList<SkillView> Skills, string Level = "");
 
+public sealed record BossBarView(double Fraction, string Text, string Percent);
+
+public sealed record LimitView(string Text, bool Urgent, string Tip);
+
 public sealed record HistoryItemView(string Path, string When, string Title, string Result, string Zone, string Duration, string Players, string Dps, string Place, bool IsBoss);
 
 public static class MeterView
@@ -179,6 +183,30 @@ public static class MeterView
         EncounterEndReason.Wipe => "✖",
         _ => "•",
     };
+
+    public static BossBarView? BossBar(EncounterSnapshot? snapshot)
+    {
+        if (snapshot?.Boss is not { MaxHp: > 0, Hp: >= 0 } boss) return null;
+        var partial = boss switch
+        {
+            { MaxHpKnown: false, Hp: not 0 } => T.HpUnknown,
+            { CountedFrom: { } from } => string.Format(Invariant, T.CountedFrom, Format.Percent(from, 0)),
+            _ => null,
+        };
+        var text = boss.Hp == 0 ? T.Defeated : Format.Grouped(boss.Hp) + " HP" + (partial is null ? "" : " · " + partial);
+        var percent = boss.MaxHpKnown || boss.Hp == 0 ? Format.Percent(boss.HpFraction) : "?";
+        return new BossBarView(boss.HpFraction, text, percent);
+    }
+
+    public static LimitView? Limit(InstanceTimerEvent? timer, long nowMs)
+    {
+        if (timer is null) return null;
+        var left = timer.EndMs - nowMs;
+        var urgent = left < 60_000 || left < (timer.EndMs - timer.StartMs) / 10;
+        var ends = DateTimeOffset.FromUnixTimeMilliseconds(timer.EndMs).ToLocalTime().ToString("HH:mm:ss", Invariant);
+        var tip = string.Format(Invariant, timer.Kind == InstanceTimerEvent.BossLimit ? T.BossLimitTip : T.TimeLimitTip, ends);
+        return new LimitView(Format.ClockShort(left + 999), urgent, tip);
+    }
 
     public static string ReplayText(CaptureStatus status) =>
         status.State == CaptureState.Stopped ? T.OvReplayDone : T.OvReplay;
