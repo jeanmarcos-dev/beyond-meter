@@ -137,6 +137,14 @@ not saved. Fights are captured and saved while the overlay is hidden.
 crash. `quit` and the `✕` button end the process with code 0 and are not restarted. Check it with
 `systemctl --user is-enabled aionmeter-overlay`.
 
+## Ping
+
+The header shows the game's ping next to the fight's clock, taken from the ping the client exchanges with the server
+every ~10 s. On Windows the reply is timed with the same counter the game stamps it with. Under Proton the meter reads
+`CLOCK_MONOTONIC_RAW`, which is what Wine's `QueryPerformanceCounter` runs on; if that ever disagrees with the game's
+own timing it falls back to timing each request against its reply, and the first value can take ~20 s to appear.
+`ShowPing` in the settings file (or *Settings → Overlay*) hides it.
+
 ## Boss respawn timers
 
 The overlay follows the field bosses of the character's server from the boss list of the in-game map, bosses seen
@@ -203,6 +211,7 @@ interface stays in Spanish and its `Language` becomes `NamesLanguage`. `overlay.
 | `RowSize` | `100` | 50–100 | Row size in percent |
 | `ShowGear` | `true` | `true` / `false` | Show GS / CP after the names |
 | `ShowBossPanel` | `true` | `true` / `false` | Show the boss HP bar |
+| `ShowPing` | `true` | `true` / `false` | Show the game's ping in the header |
 | `IdleTimeoutSec` | `10` | 3–120 | Seconds without damage that end a fight |
 | `BossIdleTimeoutSec` | `30` | 5–300 | Same, while a boss is alive |
 | `Language` | `en` | `en`, `es`, `ru` | Interface language |

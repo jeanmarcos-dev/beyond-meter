@@ -57,6 +57,9 @@ driver — see [Installation](#installation).
 - **Time limits from the game** — a boss with a time limit (Ferocious Horn Nuakum: 5 minutes) gets a countdown next to
   the fight's clock, red for the last minute; otherwise the dungeon's own limit (an hour in Ferocious Horn Den) and the
   time left to leave after the last boss.
+- **Your ping** — the game's own ping, read from its connection like everything else (nothing is sent), with signal
+  bars next to the fight's clock: green up to 99 ms, yellow up to 170 ms, red above. It works behind ping boosters such as ExitLag;
+  hide it in *Settings → Overlay*.
 - **Shows up when you fight** — the overlay appears when a boss is fought nearby or you hit anything, and hides again
   60 s after the fight. Lock it in place, make it click-through, set the opacity. It never takes focus from the game.
 - **Full breakdown** — click a player for their fight: DPS timeline against the party, every skill with hits, damage,
