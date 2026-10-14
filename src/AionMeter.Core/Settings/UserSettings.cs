@@ -39,6 +39,7 @@ public sealed partial class UserSettings
     public int RowSize { get; set; } = 100;
     public bool ShowGear { get; set; } = true;
     public bool ShowBossPanel { get; set; } = true;
+    public bool ShowPing { get; set; } = true;
     public int IdleTimeoutSec { get; set; } = 10;
     public int BossIdleTimeoutSec { get; set; } = 30;
     public string Language { get; set; } = "en";
@@ -110,6 +111,7 @@ public sealed partial class UserSettings
         s.RowSize = Int(root, nameof(RowSize), s.RowSize, MinRowSize, MaxRowSize);
         s.ShowGear = Bool(root, nameof(ShowGear), s.ShowGear);
         s.ShowBossPanel = Bool(root, nameof(ShowBossPanel), s.ShowBossPanel);
+        s.ShowPing = Bool(root, nameof(ShowPing), s.ShowPing);
         s.IdleTimeoutSec = Int(root, nameof(IdleTimeoutSec), s.IdleTimeoutSec, 3, 120);
         s.BossIdleTimeoutSec = Int(root, nameof(BossIdleTimeoutSec), s.BossIdleTimeoutSec, 5, 300);
         s.Language = layout is > 0 and < 4 ? "en" : UiText.Normalize(Text(root, nameof(Language)));

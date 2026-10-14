@@ -1,6 +1,7 @@
 using System.Net;
 using AionMeter.Core.Events;
 using AionMeter.Core.Game;
+using AionMeter.Core.Ping;
 using AionMeter.Core.Protocol;
 
 namespace AionMeter.Core.Capture;
@@ -25,11 +26,14 @@ public sealed class PacketPipeline
     private static readonly byte[][] HeartbeatSignatures = [[0x0E, 0x00, 0x36], [0x06, 0x00, 0x36]];
 
     private readonly Dictionary<FlowKey, Flow> _flows = new();
+    private readonly HashSet<FlowKey> _clientSides = new();
+    private readonly Action<GameEvent> _sink;
     private readonly PacketParser _parser;
     private long _lastPruneMs;
 
     public PacketPipeline(GameData data, Action<GameEvent> sink)
     {
+        _sink = sink;
         _parser = new PacketParser(data, sink);
     }
 
@@ -52,6 +56,12 @@ public sealed class PacketPipeline
     {
         Segments++;
         if (timeMs - _lastPruneMs > 10_000) Prune(timeMs);
+
+        if (_clientSides.Contains(key))
+        {
+            if (PingRequest.Detect(payload)) _sink(new PingRequestEvent(timeMs));
+            return;
+        }
 
         if (!_flows.TryGetValue(key, out var flow))
         {
@@ -92,16 +102,20 @@ public sealed class PacketPipeline
 
             var threshold = key.SrcPort == GamePort ? Math.Min(3, LockThreshold) : LockThreshold;
             if (flow.Heartbeats < threshold) return;
-            Lock(flow);
+            Lock(flow, timeMs);
             return;
         }
 
         Feed(flow, seq, payload, timeMs);
     }
 
-    private void Lock(Flow flow)
+    private void Lock(Flow flow, long timeMs)
     {
         flow.IsGame = true;
+        var clientSide = Reverse(flow.Key);
+        _clientSides.Add(clientSide);
+        _flows.Remove(clientSide);
+        _sink(new GameFlowLockedEvent(timeMs));
         var first = flow.PreLock[0];
         var aligned = flow.SynNext is { } isn && isn == first.Seq;
         flow.Decoder = new FrameDecoder(Handle, aligned);
@@ -127,6 +141,8 @@ public sealed class PacketPipeline
         LastGameDataMs = timeMs;
         flow.Reassembler!.Push(seq, payload, timeMs);
     }
+
+    private static FlowKey Reverse(FlowKey key) => new(key.Dst, key.DstPort, key.Src, key.SrcPort);
 
     private void Handle(ushort opcode, ReadOnlySpan<byte> body) => _parser.Handle(opcode, body);
 
@@ -158,7 +174,11 @@ public sealed class PacketPipeline
         foreach (var (k, f) in _flows)
             if (nowMs - f.LastSeenMs > FlowIdleMs) (dead ??= new()).Add(k);
         if (dead is not null)
-            foreach (var k in dead) _flows.Remove(k);
+            foreach (var k in dead)
+            {
+                _flows.Remove(k);
+                _clientSides.Remove(Reverse(k));
+            }
     }
 
     private sealed class Flow(FlowKey key)

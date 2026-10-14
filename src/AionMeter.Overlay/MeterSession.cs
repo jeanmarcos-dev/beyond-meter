@@ -2,6 +2,7 @@ using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
 using AionMeter.Core.Demo;
 using AionMeter.Core.Events;
+using AionMeter.Core.Ping;
 using AionMeter.Core.Storage;
 using AionMeter.Core.Timers;
 
@@ -27,9 +28,13 @@ public sealed class MeterSession : IDisposable
     private bool _demoFight;
     private IEventSource? _fileReplay;
     private volatile bool _replayingFile;
+    private readonly IPerfClock? _perfClock;
+    private volatile PingTracker _ping;
 
-    public MeterSession(CombatTracker tracker, HistoryStore history, IEventSource? capture, NameCache? names, HistoryPolicy policy, BossTimers? timers = null, string? capturesDirectory = null, bool replay = false)
+    public MeterSession(CombatTracker tracker, HistoryStore history, IEventSource? capture, NameCache? names, HistoryPolicy policy, BossTimers? timers = null, string? capturesDirectory = null, bool replay = false, IPerfClock? perfClock = null)
     {
+        _perfClock = replay ? null : perfClock;
+        _ping = new PingTracker(_perfClock);
         _timers = timers;
         _capturesDirectory = capturesDirectory;
         IsReplay = replay;
@@ -85,7 +90,7 @@ public sealed class MeterSession : IDisposable
     public void Start()
     {
         if (_capture is null) return;
-        _capture.EventDecoded += Tracker.Process;
+        _capture.EventDecoded += Route;
         if (IsReplay) _capture.StatusChanged += OnReplayStatus;
         _capture.Start();
     }
@@ -105,15 +110,17 @@ public sealed class MeterSession : IDisposable
         Tracker.Reset();
         ShowLive();
         _replayingFile = true;
-        if (_capture is not null) _capture.EventDecoded -= Tracker.Process;
-        replay.EventDecoded += Tracker.Process;
+        _ping = new PingTracker(null);
+        if (_capture is not null) _capture.EventDecoded -= Route;
+        replay.EventDecoded += Route;
         replay.StatusChanged += status =>
         {
             if (status.State != CaptureState.Stopped || !_replayingFile) return;
             Tracker.Tick(Tracker.LastEventMs + ReplayCloseMs);
             _savedNamesVersion = Tracker.CacheVersion;
             _replayingFile = false;
-            if (_capture is not null) _capture.EventDecoded += Tracker.Process;
+            _ping = new PingTracker(_perfClock);
+            if (_capture is not null) _capture.EventDecoded += Route;
         };
         _fileReplay = replay;
         replay.Start();
@@ -200,6 +207,8 @@ public sealed class MeterSession : IDisposable
         return -1;
     }
 
+    public int? Ping(long nowMs) => _ping.Current(IsReplay || _replayingFile ? Tracker.LastEventMs : nowMs);
+
     public EncounterSnapshot? Current(long nowMs) =>
         SelectedSegment is { } segment ? Tracker.Snapshot(segment, nowMs)
         : SelectedFight is null ? Tracker.Snapshot(null, nowMs) : LoadedRecord()?.Summary;
@@ -257,10 +266,17 @@ public sealed class MeterSession : IDisposable
 
     private void StopCapture()
     {
+        _ping.Reset();
         if (_capture is null) return;
-        _capture.EventDecoded -= Tracker.Process;
+        _capture.EventDecoded -= Route;
         _capture.StatusChanged -= OnReplayStatus;
         _capture.Dispose();
+    }
+
+    private void Route(GameEvent e)
+    {
+        Tracker.Process(e);
+        _ping.Process(e);
     }
 
     private void OnReplayStatus(CaptureStatus status)

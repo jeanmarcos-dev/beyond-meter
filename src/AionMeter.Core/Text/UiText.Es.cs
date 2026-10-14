@@ -254,6 +254,7 @@ public sealed partial class UiText
         BarsRelative = "Barras relativas al primer jugador",
         BarsRelativeHint = "La barra del primero va llena y las demás se miden contra ella. Desactivado: las barras muestran la parte del daño del grupo.",
         ShowBossPanel = "Mostrar la barra de HP del jefe",
+        ShowPing = "Mostrar el ping",
         ShowGear = "Mostrar GS / CP después de los nombres",
         ShowGearHint =
             "El nivel de equipo y el poder de combate llegan con la lista del grupo: tus compañeros y tú. Los demás jugadores no tienen nada que mostrar. " +

@@ -137,5 +137,11 @@ public sealed record BossTimeLimitEvent(long TimeMs, uint ActorId, long EndMs) :
 /// <summary>Server-side combat state toggle for an NPC (boss engaged / disengaged). KR only so far.</summary>
 public sealed record BattleStateEvent(long TimeMs, uint ActorId, bool InCombat) : GameEvent(TimeMs);
 
+public sealed record PingReplyEvent(long TimeMs, long ClientStamp) : GameEvent(TimeMs);
+
+public sealed record PingRequestEvent(long TimeMs) : GameEvent(TimeMs);
+
+public sealed record GameFlowLockedEvent(long TimeMs) : GameEvent(TimeMs);
+
 /// <summary>A map load. <paramref name="IsTeleport"/> is true for a re-load inside the same map.</summary>
 public sealed record ZoneChangedEvent(long TimeMs, int MapId, string ZoneName, bool IsDungeon, bool IsTeleport = false) : GameEvent(TimeMs);

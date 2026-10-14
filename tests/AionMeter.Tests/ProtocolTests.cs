@@ -74,6 +74,22 @@ public class ProtocolTests
         Assert.IsType<BattleStateEvent>(Assert.Single(Parse(Opcodes.BattleToggle, "FB3E0001")));
     }
 
+    [Fact]
+    public void A_ping_reply_carries_the_client_stamp()
+    {
+        var reply = Assert.IsType<PingReplyEvent>(Assert.Single(Parse(Opcodes.PingReply, "0000" + "342c351604000000" + "006c50c4a0010000" + "00", 5_000)));
+        Assert.Equal(17_552_452_660L, reply.ClientStamp);
+        Assert.Equal(5_000, reply.TimeMs);
+    }
+
+    [Theory]
+    [InlineData("0000342c3516040000")]
+    [InlineData("0100342c351604000000006c50c4a0010000")]
+    public void A_short_or_failed_ping_reply_is_dropped(string hex)
+    {
+        Assert.Empty(Parse(Opcodes.PingReply, hex));
+    }
+
     // A world boss fight (2026-10-10, boss 19505): an Elementalist's hit and a Ranger's third hit of one skill — who, on
     // what, which skill; never how much.
     [Theory]

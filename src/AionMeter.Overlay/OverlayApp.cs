@@ -3,6 +3,7 @@ using AionMeter.Core.Combat;
 using AionMeter.Core.Demo;
 using AionMeter.Core.Game;
 using AionMeter.Core.Logging;
+using AionMeter.Core.Ping;
 using AionMeter.Core.Settings;
 using AionMeter.Core.Storage;
 using AionMeter.Core.Text;
@@ -64,7 +65,7 @@ public sealed class OverlayApp : Application
             : options.Demo ? null : NewLiveCapture(data, settings.CaptureDevice);
         var names = throwAway ? null : new NameCache(Path.Combine(dataHome, "names-cache.json"));
         var board = BossBoard.Create(dataHome, data, dataDirectory, throwAway, desktopPlatform.Alert);
-        var session = new MeterSession(tracker, history, capture, names, new HistoryPolicy(), board.Timers, Path.Combine(dataHome, "captures"), replaying);
+        var session = new MeterSession(tracker, history, capture, names, new HistoryPolicy(), board.Timers, Path.Combine(dataHome, "captures"), replaying, PerfClocks.ForThisMachine());
         var log = new AppLog(Path.Combine(dataHome, "logs"));
         log.Info($"{AppInfo.Name} {SettingsContexts.AppVersion()} on {System.Runtime.InteropServices.RuntimeInformation.OSDescription}");
         session.Log = message => log.Error(message);

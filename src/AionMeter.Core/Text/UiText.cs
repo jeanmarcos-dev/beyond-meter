@@ -316,6 +316,7 @@ public sealed partial class UiText
     public string BarsRelative { get; init; } = "Bars relative to the top player";
     public string BarsRelativeHint { get; init; } = "The leader's bar is full and everyone else is sized against it. Off: bars show share of party damage.";
     public string ShowBossPanel { get; init; } = "Show boss HP bar";
+    public string ShowPing { get; init; } = "Show ping";
     public string ShowGear { get; init; } = "Show GS / CP after names";
     public string ShowGearHint { get; init; } =
         "Gear score and combat power come with the party roster: your party members and you. Other players have none to show. " +
@@ -738,6 +739,7 @@ public sealed partial class UiText
         BarsRelative = "Полосы относительно лидера",
         BarsRelativeHint = "Полоса лидера полная, остальные — пропорционально ему. Выключено: полосы показывают долю урона группы.",
         ShowBossPanel = "Показывать полосу HP босса",
+        ShowPing = "Показывать пинг",
         ShowGear = "Показывать GS / CP после ников",
         ShowGearHint = "GS и CP сервер присылает в составе группы: они есть у членов вашей группы и у вас. У остальных игроков их нет. " +
                        "На узком оверлее колонки прячутся, чтобы влезли цифры боя: сделайте оверлей шире или строки меньше.",

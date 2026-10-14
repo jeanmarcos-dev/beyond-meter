@@ -90,6 +90,14 @@ public sealed class UserSettingsTests : IDisposable
     }
 
     [Fact]
+    public void The_ping_is_shown_unless_turned_off()
+    {
+        Assert.True(new UserSettings().ShowPing);
+        Assert.True(UserSettings.Parse(WpfSettings).ShowPing);
+        Assert.False(UserSettings.Parse(new UserSettings { ShowPing = false }.ToJson()).ShowPing);
+    }
+
+    [Fact]
     public void Out_of_range_values_are_clamped()
     {
         var s = UserSettings.Parse("""{"MaxRows": 99, "RowSize": 10, "BackgroundOpacity": 5, "IdleTimeoutSec": 1, "BossAlertMinutes": -3, "OverlayWidth": 50}""");

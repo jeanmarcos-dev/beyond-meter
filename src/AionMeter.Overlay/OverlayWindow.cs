@@ -30,6 +30,7 @@ public sealed class OverlayWindow : Window
     private static readonly IBrush BossTrack = new SolidColorBrush(Color.FromArgb(0x60, 0x40, 0x10, 0x10));
     private static readonly IBrush LimitAmber = new SolidColorBrush(Color.FromRgb(0xF0, 0xC0, 0x60));
     private static readonly IBrush LimitRed = new SolidColorBrush(Color.FromRgb(0xFF, 0x55, 0x55));
+    private static readonly IBrush PingYellow = new SolidColorBrush(Color.FromRgb(0xE6, 0xE0, 0x3A));
 
     private static readonly IBrush HistoryTint = new SolidColorBrush(Color.FromRgb(0x7D, 0xC4, 0xFF));
 
@@ -45,6 +46,8 @@ public sealed class OverlayWindow : Window
     private readonly TextBlock _recording = new() { Name = "RecordingBadge", Text = "● REC", Foreground = Brushes.Red, FontSize = 12, FontWeight = FontWeight.Bold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
     private readonly TextBlock _totals = new() { Foreground = Muted, FontSize = 12 };
     private readonly TextBlock _limit = new() { Name = "TimeLimit", FontSize = 13, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
+    private readonly TextBlock _ping = new() { Name = "Ping", FontSize = 13, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+    private readonly StackPanel _pingBars = SignalBars();
     private readonly Grid _bossBar = new() { Name = "BossBar", Height = 16, Margin = new Thickness(0, 5, 0, 0), IsVisible = false };
     private readonly ColumnDefinition _bossFilled = new(1, GridUnitType.Star);
     private readonly ColumnDefinition _bossEmpty = new(0, GridUnitType.Star);
@@ -474,7 +477,7 @@ public sealed class OverlayWindow : Window
     {
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto"), Background = Brushes.Transparent };
         Place(header, _title, 0, 0);
-        Place(header, new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Children = { _recording, _limit, _time } }, 0, 1);
+        Place(header, new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Children = { _recording, _limit, _pingBars, _ping, _time } }, 0, 1);
         Place(header, _totals, 1, 0);
         Place(header, _source, 1, 1);
         Place(header, _close, 0, 2);
@@ -594,6 +597,30 @@ public sealed class OverlayWindow : Window
         _bossPercent.Text = bar.Percent;
     }
 
+    private static StackPanel SignalBars()
+    {
+        var bars = new StackPanel { Name = "PingBars", Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) };
+        foreach (var height in new[] { 4.0, 7.0, 10.0, 13.0 })
+            bars.Children.Add(new Avalonia.Controls.Shapes.Rectangle { Width = 3, Height = height, VerticalAlignment = VerticalAlignment.Bottom });
+        return bars;
+    }
+
+    private void ShowPing(PingView? ping)
+    {
+        _ping.IsVisible = _pingBars.IsVisible = ping is not null;
+        if (ping is null) return;
+        var brush = ping.Level switch
+        {
+            PingLevel.Good => Win,
+            PingLevel.Fair => PingYellow,
+            PingLevel.Poor => LimitRed,
+            _ => Muted,
+        };
+        _ping.Text = ping.Text;
+        _ping.Foreground = brush;
+        foreach (var bar in _pingBars.Children.Cast<Avalonia.Controls.Shapes.Rectangle>()) bar.Fill = brush;
+    }
+
     private void ShowLimit(LimitView? limit)
     {
         _limit.IsVisible = limit is not null;
@@ -637,6 +664,7 @@ public sealed class OverlayWindow : Window
         _updateBanner.IsVisible = banner is not null;
         _updateBanner.Content = banner;
         ShowLimit(header.IsLive && !replaying ? MeterView.Limit(_session.Tracker.NextTimer(now), now) : null);
+        ShowPing(_settings.ShowPing ? MeterView.Ping(_session.Ping(now)) : null);
 
         var browsing = !_session.IsLive;
         var asking = browsing && _confirmation.IsPending(_session.SelectedFight);

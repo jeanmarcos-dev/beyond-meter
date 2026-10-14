@@ -75,6 +75,7 @@ public sealed class SettingsWindow : Window
     public ComboBox NamesBox { get; } = Choices(nameof(NamesBox));
     public CheckBox BarsRelative { get; } = Check(nameof(BarsRelative));
     public CheckBox ShowBoss { get; } = Check(nameof(ShowBoss));
+    public CheckBox ShowPing { get; } = Check(nameof(ShowPing));
     public CheckBox ShowGear { get; } = Check(nameof(ShowGear));
     public CheckBox AutoShow { get; } = Check(nameof(AutoShow));
     public TextBox AutoHide { get; } = Number(nameof(AutoHide));
@@ -116,6 +117,7 @@ public sealed class SettingsWindow : Window
         s.NamesLanguage = NamesBox.SelectedIndex <= 0 ? null : _context.NamesLanguages[NamesBox.SelectedIndex - 1];
         s.BarsRelativeToTop = BarsRelative.IsChecked == true;
         s.ShowBossPanel = ShowBoss.IsChecked == true;
+        s.ShowPing = ShowPing.IsChecked == true;
         s.ShowGear = ShowGear.IsChecked == true;
         s.AutoShow = AutoShow.IsChecked == true;
         s.AutoHideSeconds = Read(AutoHide, s.AutoHideSeconds, 0, 600);
@@ -162,6 +164,7 @@ public sealed class SettingsWindow : Window
         Toggle(BarsRelative, t.BarsRelative, _draft.BarsRelativeToTop);
         Hint(t.BarsRelativeHint);
         Toggle(ShowBoss, t.ShowBossPanel, _draft.ShowBossPanel);
+        Toggle(ShowPing, t.ShowPing, _draft.ShowPing);
         Toggle(ShowGear, t.ShowGear, _draft.ShowGear);
         Toggle(AutoShow, t.AutoShow, _draft.AutoShow);
         Row(t.AutoHide, Fill(AutoHide, _draft.AutoHideSeconds));

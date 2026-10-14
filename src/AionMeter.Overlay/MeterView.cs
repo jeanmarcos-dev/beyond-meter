@@ -13,6 +13,16 @@ public sealed record RowView(uint ActorId, int Place, string Name, GameClass Cla
 
 public sealed record HeaderView(string Title, string Time, string Totals, string Source, bool IsLive, bool Recording = false);
 
+public enum PingLevel
+{
+    None,
+    Good,
+    Fair,
+    Poor,
+}
+
+public sealed record PingView(string Text, PingLevel Level);
+
 public sealed record SkillView(string Name, string Hits, string Damage, string Share, string Max, string Crit, string Back);
 
 public sealed record DetailView(string Title, GameClass Class, string Quality, string Extremes, IReadOnlyList<SkillView> Skills, string Level = "");
@@ -156,6 +166,15 @@ public static class MeterView
         var totals = mode == ViewMode.Healing ? HealingTotals(snapshot) : string.Format(Invariant, T.OvDamageTotals, Compact(snapshot.TotalDamage), Compact(snapshot.PartyDps));
         return new HeaderView(title, Duration(snapshot.CombatMs), totals, source, live, recording);
     }
+
+    public static PingView Ping(int? ms) => ms is not { } value
+        ? new PingView("— ms", PingLevel.None)
+        : new PingView(value.ToString(Invariant) + " ms", value switch
+        {
+            < 100 => PingLevel.Good,
+            <= 170 => PingLevel.Fair,
+            _ => PingLevel.Poor,
+        });
 
     private static string HealingTotals(EncounterSnapshot snapshot) =>
         string.Format(Invariant, T.OvHealingTotals, Compact(snapshot.Combatants.Sum(c => c.Healing)), Compact(snapshot.Combatants.Sum(c => c.Hps)));

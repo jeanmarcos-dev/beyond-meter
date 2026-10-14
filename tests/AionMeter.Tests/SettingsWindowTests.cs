@@ -69,6 +69,18 @@ public sealed class SettingsWindowTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void The_ping_toggle_starts_on_and_turns_the_ping_off()
+    {
+        var (window, _) = Open();
+        var dialog = OpenSettings(window);
+        Assert.True(dialog.ShowPing.IsChecked);
+
+        dialog.ShowPing.IsChecked = false;
+
+        Assert.False(dialog.Collect().ShowPing);
+    }
+
+    [AvaloniaFact]
     public void Numbers_out_of_range_are_clamped_and_unreadable_ones_keep_their_value()
     {
         var (window, _) = Open();

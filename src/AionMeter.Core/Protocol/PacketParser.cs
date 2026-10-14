@@ -97,6 +97,9 @@ public sealed class PacketParser
             case Opcodes.BattleToggle:
                 ParseBattleToggle(body);
                 break;
+            case Opcodes.PingReply:
+                ParsePingReply(body);
+                break;
             default:
                 // Identity records also ride inside other packets: mid-packet, and inside LZ4 bundles embedded in a
                 // larger packet (the self record repeats that way every few minutes after a zone load).
@@ -800,6 +803,12 @@ public sealed class PacketParser
         if (!Wire.TryU8(b, ref o, out var len) || len is < 1 or > 36 || o + len > b.Length) return;
         if (Wire.TryName(b.Slice(o, len), out var name))
             Emit(new PlayerSeenEvent(TimeMs, killer, name, server, GameClass.Unknown));
+    }
+
+    private void ParsePingReply(ReadOnlySpan<byte> b)
+    {
+        if (b.Length < 10 || b[0] != 0 || b[1] != 0) return;
+        Emit(new PingReplyEvent(TimeMs, BinaryPrimitives.ReadInt64LittleEndian(b[2..])));
     }
 
     /// <summary><c>mob varint, varint, toggle varint</c> (1 = engaged, 0 = left combat) — seen on Global for every mob.</summary>
