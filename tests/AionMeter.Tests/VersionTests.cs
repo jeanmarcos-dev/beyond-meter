@@ -11,7 +11,7 @@ public sealed class VersionTests
     {
         var expected = UpdateFeed.ParseVersion(Repository.BuildProperty("Version"));
 
-        Assert.Equal(new Version(2, 0, 0), expected);
+        Assert.Equal(new Version(2, 1, 0), expected);
         Assert.Equal(expected, UpdateFeed.Normalize(typeof(CombatTracker).Assembly.GetName().Version!));
         Assert.Equal(expected, UpdateFeed.Normalize(typeof(OverlayWindow).Assembly.GetName().Version!));
     }
