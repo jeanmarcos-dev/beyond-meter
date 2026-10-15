@@ -60,6 +60,8 @@ driver — see [Installation](#installation).
 - **Your ping** — the game's own ping, read from its connection like everything else (nothing is sent), with signal
   bars next to the fight's clock: green up to 99 ms, yellow up to 170 ms, red above. It works behind ping boosters such as ExitLag;
   hide it in *Settings → Overlay*.
+- **Your layout** — the `⚙` in the overlay's header shows or hides each part: ping, clock, totals, boss bar, each
+  column and each button. Drag the left or right edge to change the width and the bottom edge to add or remove rows.
 - **Shows up when you fight** — the overlay appears when a boss is fought nearby or you hit anything, and hides again
   60 s after the fight. Lock it in place, make it click-through, set the opacity. It never takes focus from the game.
 - **Full breakdown** — click a player for their fight: DPS timeline against the party, every skill with hits, damage,

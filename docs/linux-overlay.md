@@ -137,6 +137,18 @@ not saved. Fights are captured and saved while the overlay is hidden.
 crash. `quit` and the `✕` button end the process with code 0 and are not restarted. Check it with
 `systemctl --user is-enabled aionmeter-overlay`.
 
+## Layout and size
+
+The `⚙` button in the header opens a menu to show or hide each part of the overlay: the ping, the fight's clock, the
+total and group line, the status (live, history or replay), the boss HP bar, the next-boss line, each column (DPS,
+damage, %, crit), each toolbar button and the shortcut hints. Hiding every button hides the toolbar. `More settings…`
+at the end opens the Settings window. The choice is saved in `HiddenParts`; the ping and the boss bar keep using
+`ShowPing` and `ShowBossPanel`.
+
+Drag the left or right edge to change the width; the left edge moves the window so its right edge stays put. Drag
+the bottom edge to add or remove player rows, one row at a time (empty rows show while dragging), or a bottom corner
+to do both. The top edge moves the window. While locked, the menu and the edges are off.
+
 ## Ping
 
 The header shows the game's ping next to the fight's clock, taken from the ping the client exchanges with the server
@@ -159,7 +171,7 @@ timers and never notifies.
 
 ## Settings
 
-The `⚙` button in the toolbar, `Settings…` in the tray menu and `aionmeter-overlay settings` open the Settings
+`More settings…` in the `⚙` menu, `Settings…` in the tray menu and `aionmeter-overlay settings` open the Settings
 window. It has the same sections as the Windows app: language, overlay, meter, history, capture, hotkeys, updates and
 data. `Save` applies every change at once, without restarting; `Cancel` leaves the settings and the file untouched.
 On Linux the network adapter list and the hotkey fields are hidden: the capture picks the game connection by itself,
@@ -184,8 +196,8 @@ install starts in English; an install updated from an older version keeps Spanis
 
 `~/.config/aionmeter/settings.json` (or `$XDG_CONFIG_HOME/aionmeter/settings.json`), the same format as the Windows
 app. Every key is optional. A value out of range is clamped to the nearest limit; an unreadable value falls back to
-its default without affecting the rest. Position, width, lock state and the breakdown size are written by the overlay
-itself; change the others in Settings, or edit the file and run `aionmeter-overlay reload`.
+its default without affecting the rest. Position, width, rows, lock state, hidden parts and the breakdown size are
+written by the overlay itself; change the others in Settings, or edit the file and run `aionmeter-overlay reload`.
 
 The first time the overlay starts without `settings.json`, it imports the old `overlay.json` once: position, width,
 lock, rows, target mode, timeouts, history, opacities, alert, auto-hide and breakdown size keep their values, the
@@ -212,6 +224,7 @@ interface stays in Spanish and its `Language` becomes `NamesLanguage`. `overlay.
 | `ShowGear` | `true` | `true` / `false` | Show GS / CP after the names |
 | `ShowBossPanel` | `true` | `true` / `false` | Show the boss HP bar |
 | `ShowPing` | `true` | `true` / `false` | Show the game's ping in the header |
+| `HiddenParts` | `[]` | names of parts | Parts hidden from the `⚙` menu: `Clock`, `Totals`, `Source`, `NextBoss`, `DpsColumn`, `DamageColumn`, `ShareColumn`, `CritColumn`, `LiveButton`, `BrowseButtons`, `HistoryButton`, `SkillsButton`, `RespawnsButton`, `ResetButton`, `ViewButton`, `ModeButton`, `CopyButton`, `LockButton`, `LanguageButton`, `Shortcuts` |
 | `IdleTimeoutSec` | `10` | 3–120 | Seconds without damage that end a fight |
 | `BossIdleTimeoutSec` | `30` | 5–300 | Same, while a boss is alive |
 | `Language` | `en` | `en`, `es`, `ru` | Interface language |
