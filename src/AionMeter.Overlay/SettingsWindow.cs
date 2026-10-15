@@ -31,6 +31,7 @@ public sealed class SettingsWindow : Window
     private static readonly IBrush Gold = new SolidColorBrush(Color.FromRgb(0xF5, 0xC5, 0x42));
 
     private readonly UserSettings _draft;
+    private readonly int[] _rowChoices;
     private readonly SettingsContext _context;
     private readonly StackPanel _body = new() { Spacing = 6, Margin = new Thickness(16) };
     private readonly TextBlock _updateState = new() { Foreground = Muted, FontSize = 12, IsVisible = false };
@@ -38,6 +39,7 @@ public sealed class SettingsWindow : Window
     public SettingsWindow(UserSettings current, SettingsContext context)
     {
         _draft = UserSettings.Parse(current.ToJson());
+        _rowChoices = [.. RowChoices.Append(_draft.MaxRows).Distinct().Order()];
         _context = context;
         var t = UiText.Current;
         Title = $"{AppInfo.Name} · {t.SettingsTitle}";
@@ -122,7 +124,7 @@ public sealed class SettingsWindow : Window
         s.AutoShow = AutoShow.IsChecked == true;
         s.AutoHideSeconds = Read(AutoHide, s.AutoHideSeconds, 0, 600);
         s.ShowOnStart = ShowOnStart.IsChecked == true;
-        s.MaxRows = RowChoices[Math.Max(0, MaxRows.SelectedIndex)];
+        s.MaxRows = _rowChoices[Math.Max(0, MaxRows.SelectedIndex)];
         s.BackgroundOpacity = Math.Round(BackgroundOpacity.Value, 2);
         s.LockedOpacity = Math.Round(LockedOpacity.Value, 2);
         s.RowSize = (int)Math.Round(RowSize.Value);
@@ -169,8 +171,8 @@ public sealed class SettingsWindow : Window
         Toggle(AutoShow, t.AutoShow, _draft.AutoShow);
         Row(t.AutoHide, Fill(AutoHide, _draft.AutoHideSeconds));
         Toggle(ShowOnStart, t.ShowOnStart, _draft.ShowOnStart);
-        foreach (var rows in RowChoices) MaxRows.Items.Add(rows.ToString(CultureInfo.InvariantCulture));
-        MaxRows.SelectedIndex = Array.IndexOf(RowChoices, RowChoices.OrderBy(n => Math.Abs(n - _draft.MaxRows)).First());
+        foreach (var rows in _rowChoices) MaxRows.Items.Add(rows.ToString(CultureInfo.InvariantCulture));
+        MaxRows.SelectedIndex = Array.IndexOf(_rowChoices, _draft.MaxRows);
         Row(t.RowsShown, MaxRows);
         BackgroundOpacity.Value = _draft.BackgroundOpacity;
         Row(t.BackgroundOpacity, BackgroundOpacity);

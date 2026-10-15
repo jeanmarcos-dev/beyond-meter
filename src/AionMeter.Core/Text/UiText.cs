@@ -480,6 +480,18 @@ public sealed partial class UiText
     public string OvAlertMinutes { get; init; } = "Boss alert, minutes before respawn (0 = off)";
     public string OvHotkeysDesktop { get; init; } = "On Linux the shortcuts belong to the desktop: bind a key to “aionmeter-overlay toggle” (or lock, reset, timers) in its keyboard settings.";
     public string OvSettingsTip { get; init; } = "Settings";
+    public string LayoutTip { get; init; } = "Show or hide parts";
+    public string LayoutPing { get; init; } = "Ping";
+    public string LayoutClock { get; init; } = "Fight clock";
+    public string LayoutTotals { get; init; } = "Total and group";
+    public string LayoutSource { get; init; } = "Status (live, history)";
+    public string LayoutBossBar { get; init; } = "Boss HP bar";
+    public string LayoutNextBoss { get; init; } = "Next boss";
+    public string LayoutColumns { get; init; } = "Columns";
+    public string LayoutButtons { get; init; } = "Buttons";
+    public string LayoutBrowse { get; init; } = "◀ ▶ Previous and next";
+    public string LayoutShortcuts { get; init; } = "Shortcut hints";
+    public string LayoutMore { get; init; } = "More settings…";
     public string OvVersion { get; init; } = "Version {0}";
     public string OvReplayTitle { get; init; } = "Replay an AION 2 capture";
     public string OvCaptureFiles { get; init; } = "Packet captures";
@@ -900,6 +912,18 @@ public sealed partial class UiText
         OvAlertMinutes = "Оповещение о боссе, минут до возрождения (0 = выкл.)",
         OvHotkeysDesktop = "В Linux сочетания клавиш задаёт рабочий стол: назначьте клавишу на «aionmeter-overlay toggle» (или lock, reset, timers) в настройках клавиатуры.",
         OvSettingsTip = "Настройки",
+        LayoutTip = "Показать или скрыть элементы",
+        LayoutPing = "Пинг",
+        LayoutClock = "Часы боя",
+        LayoutTotals = "Итог и группа",
+        LayoutSource = "Статус (текущий бой, история)",
+        LayoutBossBar = "Полоса HP босса",
+        LayoutNextBoss = "Следующий босс",
+        LayoutColumns = "Столбцы",
+        LayoutButtons = "Кнопки",
+        LayoutBrowse = "◀ ▶ Предыдущий и следующий",
+        LayoutShortcuts = "Подсказки клавиш",
+        LayoutMore = "Другие настройки…",
         OvVersion = "Версия {0}",
         OvReplayTitle = "Воспроизвести запись AION 2",
         OvCaptureFiles = "Захваты пакетов",

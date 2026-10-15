@@ -40,6 +40,7 @@ public sealed partial class UserSettings
     public bool ShowGear { get; set; } = true;
     public bool ShowBossPanel { get; set; } = true;
     public bool ShowPing { get; set; } = true;
+    public SortedSet<OverlayPart> HiddenParts { get; set; } = [];
     public int IdleTimeoutSec { get; set; } = 10;
     public int BossIdleTimeoutSec { get; set; } = 30;
     public string Language { get; set; } = "en";
@@ -112,6 +113,7 @@ public sealed partial class UserSettings
         s.ShowGear = Bool(root, nameof(ShowGear), s.ShowGear);
         s.ShowBossPanel = Bool(root, nameof(ShowBossPanel), s.ShowBossPanel);
         s.ShowPing = Bool(root, nameof(ShowPing), s.ShowPing);
+        s.HiddenParts = Parts(root, nameof(HiddenParts));
         s.IdleTimeoutSec = Int(root, nameof(IdleTimeoutSec), s.IdleTimeoutSec, 3, 120);
         s.BossIdleTimeoutSec = Int(root, nameof(BossIdleTimeoutSec), s.BossIdleTimeoutSec, 5, 300);
         s.Language = layout is > 0 and < 4 ? "en" : UiText.Normalize(Text(root, nameof(Language)));
@@ -149,6 +151,32 @@ public sealed partial class UserSettings
         File.Move(tmp, path, overwrite: true);
     }
 
+    public bool Shows(OverlayPart part) => part switch
+    {
+        OverlayPart.Ping => ShowPing,
+        OverlayPart.BossBar => ShowBossPanel,
+        _ => !HiddenParts.Contains(part),
+    };
+
+    public void SetShown(OverlayPart part, bool shown)
+    {
+        switch (part)
+        {
+            case OverlayPart.Ping:
+                ShowPing = shown;
+                break;
+            case OverlayPart.BossBar:
+                ShowBossPanel = shown;
+                break;
+            case var other when shown:
+                HiddenParts.Remove(other);
+                break;
+            default:
+                HiddenParts.Add(part);
+                break;
+        }
+    }
+
     public void ApplyTo(MeterOptions options)
     {
         options.TargetMode = TargetMode;
@@ -176,6 +204,19 @@ public sealed partial class UserSettings
         Text(root, name) is { } text && text.All(char.IsAsciiLetter) && Enum.TryParse<T>(text, ignoreCase: true, out var value)
             ? value
             : fallback;
+
+    private static SortedSet<OverlayPart> Parts(JsonElement root, string name)
+    {
+        var parts = new SortedSet<OverlayPart>();
+        if (!root.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Array) return parts;
+        foreach (var item in v.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String && item.GetString() is { } text && text.All(char.IsAsciiLetter)
+                && Enum.TryParse<OverlayPart>(text, ignoreCase: true, out var part) && part is not (OverlayPart.Ping or OverlayPart.BossBar))
+                parts.Add(part);
+        }
+        return parts;
+    }
 
     [GeneratedRegex("^[A-Za-z]{2}(-[A-Za-z]{2,4})?$")]
     private static partial Regex DataLanguage();

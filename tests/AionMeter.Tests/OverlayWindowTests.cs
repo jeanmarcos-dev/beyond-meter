@@ -519,36 +519,6 @@ public sealed class OverlayWindowTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void Dragging_the_grip_resizes_the_window_and_saves_the_width()
-    {
-        var window = Open(new HistoryStore(Path.Combine(_dir, "fights")), out _);
-        var grip = window.GetLogicalDescendants().OfType<Border>().Single(b => b.Name == "WidthGrip");
-        var start = grip.TranslatePoint(new Point(4, 4), window)!.Value;
-        var before = window.Width;
-
-        window.MouseDown(start, MouseButton.Left);
-        window.MouseMove(start + new Point(100, 0));
-        window.MouseUp(start + new Point(100, 0), MouseButton.Left);
-        Dispatcher.UIThread.RunJobs();
-        window.SaveSettings();
-
-        Assert.InRange(window.Width, before + 95, before + 105);
-        Assert.Equal(window.Width, UserSettings.Load(SettingsPath).OverlayWidth, 1);
-    }
-
-    [AvaloniaFact]
-    public void The_grip_is_hidden_while_locked()
-    {
-        var window = Open(new HistoryStore(Path.Combine(_dir, "fights")), out _);
-        var grip = window.GetLogicalDescendants().OfType<Border>().Single(b => b.Name == "WidthGrip");
-        Assert.True(grip.IsEffectivelyVisible);
-
-        window.Apply(OverlayCommand.Lock);
-
-        Assert.False(grip.IsEffectivelyVisible);
-    }
-
-    [AvaloniaFact]
     public void Game_closing_hides_the_window_and_the_game_opening_shows_it()
     {
         var rig = OpenAuto(new UserSettings());

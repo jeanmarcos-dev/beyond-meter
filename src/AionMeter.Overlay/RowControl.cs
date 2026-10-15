@@ -19,6 +19,9 @@ public sealed class RowControl : Grid
     private readonly Run _gearScore = new() { Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xD8, 0x73)) };
     private readonly Run _combatPower = new() { Foreground = new SolidColorBrush(Color.FromRgb(0x8F, 0xDB, 0xFF)) };
     private readonly List<TextBlock> _cells = [];
+    private readonly Grid _text = new() { ColumnDefinitions = Columns(), Margin = new Thickness(6, 0) };
+
+    public static readonly double[] ValueWidths = [64, 64, 40, 40];
 
     public Image ClassIcon { get; } = new() { Width = 16, Height = 16, Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
 
@@ -48,11 +51,7 @@ public sealed class RowControl : Grid
         track.Children.Add(_bar);
         Children.Add(track);
 
-        var text = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,64,64,40,40"),
-            Margin = new Thickness(6, 0),
-        };
+        var text = _text;
         var who = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto,Auto") };
         Place(who, ClassIcon, 0);
         Place(who, _name, 1);
@@ -101,6 +100,35 @@ public sealed class RowControl : Grid
         ToolTip.SetTip(GearScoreText, Core.Text.UiText.Current.TipGs);
         ToolTip.SetTip(CombatPowerText, Core.Text.UiText.Current.TipCp);
     }
+
+    public void ShowEmpty()
+    {
+        IsVisible = true;
+        ActorId = 0;
+        _filled.Width = new GridLength(0.0001, GridUnitType.Star);
+        _empty.Width = new GridLength(1, GridUnitType.Star);
+        _bar.Background = null;
+        _bar.BorderThickness = new Thickness(0);
+        foreach (var cell in _cells) cell.Text = "";
+        ClassIcon.Source = null;
+        LevelText.IsVisible = GearScoreText.IsVisible = CombatPowerText.IsVisible = false;
+    }
+
+    public void ShowColumns(IReadOnlyList<bool> shown) => ShowColumns(_text, _cells, shown);
+
+    public static ColumnDefinitions Columns() => new("*," + string.Join(",", ValueWidths));
+
+    public static void ShowColumns(Grid grid, IReadOnlyList<Control> cells, IReadOnlyList<bool> shown)
+    {
+        for (var i = 0; i < ValueWidths.Length; i++)
+        {
+            grid.ColumnDefinitions[i + 1].Width = new GridLength(shown[i] ? ValueWidths[i] : 0);
+            cells[i + 1].IsVisible = shown[i];
+        }
+    }
+
+    public static double Pitch(int percent) =>
+        Math.Round(BaseHeight * Math.Clamp(percent, Core.Settings.UserSettings.MinRowSize, Core.Settings.UserSettings.MaxRowSize) / 100.0) + 2;
 
     public void ApplySize(int percent)
     {

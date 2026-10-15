@@ -98,6 +98,59 @@ public sealed class UserSettingsTests : IDisposable
     }
 
     [Fact]
+    public void Every_part_of_the_overlay_is_shown_by_default()
+    {
+        var s = new UserSettings();
+
+        Assert.Empty(s.HiddenParts);
+        Assert.All(Enum.GetValues<OverlayPart>(), part => Assert.True(s.Shows(part)));
+        Assert.Empty(UserSettings.Parse(WpfSettings).HiddenParts);
+    }
+
+    [Fact]
+    public void Hidden_parts_survive_a_save_and_load()
+    {
+        var s = new UserSettings();
+        s.SetShown(OverlayPart.Clock, false);
+        s.SetShown(OverlayPart.ShareColumn, false);
+        s.SetShown(OverlayPart.ResetButton, false);
+        s.SetShown(OverlayPart.ResetButton, true);
+
+        var back = UserSettings.Parse(s.ToJson());
+
+        Assert.Equal([OverlayPart.Clock, OverlayPart.ShareColumn], back.HiddenParts.Order());
+        Assert.False(back.Shows(OverlayPart.Clock));
+        Assert.True(back.Shows(OverlayPart.ResetButton));
+    }
+
+    [Fact]
+    public void Unknown_hidden_parts_are_ignored()
+    {
+        var s = UserSettings.Parse("""{"HiddenParts": ["Clock", "Something", 3, "1", "shortcuts"], "MaxRows": 5}""");
+
+        Assert.Equal([OverlayPart.Clock, OverlayPart.Shortcuts], s.HiddenParts.Order());
+        Assert.Equal(5, s.MaxRows);
+        Assert.Empty(UserSettings.Parse("""{"HiddenParts": "Clock"}""").HiddenParts);
+    }
+
+    [Fact]
+    public void The_ping_and_the_boss_bar_keep_their_own_settings()
+    {
+        var s = new UserSettings();
+
+        s.SetShown(OverlayPart.Ping, false);
+        s.SetShown(OverlayPart.BossBar, false);
+
+        Assert.False(s.ShowPing);
+        Assert.False(s.ShowBossPanel);
+        Assert.Empty(s.HiddenParts);
+        Assert.False(s.Shows(OverlayPart.Ping));
+        s.ShowBossPanel = true;
+        Assert.True(s.Shows(OverlayPart.BossBar));
+        Assert.Empty(UserSettings.Parse("""{"HiddenParts": ["Ping", "BossBar"]}""").HiddenParts);
+    }
+
+    [Fact]
     public void Out_of_range_values_are_clamped()
     {
         var s = UserSettings.Parse("""{"MaxRows": 99, "RowSize": 10, "BackgroundOpacity": 5, "IdleTimeoutSec": 1, "BossAlertMinutes": -3, "OverlayWidth": 50}""");

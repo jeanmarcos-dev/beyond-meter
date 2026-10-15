@@ -8,6 +8,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
@@ -42,9 +43,9 @@ public sealed class OverlayWindow : Window
     private readonly DispatcherTimer _timer;
     private readonly Border _frame = new() { CornerRadius = new CornerRadius(8), Padding = new Thickness(8) };
     private readonly TextBlock _title = new() { Name = "FightTitle", Background = Brushes.Transparent, Foreground = Gold, FontSize = 15, FontWeight = FontWeight.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
-    private readonly TextBlock _time = new() { Foreground = Gold, FontSize = 15, FontWeight = FontWeight.Bold, HorizontalAlignment = HorizontalAlignment.Right };
+    private readonly TextBlock _time = new() { Name = "FightClock", Foreground = Gold, FontSize = 15, FontWeight = FontWeight.Bold, HorizontalAlignment = HorizontalAlignment.Right };
     private readonly TextBlock _recording = new() { Name = "RecordingBadge", Text = "● REC", Foreground = Brushes.Red, FontSize = 12, FontWeight = FontWeight.Bold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
-    private readonly TextBlock _totals = new() { Foreground = Muted, FontSize = 12 };
+    private readonly TextBlock _totals = new() { Name = "Totals", Foreground = Muted, FontSize = 12 };
     private readonly TextBlock _limit = new() { Name = "TimeLimit", FontSize = 13, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
     private readonly TextBlock _ping = new() { Name = "Ping", FontSize = 13, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
     private readonly StackPanel _pingBars = SignalBars();
@@ -53,10 +54,10 @@ public sealed class OverlayWindow : Window
     private readonly ColumnDefinition _bossEmpty = new(0, GridUnitType.Star);
     private readonly TextBlock _bossHp = new() { Name = "BossHp", FontSize = 10.5, FontWeight = FontWeight.SemiBold, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0), TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock _bossPercent = new() { Name = "BossPercent", FontSize = 10.5, FontWeight = FontWeight.SemiBold, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(6, 0) };
-    private readonly TextBlock _source = new() { Foreground = Muted, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right };
+    private readonly TextBlock _source = new() { Name = "Source", Foreground = Muted, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right };
     private readonly StackPanel _rows = new();
     private readonly List<RowControl> _rowControls = [];
-    private readonly WrapPanel _toolbar = new() { ItemSpacing = 4, LineSpacing = 4, Margin = new Thickness(0, 6, 0, 0) };
+    private readonly WrapPanel _toolbar = new() { Name = "Toolbar", ItemSpacing = 4, LineSpacing = 4, Margin = new Thickness(0, 6, 0, 0) };
     private readonly ListBox _history = new() { MaxHeight = 260, Background = Brushes.Transparent };
     private readonly Border _historyPanel = new() { Margin = new Thickness(0, 6, 0, 0), IsVisible = false };
     private readonly SkillPanel _skills = new() { IsVisible = false };
@@ -66,18 +67,22 @@ public sealed class OverlayWindow : Window
     private readonly TextBlock _nextBoss = new() { Foreground = Gold, FontSize = 12, Margin = new Thickness(6, 2), IsVisible = false, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock _shortcutHint = new() { Name = "ShortcutHint", FontSize = 11, Foreground = Muted, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, IsVisible = false };
     private IReadOnlyDictionary<OverlayCommand, string> _shortcuts = new Dictionary<OverlayCommand, string>();
-    private readonly Border _grip = new() { Name = "WidthGrip", Width = 18, Height = 14, Background = Brushes.Transparent, Cursor = new Cursor(StandardCursorType.SizeWestEast), HorizontalAlignment = HorizontalAlignment.Right, Child = new TextBlock { Text = "⇔", Foreground = Muted, VerticalAlignment = VerticalAlignment.Center } };
-    private Control? _columnHeader;
+    private Grid? _columnHeader;
     private bool _bossPanelOpen;
-    private bool _resizing;
-    private double _resizeStartX;
-    private double _resizeStartWidth;
+    private ResizeEdge _dragEdge;
+    private PixelPoint _dragStart;
+    private PixelPoint _dragPosition;
+    private double _dragWidth;
+    private int _dragRows;
+    private readonly Dictionary<OverlayPart, List<Control>> _partControls = [];
+    private readonly List<(OverlayPart Part, MenuItem Item)> _partItems = [];
+    private static readonly OverlayPart[] ColumnParts = [OverlayPart.DpsColumn, OverlayPart.DamageColumn, OverlayPart.ShareColumn, OverlayPart.CritColumn];
     private readonly Button _mode = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly Button _view = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly List<TextBlock> _columnCells = [];
     private ViewMode _viewMode = ViewMode.Damage;
     private UserSettings _settings;
-    private readonly Button _close = new() { Content = "✕", FontSize = 12, Padding = new Thickness(8, 2), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top };
+    private readonly Button _close = new() { Content = "✕", FontSize = 12, Padding = new Thickness(8, 2), Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top };
     private readonly Button _copy = new() { FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly Button _language = new() { Name = "LanguageButton", FontSize = 12, Padding = new Thickness(8, 2) };
     private readonly List<Action> _texts = [];
@@ -126,6 +131,14 @@ public sealed class OverlayWindow : Window
 
         _frame.Child = BuildLayout();
         Content = _frame;
+        AddHandler(PointerPressedEvent, OnEdgePressed, RoutingStrategies.Tunnel);
+        AddHandler(PointerMovedEvent, OnEdgeMoved, RoutingStrategies.Tunnel);
+        AddHandler(PointerReleasedEvent, OnEdgeReleased, RoutingStrategies.Tunnel);
+        PointerCaptureLost += (_, _) => EndEdgeDrag();
+        PointerExited += (_, _) =>
+        {
+            if (_dragEdge == ResizeEdge.None) HoverEdge(ResizeEdge.None);
+        };
         _rows.PointerWheelChanged += (_, e) =>
         {
             if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.Delta.Y == 0) return;
@@ -139,6 +152,7 @@ public sealed class OverlayWindow : Window
             e.Handled = true;
         };
         ApplyTexts();
+        ApplyParts();
 
         _session.History.Changed += () => Dispatcher.UIThread.Post(() => _historyDirty = true);
         _history.SelectionChanged += (_, _) =>
@@ -160,6 +174,16 @@ public sealed class OverlayWindow : Window
     public const int RowSizeStep = 5;
 
     public Func<SettingsContext>? SettingsSource { get; set; }
+
+    public Button LayoutButton { get; } = new() { Name = "LayoutButton", Content = "⚙", FontSize = 16, Padding = new Thickness(7, 0), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top };
+
+    public ResizeEdge EdgeUnderPointer { get; private set; }
+
+    public IReadOnlyList<MenuItem> LayoutMenu()
+    {
+        SyncLayoutMenu();
+        return ((MenuFlyout)LayoutButton.Flyout!).Items.OfType<MenuItem>().ToList();
+    }
 
     public UpdateWindow? UpdateDialog { get; private set; }
 
@@ -276,6 +300,7 @@ public sealed class OverlayWindow : Window
         settings.Locked = previous.Locked;
         settings.BreakdownWidth = previous.BreakdownWidth;
         settings.BreakdownHeight = previous.BreakdownHeight;
+        settings.HiddenParts = previous.HiddenParts;
         _settings = settings;
         if (_images is not null) _images.Enabled = settings.DownloadIcons;
         EnsureRows(settings.MaxRows);
@@ -289,6 +314,7 @@ public sealed class OverlayWindow : Window
             LanguageChanged?.Invoke();
         }
         ApplyLock();
+        ApplyParts();
         SettingsChanged?.Invoke(previous, settings);
         Refresh();
     }
@@ -339,7 +365,11 @@ public sealed class OverlayWindow : Window
             _rows.Children.Remove(_rowControls[^1]);
             _rowControls.RemoveAt(_rowControls.Count - 1);
         }
+        var columns = ColumnsShown();
+        foreach (var row in _rowControls) row.ShowColumns(columns);
     }
+
+    private bool[] ColumnsShown() => [.. ColumnParts.Select(_settings.Shows)];
 
     private void ApplyTexts()
     {
@@ -413,6 +443,7 @@ public sealed class OverlayWindow : Window
                 _settings = Reloaded();
                 _tune(_settings);
                 ApplyLock();
+                ApplyParts();
                 break;
             case OverlayCommand.Settings:
                 OpenSettings();
@@ -475,12 +506,16 @@ public sealed class OverlayWindow : Window
 
     private Control BuildLayout()
     {
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto"), Background = Brushes.Transparent };
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto"), Background = Brushes.Transparent };
         Place(header, _title, 0, 0);
         Place(header, new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Children = { _recording, _limit, _pingBars, _ping, _time } }, 0, 1);
         Place(header, _totals, 1, 0);
         Place(header, _source, 1, 1);
-        Place(header, _close, 0, 2);
+        Place(header, LayoutButton, 0, 2);
+        Grid.SetRowSpan(LayoutButton, 2);
+        LayoutButton.Flyout = LayoutFlyout();
+        Text(() => ToolTip.SetTip(LayoutButton, UiText.Current.LayoutTip));
+        Place(header, _close, 0, 3);
         Grid.SetRowSpan(_close, 2);
         _close.Click += (_, _) => Apply(OverlayCommand.Quit);
         header.PointerPressed += (_, e) =>
@@ -488,7 +523,7 @@ public sealed class OverlayWindow : Window
             if (!_settings.Locked && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e);
         };
 
-        var columns = new Grid { ColumnDefinitions = new ColumnDefinitions("*,64,64,40,40"), Margin = new Thickness(6, 4, 6, 2) };
+        var columns = new Grid { ColumnDefinitions = RowControl.Columns(), Margin = new Thickness(6, 4, 6, 2) };
         _columnHeader = columns;
         var names = MeterView.Columns(ViewMode.Damage);
         for (var i = 0; i < names.Count; i++)
@@ -499,10 +534,10 @@ public sealed class OverlayWindow : Window
             _columnCells.Add(cell);
         }
 
-        _toolbar.Children.Add(ToolButton(t => t.Live, () => Apply(OverlayCommand.Live)));
-        _toolbar.Children.Add(ToolButton(_ => "◀", () => Apply(OverlayCommand.Older)));
-        _toolbar.Children.Add(ToolButton(_ => "▶", () => Apply(OverlayCommand.Newer)));
-        _toolbar.Children.Add(ToolButton(t => t.OvHistory, ToggleHistory));
+        _toolbar.Children.Add(Part(OverlayPart.LiveButton, ToolButton(t => t.Live, () => Apply(OverlayCommand.Live))));
+        _toolbar.Children.Add(Part(OverlayPart.BrowseButtons, ToolButton(_ => "◀", () => Apply(OverlayCommand.Older))));
+        _toolbar.Children.Add(Part(OverlayPart.BrowseButtons, ToolButton(_ => "▶", () => Apply(OverlayCommand.Newer))));
+        _toolbar.Children.Add(Part(OverlayPart.HistoryButton, ToolButton(t => t.OvHistory, ToggleHistory)));
         var deleteAsk = new TextBlock { Foreground = Gold, FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
         Text(() => deleteAsk.Text = UiText.Current.OvDeleteAsk);
         _confirmBar.Children.Add(deleteAsk);
@@ -513,23 +548,19 @@ public sealed class OverlayWindow : Window
         _delete.Click += (_, _) => RequestDelete();
         _confirmYes.Click += (_, _) => ConfirmDelete();
         _confirmNo.Click += (_, _) => CancelDelete();
-        _toolbar.Children.Add(ToolButton(t => t.OvMySkills, () => Apply(OverlayCommand.Skills)));
-        if (_bossPanel is not null) _toolbar.Children.Add(ToolButton(t => t.OvRespawns, () => Apply(OverlayCommand.Timers)));
-        _toolbar.Children.Add(ToolButton(t => t.OvReset, () => Apply(OverlayCommand.Reset)));
-        _toolbar.Children.Add(_view);
+        _toolbar.Children.Add(Part(OverlayPart.SkillsButton, ToolButton(t => t.OvMySkills, () => Apply(OverlayCommand.Skills))));
+        if (_bossPanel is not null) _toolbar.Children.Add(Part(OverlayPart.RespawnsButton, ToolButton(t => t.OvRespawns, () => Apply(OverlayCommand.Timers))));
+        _toolbar.Children.Add(Part(OverlayPart.ResetButton, ToolButton(t => t.OvReset, () => Apply(OverlayCommand.Reset))));
+        _toolbar.Children.Add(Part(OverlayPart.ViewButton, _view));
         _view.Click += (_, _) => Apply(OverlayCommand.Heal);
-        _toolbar.Children.Add(_mode);
+        _toolbar.Children.Add(Part(OverlayPart.ModeButton, _mode));
         _mode.Click += (_, _) => Apply(OverlayCommand.Mode);
-        _toolbar.Children.Add(_copy);
+        _toolbar.Children.Add(Part(OverlayPart.CopyButton, _copy));
         _copy.Click += (_, _) => Apply(OverlayCommand.Copy);
         _skills.DetailButton.Click += (_, _) => OpenBreakdown(_session.Detail(CurrentSnapshot())?.ActorId);
         _skills.CopyButton.Click += (_, _) => _ = Copy(DetailLine(), _skills.CopyButton, SkillPanel.CopyLabel);
-        _toolbar.Children.Add(ToolButton(t => t.OvLock, () => Apply(OverlayCommand.Lock)));
-        _toolbar.Children.Add(_language);
-        var settings = new Button { Content = "⚙", FontSize = 12, Padding = new Thickness(8, 2) };
-        settings.Click += (_, _) => Apply(OverlayCommand.Settings);
-        Text(() => ToolTip.SetTip(settings, UiText.Current.OvSettingsTip));
-        _toolbar.Children.Add(settings);
+        _toolbar.Children.Add(Part(OverlayPart.LockButton, ToolButton(t => t.OvLock, () => Apply(OverlayCommand.Lock))));
+        _toolbar.Children.Add(Part(OverlayPart.LanguageButton, _language));
         _language.Flyout = LanguageMenu();
         Text(() => _copy.Content = CopyLabel);
         Text(() => _filterBosses.Content = UiText.Current.OvBossesOnly);
@@ -542,10 +573,6 @@ public sealed class OverlayWindow : Window
             _language.Content = UiText.Current.Code.ToUpperInvariant();
             ToolTip.SetTip(_language, UiText.Current.LanguageMenu);
         });
-        _grip.PointerPressed += OnGripPressed;
-        _grip.PointerMoved += OnGripMoved;
-        _grip.PointerReleased += (_, e) => EndResize(e.Pointer);
-        _grip.PointerCaptureLost += (_, _) => EndResize(null);
 
         _history.ItemTemplate = new FuncDataTemplate<HistoryItemView?>((item, _) => item is null ? new Panel() : HistoryLine(item), supportsRecycling: false);
         var openFolder = new Button { Name = "HistoryFolder", Content = "📂", FontSize = 11, Padding = new Thickness(6, 1) };
@@ -567,11 +594,8 @@ public sealed class OverlayWindow : Window
         if (_bossPanel is not null) layout.Children.Add(_bossPanel);
         layout.Children.Add(_toolbar);
         layout.Children.Add(_historyPanel);
-        var footer = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 4, 0, 0) };
-        footer.Children.Add(_shortcutHint);
-        Grid.SetColumn(_grip, 1);
-        footer.Children.Add(_grip);
-        layout.Children.Add(footer);
+        _shortcutHint.Margin = new Thickness(0, 4, 0, 0);
+        layout.Children.Add(_shortcutHint);
         return layout;
     }
 
@@ -670,6 +694,7 @@ public sealed class OverlayWindow : Window
         var asking = browsing && _confirmation.IsPending(_session.SelectedFight);
         _delete.IsVisible = browsing && !asking;
         _confirmBar.IsVisible = asking;
+        ShowToolbar();
         _filterBosses.Background = _session.Filter.BossesOnly ? FilterOn : null;
         _filterKills.Background = _session.Filter.KillsOnly ? FilterOn : null;
 
@@ -683,6 +708,7 @@ public sealed class OverlayWindow : Window
         for (var i = 0; i < _rowControls.Count; i++)
         {
             if (i < rows.Count) _rowControls[i].Show(rows[i]);
+            else if (_dragEdge.HasFlag(ResizeEdge.Bottom)) _rowControls[i].ShowEmpty();
             else _rowControls[i].IsVisible = false;
         }
 
@@ -709,49 +735,177 @@ public sealed class OverlayWindow : Window
         _bossPanel.IsVisible = _bossPanelOpen;
         if (_bossPanelOpen) _bossPanel.Show(_board.Rows(_settings.BossAlertMinutes));
         var summary = _bossPanelOpen ? null : _board.Summary();
-        _nextBoss.IsVisible = summary is not null;
+        _nextBoss.IsVisible = summary is not null && _settings.Shows(OverlayPart.NextBoss);
         _nextBoss.Text = summary;
     }
 
-    private void OnGripPressed(object? sender, PointerPressedEventArgs e)
+    private void OnEdgePressed(object? sender, PointerPressedEventArgs e)
     {
         if (_settings.Locked || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-        e.Pointer.Capture(_grip);
-        _resizing = true;
-        _resizeStartX = this.PointToScreen(e.GetPosition(this)).X;
-        _resizeStartWidth = Width;
+        var edge = EdgeResize.At(e.GetPosition(this), Bounds.Size);
+        if (edge == ResizeEdge.None) return;
+        _dragEdge = edge;
+        _dragStart = this.PointToScreen(e.GetPosition(this));
+        _dragPosition = Position;
+        _dragWidth = Width;
+        _dragRows = _settings.MaxRows;
+        e.Pointer.Capture(this);
+        e.Handled = true;
     }
 
-    private void OnGripMoved(object? sender, PointerEventArgs e)
+    private void OnEdgeMoved(object? sender, PointerEventArgs e)
     {
-        if (!_resizing) return;
-        var screenX = this.PointToScreen(e.GetPosition(this)).X;
-        Width = Math.Clamp(_resizeStartWidth + (screenX - _resizeStartX) / RenderScaling, 280, 2000);
+        if (_dragEdge == ResizeEdge.None)
+        {
+            HoverEdge(_settings.Locked ? ResizeEdge.None : EdgeResize.At(e.GetPosition(this), Bounds.Size));
+            return;
+        }
+        var screen = this.PointToScreen(e.GetPosition(this));
+        var delta = new Vector(screen.X - _dragStart.X, screen.Y - _dragStart.Y) / RenderScaling;
+        var result = EdgeResize.Resize(_dragEdge, _dragWidth, _dragRows, RowControl.Pitch(_settings.RowSize), delta);
+        Width = result.Width;
+        if (_dragEdge.HasFlag(ResizeEdge.Left)) Position = new PixelPoint(_dragPosition.X + (int)Math.Round(result.Shift * RenderScaling), _dragPosition.Y);
+        if (result.Rows != _settings.MaxRows)
+        {
+            _settings.MaxRows = result.Rows;
+            EnsureRows(result.Rows);
+        }
+        Redraw();
+        e.Handled = true;
     }
 
-    private void EndResize(IPointer? pointer)
+    private void OnEdgeReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (!_resizing) return;
-        _resizing = false;
-        pointer?.Capture(null);
+        if (_dragEdge == ResizeEdge.None) return;
+        e.Pointer.Capture(null);
+        EndEdgeDrag();
+        e.Handled = true;
+    }
+
+    private void EndEdgeDrag()
+    {
+        if (_dragEdge == ResizeEdge.None) return;
+        _dragEdge = ResizeEdge.None;
         _settings.OverlayWidth = Width;
+        SaveSettings();
+        Redraw();
     }
+
+    private void HoverEdge(ResizeEdge edge)
+    {
+        if (edge == EdgeUnderPointer) return;
+        EdgeUnderPointer = edge;
+        Cursor = edge == ResizeEdge.None ? null : new Cursor(EdgeResize.CursorFor(edge));
+    }
+
+    private MenuFlyout LayoutFlyout()
+    {
+        var menu = new MenuFlyout();
+        menu.Items.Add(PartItem(OverlayPart.Ping, t => t.LayoutPing));
+        menu.Items.Add(PartItem(OverlayPart.Clock, t => t.LayoutClock));
+        menu.Items.Add(PartItem(OverlayPart.Totals, t => t.LayoutTotals));
+        menu.Items.Add(PartItem(OverlayPart.Source, t => t.LayoutSource));
+        menu.Items.Add(PartItem(OverlayPart.BossBar, t => t.LayoutBossBar));
+        if (_bossPanel is not null) menu.Items.Add(PartItem(OverlayPart.NextBoss, t => t.LayoutNextBoss));
+        menu.Items.Add(Submenu(t => t.LayoutColumns,
+            PartItem(OverlayPart.DpsColumn, _ => "DPS"),
+            PartItem(OverlayPart.DamageColumn, t => t.RowDamage),
+            PartItem(OverlayPart.ShareColumn, _ => "%"),
+            PartItem(OverlayPart.CritColumn, t => t.RowCrit)));
+        var buttons = new List<MenuItem>
+        {
+            PartItem(OverlayPart.LiveButton, t => t.Live),
+            PartItem(OverlayPart.BrowseButtons, t => t.LayoutBrowse),
+            PartItem(OverlayPart.HistoryButton, t => t.OvHistory),
+            PartItem(OverlayPart.SkillsButton, t => t.OvMySkills),
+        };
+        if (_bossPanel is not null) buttons.Add(PartItem(OverlayPart.RespawnsButton, t => t.OvRespawns));
+        buttons.Add(PartItem(OverlayPart.ResetButton, t => t.OvReset));
+        buttons.Add(PartItem(OverlayPart.ViewButton, t => $"{t.RowDamage} / {t.OvHealing}"));
+        buttons.Add(PartItem(OverlayPart.ModeButton, t => $"{t.OvAll} / {t.FilterBosses}"));
+        buttons.Add(PartItem(OverlayPart.CopyButton, t => t.OvCopyDps));
+        buttons.Add(PartItem(OverlayPart.LockButton, t => t.OvLock));
+        buttons.Add(PartItem(OverlayPart.LanguageButton, t => t.LanguageMenu));
+        menu.Items.Add(Submenu(t => t.LayoutButtons, [.. buttons]));
+        menu.Items.Add(PartItem(OverlayPart.Shortcuts, t => t.LayoutShortcuts));
+        menu.Items.Add(new Separator());
+        var more = new MenuItem();
+        Text(() => more.Header = UiText.Current.LayoutMore);
+        more.Click += (_, _) => Apply(OverlayCommand.Settings);
+        menu.Items.Add(more);
+        menu.Opening += (_, _) => SyncLayoutMenu();
+        return menu;
+    }
+
+    private MenuItem Submenu(Func<UiText, string> text, params MenuItem[] items)
+    {
+        var submenu = new MenuItem { ItemsSource = items };
+        Text(() => submenu.Header = text(UiText.Current));
+        return submenu;
+    }
+
+    private MenuItem PartItem(OverlayPart part, Func<UiText, string> text)
+    {
+        var item = new MenuItem { ToggleType = MenuItemToggleType.CheckBox, StaysOpenOnClick = true };
+        Text(() => item.Header = text(UiText.Current));
+        item.Click += (_, _) => SetPartShown(part, !_settings.Shows(part));
+        _partItems.Add((part, item));
+        return item;
+    }
+
+    private void SyncLayoutMenu()
+    {
+        foreach (var (part, item) in _partItems) item.IsChecked = _settings.Shows(part);
+    }
+
+    private void SetPartShown(OverlayPart part, bool shown)
+    {
+        _settings.SetShown(part, shown);
+        SaveSettings();
+        ApplyParts();
+        Refresh();
+    }
+
+    private T Part<T>(OverlayPart part, T control) where T : Control
+    {
+        if (!_partControls.TryGetValue(part, out var controls)) _partControls[part] = controls = [];
+        controls.Add(control);
+        return control;
+    }
+
+    private void ApplyParts()
+    {
+        _time.IsVisible = _settings.Shows(OverlayPart.Clock);
+        _totals.IsVisible = _settings.Shows(OverlayPart.Totals);
+        _source.IsVisible = _settings.Shows(OverlayPart.Source);
+        var columns = ColumnsShown();
+        if (_columnHeader is not null) RowControl.ShowColumns(_columnHeader, _columnCells, columns);
+        foreach (var row in _rowControls) row.ShowColumns(columns);
+        foreach (var (part, controls) in _partControls)
+            foreach (var control in controls) control.IsVisible = _settings.Shows(part);
+        ShowShortcutHint();
+        ShowToolbar();
+        SyncLayoutMenu();
+    }
+
+    private void ShowToolbar() => _toolbar.IsVisible = !_settings.Locked && _toolbar.Children.Any(c => c.IsVisible);
 
     private void ShowShortcutHint()
     {
         var text = ShortcutHints.Footer(_shortcuts, _settings.Locked);
         _shortcutHint.Text = text;
-        _shortcutHint.IsVisible = text is not null;
+        _shortcutHint.IsVisible = text is not null && _settings.Shows(OverlayPart.Shortcuts);
     }
 
     private void ApplyLock()
     {
         var locked = _settings.Locked;
         ShowShortcutHint();
-        _grip.IsVisible = !locked;
         _bossPanel?.ShowActions(!locked);
-        _toolbar.IsVisible = !locked;
+        ShowToolbar();
         _close.IsVisible = !locked;
+        LayoutButton.IsVisible = !locked;
+        if (locked) HoverEdge(ResizeEdge.None);
         if (locked) _historyPanel.IsVisible = false;
         _frame.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round((locked ? _settings.LockedOpacity : _settings.BackgroundOpacity) * 255), 0x0A, 0x0E, 0x16));
         _frame.BorderThickness = new Thickness(1);

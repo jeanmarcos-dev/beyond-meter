@@ -8,7 +8,7 @@ namespace AionMeter.Tests;
 public sealed class UiTextTests
 {
     private static readonly HashSet<string> SameInSpanish =
-        ["ColDps", "TileDps", "ThDps", "Seconds", "HoursShort", "MinutesShort", "Wipe", "SecOverlay", "OvError", "OvMinutes", "OvNo"];
+        ["ColDps", "TileDps", "ThDps", "Seconds", "HoursShort", "MinutesShort", "Wipe", "SecOverlay", "OvError", "OvMinutes", "OvNo", "LayoutPing"];
 
     private static readonly HashSet<string> SameInRussian = ["TileDps", "ThDps"];
 
