@@ -56,7 +56,7 @@ commands to desktop shortcuts to use them while playing.
 | `demo` | Play a 45-second fake fight in the running overlay; it is never saved |
 | `breakdown` | Open the fight breakdown window for your own character (see Fight breakdown) |
 | `copy` / `copyself` | Copy the party line or your own line for the game chat (180 characters max) |
-| `mode` | Switch between counting boss damage only (`Bosses`) and everything you hit (`All`) |
+| `mode` | Switch between counting boss damage only (`Bosses`: hits on regular mobs open no fight, so the last boss stays on screen) and everything you hit (`All`) |
 | `heal` | Switch the table between the damage view (`Damage`) and the healing view (`Healing`: HPS, total and share of the group, healers only); the chosen view is kept while browsing the history, and the copy lines stay damage-based |
 | `reload` | Re-read `settings.json` and apply it without restarting |
 | `record` | Start or stop recording the game traffic to a `.pcap` (see Recording and replay) |
@@ -217,7 +217,7 @@ interface stays in Spanish and its `Language` becomes `NamesLanguage`. `overlay.
 | `AutoHideSeconds` | `60` | 0–600 | Seconds without combat before a locked overlay hides itself; `0` never hides it |
 | `ShowOnStart` | `true` | `true` / `false` | Show the overlay when the meter or the game starts |
 | `BossAlertMinutes` | `2` | 0–30 | Minutes before a watched boss respawns that the alert fires; `0` turns alerts off |
-| `TargetMode` | `BossOnly` | `BossOnly`, `All` | Count boss damage only, or everything you hit |
+| `TargetMode` | `BossOnly` | `BossOnly`, `All` | Count boss damage only (hits on regular mobs open no fight and nothing but boss fights is saved), or everything you hit |
 | `BarsRelativeToTop` | `true` | `true` / `false` | The leader's bar is full and the rest are sized against it |
 | `MaxRows` | `10` | 1–20 | Player rows |
 | `RowSize` | `100` | 50–100 | Row size in percent |
@@ -242,8 +242,9 @@ interface stays in Spanish and its `Language` becomes `NamesLanguage`. `overlay.
 | `BreakdownWidth`, `BreakdownHeight` | `960`, `640` | 480–3000, 320–2000 | Size of the breakdown window; written when it closes |
 | `LayoutVersion` | `4` | number | Format version, written by the app |
 
-Fights shorter than 5 seconds are never saved. The default `HistoryMode` keeps bosses and fights of at least 20
-seconds, so that `All` targets do not fill the history with single mobs.
+Fights shorter than 5 seconds are never saved. With `TargetMode` `BossOnly` there are only boss fights to save. With
+`All`, the default `HistoryMode` keeps bosses and fights of at least 20 seconds, so that single mobs do not fill the
+history.
 
 ## Files
 

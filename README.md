@@ -62,14 +62,14 @@ driver — see [Installation](#installation).
   hide it in *Settings → Overlay*.
 - **Your layout** — the `⚙` in the overlay's header shows or hides each part: ping, clock, totals, boss bar, each
   column and each button. Drag the left or right edge to change the width and the bottom edge to add or remove rows.
-- **Shows up when you fight** — the overlay appears when a boss is fought nearby or you hit anything, and hides again
-  60 s after the fight. Lock it in place, make it click-through, set the opacity. It never takes focus from the game.
+- **Shows up when you fight** — the overlay appears when a boss is fought nearby or, with *ALL*, when you hit
+  anything, and hides again 60 s after the fight. Lock it in place, make it click-through, set the opacity. It never takes focus from the game.
 - **Full breakdown** — click a player for their fight: DPS timeline against the party, every skill with hits, damage,
   DPS, average and biggest hit, crit rate and share.
 - **Accuracy and rotation** — crit, back, front, perfect and smite rates per skill, and every cast in order with crits
   ringed in gold.
-- **Fight history** — boss fights (and longer regular ones) are saved automatically; scroll through them right in the
-  overlay or browse the history window.
+- **Fight history** — boss fights (and, with *ALL*, longer regular ones) are saved automatically; scroll through them
+  right in the overlay or browse the history window.
 - **Field boss timers from the game** — open the field boss list on the in-game map once and the meter keeps every
   respawn counting down, per server, with a tray alert before a boss you watch returns.
 - **Share in chat** — the chat button on the overlay (or a right-click on a player) copies a one-line result for the game chat, with units, places and the boss result spelled out, or the ranking as a table for Discord.
@@ -131,7 +131,7 @@ supported) · Npcap · about 200 MB of disk space.
 | left-click a player | open the breakdown |
 | column header in the breakdown | sort the skills by it (skill, hits, damage, DPS, avg, max, crit, share, accuracy columns); click again to reverse |
 | right-click a player, or 💬 on the toolbar | copy for chat: one player's result or the party ranking as one line for the game chat, or the ranking as a table for Discord; paste with <kbd>Ctrl</kbd>+<kbd>V</kbd> |
-| **BOSS / ALL** chip | count only the boss, or everything you hit |
+| **BOSS / ALL** chip | *BOSS* (the default) counts bosses only: hitting a regular mob opens no fight, so the last boss stays on screen and only boss fights are saved; *ALL* counts everything you hit |
 | **EN / RU** chip | interface and name language (English by default; also in Settings and the tray menu) |
 | *Fights* in the footer | pick a fight: live, this session's, or saved ones by day |
 | clock button / gold *Boss timers* pill | boss respawn timers |
@@ -141,15 +141,16 @@ supported) · Npcap · about 200 MB of disk space.
 
 Hotkeys can be changed in Settings. The toolbar appears when the mouse is over the overlay.
 
-The overlay **shows up by itself** when a boss is fought nearby or you hit anything, and hides 60 s after the fight if
-it came up by itself (*Settings → Overlay*). Hide it by hand during a fight and it stays hidden until the next one.
+The overlay **shows up by itself** when a boss is fought nearby or, with *ALL*, when you hit anything, and hides 60 s
+after the fight if it came up by itself (*Settings → Overlay*). Hide it by hand during a fight and it stays hidden until the next one.
 It also comes up when the meter starts and when the game starts (once per launch of the game), and starting the meter
 again — say, from the desktop shortcut — simply brings the overlay up.
 
 ### Fight history
 
 Fights are saved to `%AppData%\AionMeter\fights` (one file per fight plus `index.jsonl`). By default: every boss fight
-and regular fights longer than 20 s — change it in *Settings → Fight history*. Open a saved fight in the overlay (fights
+and, with *ALL*, regular fights longer than 20 s — change it in *Settings → Fight history*. With *BOSS* only boss
+fights are saved, whatever that setting says. Open a saved fight in the overlay (fights
 button or mouse wheel over the title) or in the *Fight history* window (filters All / Bosses / Kills, *Show in
 overlay*). When a new fight starts, the overlay returns to live by itself.
 
