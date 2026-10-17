@@ -86,6 +86,17 @@ public sealed class LanguageSwitchTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void Spanish_settings_offer_boss_only_and_everything_you_hit()
+    {
+        UiText.Use("es");
+        var window = Open();
+        window.SettingsSource = () => new SettingsContext(false, ["en"], [], "", "", false, _ => { }, "", "", "");
+        window.Apply(OverlayCommand.Settings);
+
+        Assert.Equal(["Solo jefes", "Todo lo que golpeas"], window.SettingsDialog!.Mode.Items.Cast<string>());
+    }
+
+    [AvaloniaFact]
     public void Saving_russian_in_settings_switches_the_overlay_at_once()
     {
         var window = Open();

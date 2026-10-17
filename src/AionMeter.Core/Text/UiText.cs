@@ -327,7 +327,7 @@ public sealed partial class UiText
     public string RowSizeHint { get; init; } = "Also right on the overlay: Ctrl + mouse wheel over the rows.";
     public string SecMeter { get; init; } = "METER";
     public string Measure { get; init; } = "Measure";
-    public string MeasureBoss { get; init; } = "Boss only (falls back to all)";
+    public string MeasureBoss { get; init; } = "Boss only";
     public string MeasureAll { get; init; } = "Everything you hit";
     public string IdleEnd { get; init; } = "End fight after idle (s)";
     public string IdleBoss { get; init; } = "… while boss alive (s)";
@@ -761,7 +761,7 @@ public sealed partial class UiText
         RowSizeHint = "Или прямо на оверлее: Ctrl + колесо мыши над строками.",
         SecMeter = "МЕТР",
         Measure = "Считать",
-        MeasureBoss = "Только босса (иначе всё)",
+        MeasureBoss = "Только боссы",
         MeasureAll = "Всё, по чему бьёте",
         IdleEnd = "Конец боя после простоя (с)",
         IdleBoss = "… пока босс жив (с)",

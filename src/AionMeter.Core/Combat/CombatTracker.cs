@@ -233,8 +233,8 @@ public sealed class CombatTracker
 
         if (Options.TargetMode == TargetMode.BossOnly)
         {
-            if (_current is { IsActive: true, BossId: not null } && !npc.IsBoss) return; // adds during a boss fight
-            if (_current is { IsActive: true, BossId: null } && npc.IsBoss && _current.TotalDamage > 0)
+            if (!npc.IsBoss) return;
+            if (_current is { IsActive: true, BossId: null } && _current.TotalDamage > 0)
                 Finish(EncounterEndReason.Idle, _current.LastDamageMs); // trash segment ends when the boss is pulled
         }
 

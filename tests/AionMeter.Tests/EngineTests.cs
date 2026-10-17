@@ -264,8 +264,11 @@ public class EngineTests
         t.Process(new SelfIdentifiedEvent(0, Me, "Sylvaen", 2305, GameClass.Elementalist));
         t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 100_000, HitFlags.None));
         t.Process(new NpcHpEvent(1_100, Boss, 8_078_420, 0)); // first sight, mid-fight: its real max is higher
+        t.Process(new DamageEvent(1_200, Me, Boss, 16040000, 100_000, HitFlags.None));
 
-        var boss = t.Snapshot(null, 2_000)!.Boss!;
+        var snapshot = t.Snapshot(null, 2_000)!;
+        Assert.Equal(100_000, snapshot.TotalDamage);
+        var boss = snapshot.Boss!;
         Assert.Equal(0, boss.NpcCode);
         Assert.Equal(8_078_420, boss.MaxHp);
         Assert.False(boss.MaxHpKnown);
@@ -643,5 +646,115 @@ public class EngineTests
         Assert.Single(saved);
         Assert.Equal(EncounterEndReason.Idle, saved[0].Summary.Reason);
         Assert.Equal(2_000, saved[0].Summary.CombatMs);
+    }
+
+
+    [Fact]
+    public void Hitting_a_mob_opens_no_fight_in_boss_mode()
+    {
+        var t = Tracker();
+        Setup(t);
+
+        t.Process(new DamageEvent(1_000, Me, Add, 16040000, 9_999, HitFlags.None));
+
+        Assert.Empty(t.Segments());
+        Assert.Null(t.LiveFight());
+        Assert.Null(t.Snapshot(null, 2_000));
+    }
+
+    [Fact]
+    public void The_boss_result_stays_while_mobs_are_hit_after_the_kill()
+    {
+        var t = Tracker();
+        var saved = new List<FightRecord>();
+        t.EncounterFinished += saved.Add;
+        Setup(t);
+        t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        t.Process(new NpcHpEvent(2_000, Boss, 0, 120_000_000));
+
+        for (var time = 10_000L; time <= 300_000; time += 10_000)
+        {
+            t.Process(new DamageEvent(time, Me, Add, 16040000, 9_999, HitFlags.None));
+            t.Tick(time + 5_000);
+        }
+
+        var shown = t.Snapshot(null, 310_000)!;
+        Assert.Equal(Boss, shown.Boss!.ActorId);
+        Assert.False(shown.IsActive);
+        Assert.Single(saved);
+        Assert.Single(t.Segments());
+        Assert.Null(t.LiveFight());
+    }
+
+    [Fact]
+    public void Another_boss_replaces_the_shown_result_in_boss_mode()
+    {
+        const uint Second = 502;
+        var t = Tracker();
+        Setup(t);
+        t.Process(new NpcSeenEvent(0, Second, 2300244, 80_000_000));
+        t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        t.Process(new NpcHpEvent(2_000, Boss, 0, 120_000_000));
+        t.Process(new DamageEvent(5_000, Me, Add, 16040000, 9_999, HitFlags.None));
+
+        t.Process(new DamageEvent(8_000, Me, Second, 16040000, 500_000, HitFlags.None));
+
+        var shown = t.Snapshot(null, 9_000)!;
+        Assert.True(shown.IsActive);
+        Assert.Equal(Second, shown.Boss!.ActorId);
+        Assert.Equal(500_000, shown.TotalDamage);
+    }
+
+    [Fact]
+    public void Adds_neither_count_nor_keep_the_boss_fight_open()
+    {
+        var t = Tracker();
+        Setup(t);
+        t.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        t.Process(new DamageEvent(20_000, Me, Add, 16040000, 9_999, HitFlags.None));
+
+        t.Tick(31_500);
+
+        var fight = Assert.Single(t.Segments());
+        Assert.Equal(EncounterEndReason.Idle, fight.Reason);
+        Assert.Equal(1_000_000, fight.TotalDamage);
+    }
+
+    [Fact]
+    public void Healing_between_mobs_opens_no_fight_in_boss_mode()
+    {
+        var t = HealingFight(out _);
+        t.Process(new DamageEvent(1_000, Me, Add, 16040000, 9_999, HitFlags.None));
+
+        t.Process(new HealEvent(1_500, Cleric, Me, 20000001, 40_000, HitFlags.None));
+
+        Assert.Empty(t.Segments());
+    }
+
+    [Fact]
+    public void A_training_dummy_opens_a_fight_in_boss_mode()
+    {
+        const uint Dummy = 700;
+        var data = GameData.Empty;
+        data.Npcs[2999001] = new NpcDef(2999001, "Training Dummy", IsBoss: false, IsDummy: true);
+        var t = new CombatTracker(data, new MeterOptions { TargetMode = TargetMode.BossOnly });
+        Setup(t);
+        t.Process(new NpcSeenEvent(0, Dummy, 2999001, 10_000));
+
+        t.Process(new DamageEvent(1_000, Me, Dummy, 16040000, 5_000, HitFlags.None));
+
+        Assert.NotNull(t.LiveFight());
+    }
+
+    [Fact]
+    public void Hitting_a_mob_opens_a_fight_in_all_mode()
+    {
+        var t = Tracker(TargetMode.All);
+        Setup(t);
+
+        t.Process(new DamageEvent(1_000, Me, Add, 16040000, 9_999, HitFlags.None));
+
+        Assert.NotNull(t.LiveFight());
+        Assert.Equal(9_999, Assert.Single(t.Segments()).TotalDamage);
     }
 }

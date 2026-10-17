@@ -265,7 +265,7 @@ public sealed partial class UiText
         RowSizeHint = "También en el overlay: Ctrl + rueda del mouse sobre las filas.",
         SecMeter = "MEDIDOR",
         Measure = "Medir",
-        MeasureBoss = "Solo jefes (si no hay, todo)",
+        MeasureBoss = "Solo jefes",
         MeasureAll = "Todo lo que golpeas",
         IdleEnd = "Terminar la pelea tras inactividad (s)",
         IdleBoss = "… con el jefe vivo (s)",

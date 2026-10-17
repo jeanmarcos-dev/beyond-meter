@@ -84,8 +84,27 @@ public sealed class SimulatedFightTests : IDisposable
         Assert.False(session.ReplayingFile);
     }
 
-    private MeterSession Session(IEventSource? capture) =>
-        new(new CombatTracker(GameData.Empty, new MeterOptions { TargetMode = TargetMode.All }), new HistoryStore(Path.Combine(_dir, "fights")), capture, null, new HistoryPolicy(HistoryMode.All, 5));
+    [Fact]
+    public void Boss_mode_saves_boss_fights_only_even_when_every_fight_is_kept()
+    {
+        const uint Mob = 501;
+        var live = new ScriptedSource();
+        var session = Session(live, TargetMode.BossOnly);
+        session.Start();
+        live.Emit(new SelfIdentifiedEvent(0, Me, "Ilvane", 1304, GameClass.Elementalist));
+        live.Emit(new NpcSeenEvent(0, Mob, 2000002, 50_000));
+
+        for (var t = 1_000L; t <= 60_000; t += 1_000) live.Emit(new DamageEvent(t, Me, Mob, 16040000, 1_000, HitFlags.None));
+        session.Tracker.Tick(120_000);
+        Assert.Empty(session.History.List());
+
+        Fight(live, 200_000);
+        session.Tracker.Tick(300_000);
+        Assert.Single(session.History.List());
+    }
+
+    private MeterSession Session(IEventSource? capture, TargetMode mode = TargetMode.All) =>
+        new(new CombatTracker(GameData.Empty, new MeterOptions { TargetMode = mode }), new HistoryStore(Path.Combine(_dir, "fights")), capture, null, new HistoryPolicy(HistoryMode.All, 5));
 
     private static void Fight(ScriptedSource source, long start)
     {

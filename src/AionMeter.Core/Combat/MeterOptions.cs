@@ -2,7 +2,7 @@ namespace AionMeter.Core.Combat;
 
 public enum TargetMode
 {
-    /// <summary>Count damage to bosses only; falls back to everything while no boss is engaged.</summary>
+    /// <summary>Count damage to bosses only; hits on other NPCs never open or extend a fight.</summary>
     BossOnly,
     All,
 }
